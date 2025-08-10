@@ -1,44 +1,20 @@
-import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import LoadingSpinner from '../components/LoadingSpinner';
+// src/routes/AppRoutes.jsx
+import { Routes, Route } from "react-router-dom";
+import LandingPage from "../pages/LandingPage";
+import DashboardUser from "../pages/user/DashboardUser";
+import DashboardAdmin from "../pages/admin/Dashboard";
+import LoginPage from "../pages/auth/Login";
+import RegisterPage from "../pages/auth/Register";
 
-const Login = lazy(() => import('../pages/auth/Login'));
-const Register = lazy(() => import('../pages/auth/Register'));
-const Dashboard = lazy(() => import('../pages/Dashboard'));
-const PerencanaanForm = lazy(() => import('../pages/forms/PerencanaanForm'));
-const ImplementasiForm = lazy(() => import('../pages/forms/ImplementasiForm'));
-const MonitoringForm = lazy(() => import('../pages/forms/MonitoringForm'));
-
-const AppRoutes = () => {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
+export default function AppRoutes() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <Routes>
-        <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
-        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
-        <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
-        <Route
-          path="/perencanaan"
-          element={isAuthenticated ? <PerencanaanForm /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/implementasi"
-          element={isAuthenticated ? <ImplementasiForm /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/monitoring"
-          element={isAuthenticated ? <MonitoringForm /> : <Navigate to="/login" />}
-        />
-        <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/login'} />} />
-      </Routes>
-    </Suspense>
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/user/*" element={<DashboardUser />} />
+      <Route path="/admin/*" element={<DashboardAdmin />} />
+      <Route path="*" element={<h1>404 - Page Not Found</h1>} />
+    </Routes>
   );
-};
-
-export default AppRoutes;
+}
