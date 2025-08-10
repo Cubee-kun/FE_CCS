@@ -34,13 +34,23 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       const response = await api.post('/login', credentials);
-      localStorage.setItem('token', response.data.token);
-      const decoded = jwtDecode(response.data.token);
-      setUser(decoded);
+      
+      // Perhatikan perubahan di sini:
+      localStorage.setItem('token', response.data.access_token); // Gunakan access_token bukan token
+      const decoded = jwtDecode(response.data.access_token);
+      
+      setUser({
+        ...decoded,
+        ...response.data.user // Tambahkan data user dari response
+      });
+      
       setIsAuthenticated(true);
-      return { success: true };
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, message: error.response?.data?.message || 'Login failed' };
+      return { 
+        success: false, 
+        message: error.response?.data?.error || error.response?.data?.message || 'Login failed' 
+      };
     }
   };
 

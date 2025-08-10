@@ -58,141 +58,151 @@ const PerencanaanForm = () => {
   });
 
   return (
-    <Container maxWidth="md">
-      <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
-        <Typography variant="h5" gutterBottom>
-          Form Perencanaan Kegiatan
-        </Typography>
-
-        {success && (
-          <Typography color="success.main" sx={{ mb: 2 }}>
-            Data berhasil disimpan!
-          </Typography>
-        )}
-
-        <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Nama Perusahaan"
-            name="nama_perusahaan"
-            value={formik.values.nama_perusahaan}
-            onChange={formik.handleChange}
-            error={formik.touched.nama_perusahaan && Boolean(formik.errors.nama_perusahaan)}
-            helperText={formik.touched.nama_perusahaan && formik.errors.nama_perusahaan}
-          />
-
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Nama PIC"
-            name="nama_pic"
-            value={formik.values.nama_pic}
-            onChange={formik.handleChange}
-            error={formik.touched.nama_pic && Boolean(formik.errors.nama_pic)}
-            helperText={formik.touched.nama_pic && formik.errors.nama_pic}
-          />
-
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Narahubung"
-            name="narahubung"
-            value={formik.values.narahubung}
-            onChange={formik.handleChange}
-            error={formik.touched.narahubung && Boolean(formik.errors.narahubung)}
-            helperText={formik.touched.narahubung && formik.errors.narahubung}
-          />
-
-          <FormControl component="fieldset" sx={{ mt: 2, width: '100%' }}>
-            <FormLabel component="legend">Jenis Kegiatan</FormLabel>
-            <RadioGroup
-              row
-              name="jenis_kegiatan"
-              value={formik.values.jenis_kegiatan}
-              onChange={formik.handleChange}
+    <div className="flex justify-center items-center min-h-screen bg-gray-100">
+      <div className="w-full max-w-2xl px-4">
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h1 className="text-2xl font-bold mb-6 text-gray-800 text-center">
+            Form Perencanaan Kegiatan
+          </h1>
+          {success && (
+            <div className="mb-4 text-green-700 bg-green-100 border border-green-300 rounded px-4 py-2 text-center">
+              Data berhasil disimpan!
+            </div>
+          )}
+          <form onSubmit={formik.handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Nama Perusahaan</label>
+              <input
+                type="text"
+                name="nama_perusahaan"
+                value={formik.values.nama_perusahaan}
+                onChange={formik.handleChange}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 ${formik.touched.nama_perusahaan && formik.errors.nama_perusahaan ? 'border-red-500' : 'border-gray-300'}`}
+              />
+              {formik.touched.nama_perusahaan && formik.errors.nama_perusahaan && (
+                <p className="text-red-500 text-sm mt-1">{formik.errors.nama_perusahaan}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Nama PIC</label>
+              <input
+                type="text"
+                name="nama_pic"
+                value={formik.values.nama_pic}
+                onChange={formik.handleChange}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 ${formik.touched.nama_pic && formik.errors.nama_pic ? 'border-red-500' : 'border-gray-300'}`}
+              />
+              {formik.touched.nama_pic && formik.errors.nama_pic && (
+                <p className="text-red-500 text-sm mt-1">{formik.errors.nama_pic}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Narahubung</label>
+              <input
+                type="text"
+                name="narahubung"
+                value={formik.values.narahubung}
+                onChange={formik.handleChange}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 ${formik.touched.narahubung && formik.errors.narahubung ? 'border-red-500' : 'border-gray-300'}`}
+              />
+              {formik.touched.narahubung && formik.errors.narahubung && (
+                <p className="text-red-500 text-sm mt-1">{formik.errors.narahubung}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Jenis Kegiatan</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="jenis_kegiatan"
+                    value="Planting Mangrove"
+                    checked={formik.values.jenis_kegiatan === "Planting Mangrove"}
+                    onChange={formik.handleChange}
+                    className="accent-green-600"
+                  />
+                  Planting Mangrove
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="jenis_kegiatan"
+                    value="Coral Transplanting"
+                    checked={formik.values.jenis_kegiatan === "Coral Transplanting"}
+                    onChange={formik.handleChange}
+                    className="accent-green-600"
+                  />
+                  Coral Transplanting
+                </label>
+              </div>
+              {formik.touched.jenis_kegiatan && formik.errors.jenis_kegiatan && (
+                <p className="text-red-500 text-sm mt-1">{formik.errors.jenis_kegiatan}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Lokasi</label>
+              <input
+                type="text"
+                name="lokasi"
+                value={formik.values.lokasi}
+                onChange={formik.handleChange}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 ${formik.touched.lokasi && formik.errors.lokasi ? 'border-red-500' : 'border-gray-300'}`}
+              />
+              {formik.touched.lokasi && formik.errors.lokasi && (
+                <p className="text-red-500 text-sm mt-1">{formik.errors.lokasi}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Jumlah Bibit yang Ditanam</label>
+              <input
+                type="number"
+                name="jumlah_bibit"
+                value={formik.values.jumlah_bibit}
+                onChange={formik.handleChange}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 ${formik.touched.jumlah_bibit && formik.errors.jumlah_bibit ? 'border-red-500' : 'border-gray-300'}`}
+              />
+              {formik.touched.jumlah_bibit && formik.errors.jumlah_bibit && (
+                <p className="text-red-500 text-sm mt-1">{formik.errors.jumlah_bibit}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Jenis Bibit Tanaman</label>
+              <input
+                type="text"
+                name="jenis_bibit"
+                value={formik.values.jenis_bibit}
+                onChange={formik.handleChange}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 ${formik.touched.jenis_bibit && formik.errors.jenis_bibit ? 'border-red-500' : 'border-gray-300'}`}
+              />
+              {formik.touched.jenis_bibit && formik.errors.jenis_bibit && (
+                <p className="text-red-500 text-sm mt-1">{formik.errors.jenis_bibit}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Tanggal Pelaksanaan</label>
+              <input
+                type="date"
+                name="tanggal_pelaksanaan"
+                value={formik.values.tanggal_pelaksanaan}
+                onChange={formik.handleChange}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 ${formik.touched.tanggal_pelaksanaan && formik.errors.tanggal_pelaksanaan ? 'border-red-500' : 'border-gray-300'}`}
+              />
+              {formik.touched.tanggal_pelaksanaan && formik.errors.tanggal_pelaksanaan && (
+                <p className="text-red-500 text-sm mt-1">{formik.errors.tanggal_pelaksanaan}</p>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-green-700 hover:bg-green-800 text-white font-semibold py-3 rounded-lg transition duration-200"
             >
-              <FormControlLabel
-                value="Planting Mangrove"
-                control={<Radio />}
-                label="Planting Mangrove"
-              />
-              <FormControlLabel
-                value="Coral Transplanting"
-                control={<Radio />}
-                label="Coral Transplanting"
-              />
-            </RadioGroup>
-            {formik.touched.jenis_kegiatan && formik.errors.jenis_kegiatan && (
-              <Typography color="error" variant="caption">
-                {formik.errors.jenis_kegiatan}
-              </Typography>
-            )}
-          </FormControl>
-
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Lokasi"
-            name="lokasi"
-            value={formik.values.lokasi}
-            onChange={formik.handleChange}
-            error={formik.touched.lokasi && Boolean(formik.errors.lokasi)}
-            helperText={formik.touched.lokasi && formik.errors.lokasi}
-          />
-
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Jumlah Bibit yang Ditanam"
-            name="jumlah_bibit"
-            type="number"
-            value={formik.values.jumlah_bibit}
-            onChange={formik.handleChange}
-            error={formik.touched.jumlah_bibit && Boolean(formik.errors.jumlah_bibit)}
-            helperText={formik.touched.jumlah_bibit && formik.errors.jumlah_bibit}
-          />
-
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Jenis Bibit Tanaman"
-            name="jenis_bibit"
-            value={formik.values.jenis_bibit}
-            onChange={formik.handleChange}
-            error={formik.touched.jenis_bibit && Boolean(formik.errors.jenis_bibit)}
-            helperText={formik.touched.jenis_bibit && formik.errors.jenis_bibit}
-          />
-
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Tanggal Pelaksanaan"
-            name="tanggal_pelaksanaan"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={formik.values.tanggal_pelaksanaan}
-            onChange={formik.handleChange}
-            error={
-              formik.touched.tanggal_pelaksanaan && Boolean(formik.errors.tanggal_pelaksanaan)
-            }
-            helperText={
-              formik.touched.tanggal_pelaksanaan && formik.errors.tanggal_pelaksanaan
-            }
-          />
-
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={submitting}
-            sx={{ mt: 3, py: 1.5, width: '100%' }}
-          >
-            {submitting ? 'Menyimpan...' : 'Simpan'}
-          </Button>
-        </Box>
-      </Paper>
-    </Container>
+              {submitting ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
   );
-};
+}
 
 export default PerencanaanForm;

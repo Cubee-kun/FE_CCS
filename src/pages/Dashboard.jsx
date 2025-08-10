@@ -1,15 +1,24 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Grid, Card, CardContent, Button } from '@mui/material';
 import { PieChart, BarChart } from '../components/Charts';
 import api from '../api/axios';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { 
+  FiLogOut, 
+  FiCalendar, 
+  FiCheckCircle, 
+  FiMonitor, 
+  FiUser,
+  FiChevronDown,
+  FiClock
+} from 'react-icons/fi';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,108 +39,258 @@ const Dashboard = () => {
     return <LoadingSpinner />;
   }
 
+  const statCards = [
+    {
+      title: 'Total Perencanaan',
+      value: stats?.total_perencanaan || 0,
+      icon: <FiCalendar className="text-2xl" />,
+      color: 'bg-emerald-100 text-emerald-700',
+      trend: '12% increase',
+      trendColor: 'text-emerald-600'
+    },
+    {
+      title: 'Implementasi',
+      value: stats?.total_implementasi || 0,
+      icon: <FiCheckCircle className="text-2xl" />,
+      color: 'bg-blue-100 text-blue-700',
+      trend: '8% increase',
+      trendColor: 'text-blue-600'
+    },
+    {
+      title: 'Monitoring',
+      value: stats?.total_monitoring || 0,
+      icon: <FiMonitor className="text-2xl" />,
+      color: 'bg-amber-100 text-amber-700',
+      trend: '5% increase',
+      trendColor: 'text-amber-600'
+    },
+    {
+      title: 'User Aktif',
+      value: '24',
+      icon: <FiUser className="text-2xl" />,
+      color: 'bg-violet-100 text-violet-700',
+      trend: '3 new users',
+      trendColor: 'text-violet-600'
+    }
+  ];
+
+  const activities = [
+    {
+      id: 1,
+      title: 'Perencanaan baru disubmit',
+      time: '2 jam yang lalu',
+      icon: <FiCalendar className="text-blue-500" />
+    },
+    {
+      id: 2,
+      title: 'Implementasi selesai',
+      time: '5 jam yang lalu',
+      icon: <FiCheckCircle className="text-emerald-500" />
+    },
+    {
+      id: 3,
+      title: 'Monitoring terbaru',
+      time: '1 hari yang lalu',
+      icon: <FiMonitor className="text-amber-500" />
+    }
+  ];
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
-        <Typography variant="h4">Dashboard CCS</Typography>
-        <Button variant="outlined" color="error" onClick={logout}>
-          Logout
-        </Button>
-      </Box>
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-blue-50 to-emerald-50">
+      {/* Header */}
+      <header className="bg-white shadow sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <h1 className="text-2xl font-bold text-gray-900">Carbon Credit System</h1>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                  <FiUser className="text-indigo-600 text-lg" />
+                </div>
+                <span className="text-sm font-medium text-gray-700">{user?.name}</span>
+              </div>
+              <button
+                onClick={logout}
+                className="flex items-center text-sm text-gray-500 hover:text-red-600 transition-colors"
+              >
+                <FiLogOut className="mr-1" /> Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
 
-      <Typography variant="h6" gutterBottom>
-        Selamat datang, {user?.name}
-      </Typography>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Welcome Banner */}
+        <div className="bg-gradient-to-r from-blue-600 to-emerald-600 rounded-xl p-6 mb-8 text-white shadow-md flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold mb-1">Selamat datang, {user?.name}!</h2>
+            <p className="opacity-90">Anda login sebagai <span className="font-semibold">{user?.role}</span></p>
+            <div className="flex items-center mt-3 text-sm opacity-80">
+              <FiClock className="mr-1" />
+              <span>
+                Terakhir login: {new Date().toLocaleDateString('id-ID', { 
+                  weekday: 'long', 
+                  day: 'numeric', 
+                  month: 'long', 
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 md:mt-0 flex gap-2">
+            <button
+              onClick={() => navigate('/perencanaan')}
+              className="bg-white text-blue-600 font-semibold px-4 py-2 rounded-lg shadow hover:bg-blue-50 transition"
+            >
+              + Perencanaan
+            </button>
+            <button
+              onClick={() => navigate('/implementasi')}
+              className="bg-white text-emerald-600 font-semibold px-4 py-2 rounded-lg shadow hover:bg-emerald-50 transition"
+            >
+              + Implementasi
+            </button>
+            <button
+              onClick={() => navigate('/monitoring')}
+              className="bg-white text-amber-600 font-semibold px-4 py-2 rounded-lg shadow hover:bg-amber-50 transition"
+            >
+              + Monitoring
+            </button>
+          </div>
+        </div>
 
-      <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Total Perencanaan
-              </Typography>
-              <Typography variant="h4">{stats?.total_perencanaan || 0}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Implementasi
-              </Typography>
-              <Typography variant="h4">{stats?.total_implementasi || 0}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Monitoring
-              </Typography>
-              <Typography variant="h4">{stats?.total_monitoring || 0}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+        {/* Tabs Navigation */}
+        <div className="border-b border-gray-200 mb-8">
+          <nav className="-mb-px flex space-x-8">
+            {['overview', 'reports', 'activity'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`${activeTab === tab 
+                  ? 'border-blue-500 text-blue-600' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors`}
+              >
+                {tab}
+              </button>
+            ))}
+          </nav>
+        </div>
 
-      <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Jenis Kegiatan
-              </Typography>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {statCards.map((card, index) => (
+            <div key={index} className="bg-white rounded-lg shadow p-6 transition-all hover:shadow-lg flex flex-col justify-between">
+              <div className="flex justify-between items-center mb-2">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">{card.title}</p>
+                  <p className="text-2xl font-bold">{card.value}</p>
+                </div>
+                <div className={`rounded-lg p-3 ${card.color}`}>
+                  {card.icon}
+                </div>
+              </div>
+              <p className={`text-xs mt-2 ${card.trendColor}`}>{card.trend}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2 sm:mb-0">Jenis Kegiatan</h2>
+              <div className="relative">
+                <select className="appearance-none bg-white border border-gray-300 rounded-md pl-3 pr-8 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option>Last 7 days</option>
+                  <option>Last month</option>
+                  <option>Last year</option>
+                </select>
+                <FiChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+              </div>
+            </div>
+            <div className="h-80 flex items-center justify-center">
               <PieChart data={stats?.kegiatan_stats || []} />
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Progress Bulan Ini
-              </Typography>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2 sm:mb-0">Progress Bulan Ini</h2>
+              <div className="relative">
+                <select className="appearance-none bg-white border border-gray-300 rounded-md pl-3 pr-8 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option>January 2023</option>
+                  <option>February 2023</option>
+                  <option>March 2023</option>
+                </select>
+                <FiChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+              </div>
+            </div>
+            <div className="h-80 flex items-center justify-center">
               <BarChart data={stats?.monthly_stats || []} />
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+            </div>
+          </div>
+        </div>
 
-      <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid item xs={12} md={4}>
-          <Button
-            variant="contained"
-            fullWidth
-            sx={{ py: 2 }}
-            onClick={() => navigate('/perencanaan')}
-          >
-            Form Perencanaan
-          </Button>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Button
-            variant="contained"
-            fullWidth
-            sx={{ py: 2 }}
-            onClick={() => navigate('/implementasi')}
-          >
-            Form Implementasi
-          </Button>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Button
-            variant="contained"
-            fullWidth
-            sx={{ py: 2 }}
-            onClick={() => navigate('/monitoring')}
-          >
-            Form Monitoring
-          </Button>
-        </Grid>
-      </Grid>
-    </Box>
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <button
+              onClick={() => navigate('/perencanaan')}
+              className="flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-4 rounded-lg transition-colors shadow hover:shadow-lg"
+            >
+              <FiCalendar />
+              <span>Buat Perencanaan</span>
+            </button>
+            <button
+              onClick={() => navigate('/implementasi')}
+              className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors shadow hover:shadow-lg"
+            >
+              <FiCheckCircle />
+              <span>Input Implementasi</span>
+            </button>
+            <button
+              onClick={() => navigate('/monitoring')}
+              className="flex items-center justify-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white font-medium py-3 px-4 rounded-lg transition-colors shadow hover:shadow-lg"
+            >
+              <FiMonitor />
+              <span>Lakukan Monitoring</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+          </div>
+          <div className="divide-y divide-gray-200">
+            {activities.map((activity) => (
+              <div key={activity.id} className="px-6 py-4 flex items-start">
+                <div className="flex-shrink-0 mt-1">
+                  <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center">
+                    {activity.icon}
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                  <p className="text-sm text-gray-500 mt-1">{activity.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="px-6 py-3 bg-gray-50 text-center">
+            <button className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
+              Lihat semua aktivitas
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 };
 
