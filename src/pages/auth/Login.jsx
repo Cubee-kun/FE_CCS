@@ -1,70 +1,133 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { Box, TextField, Button, Typography, Container, Paper, Link } from '@mui/material';
+// src/pages/Login.jsx
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Link } from 'react-router-dom';
+import { useAuth } from "../../contexts/AuthContext";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
-const Login = () => {
-  const [credentials, setCredentials] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
-  const { login } = useAuth();
+export default function Login() {
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const { login } = useAuth();  // Hapus setUser di sini
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
+
     const result = await login(credentials);
+
     if (!result.success) {
-      setError(result.message);
+      setError(result.message || "Login gagal");
     } else {
-      navigate('/');
+      localStorage.setItem("user", JSON.stringify(result.data.user));
+
+      if (result.data.user.role === "admin") {
+        navigate("/admin");
+      } else if (result.data.user.role === "user") {
+        navigate("/user");
+      } else {
+        navigate("/");
+      }
     }
   };
 
   return (
-    <Container maxWidth="sm">
-      <Paper elevation={3} sx={{ p: 4, mt: 8 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center">
-          Login CCS
-        </Typography>
-        {error && (
-          <Typography color="error" align="center" sx={{ mb: 2 }}>
-            {error}
-          </Typography>
-        )}
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-          <TextField
-            label="Email"
-            type="email"
-            fullWidth
-            margin="normal"
-            value={credentials.email}
-            onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
-            required
-          />
-          <TextField
-            label="Password"
-            type="password"
-            fullWidth
-            margin="normal"
-            value={credentials.password}
-            onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-            required
-          />
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ mt: 3, mb: 2, py: 1.5 }}
-          >
-            Login
-          </Button>
-          <Typography align="center">
-            Belum punya akun? <Link href="/register">Daftar disini</Link>
-          </Typography>
-        </Box>
-      </Paper>
-    </Container>
-  );
-};
+    <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
+      {/* Left side image */}
+      <div className="hidden md:flex md:w-1/2">
+        <img
+          src="/images/login-bg.jpg"
+          alt="Login background"
+          className="object-cover w-full h-full"
+        />
+      </div>
 
-export default Login;
+      {/* Right side form */}
+      <div className="flex flex-1 items-center justify-center p-8">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 space-y-6">
+          <h2 className="text-3xl font-bold text-gray-800 text-center">
+            Login CCS
+          </h2>
+
+          {error && (
+            <div className="bg-red-100 text-red-700 px-4 py-2 rounded text-sm text-center">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={credentials.email}
+                onChange={(e) =>
+                  setCredentials({ ...credentials, email: e.target.value })
+                }
+                required
+                placeholder="Masukkan email"
+                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={credentials.password}
+                  onChange={(e) =>
+                    setCredentials({
+                      ...credentials,
+                      password: e.target.value,
+                    })
+                  }
+                  required
+                  placeholder="Masukkan password"
+                  className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? (
+                    <EyeSlashIcon className="h-5 w-5" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit button */}
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              Login
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-gray-600">
+            Belum punya akun?{" "}
+            <Link
+              to="/register"
+              className="text-blue-600 hover:underline font-medium"
+            >
+              Daftar disini
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
