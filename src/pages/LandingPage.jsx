@@ -98,70 +98,10 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 via-blue-50 to-emerald-50">
       {/* Header */}
-      <header className="bg-white shadow sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900">Carbon Credit System</h1>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <FiUser className="text-indigo-600 text-lg" />
-                </div>
-                <span className="text-sm font-medium text-gray-700">{user?.name}</span>
-              </div>
-              <button
-                onClick={logout}
-                className="flex items-center text-sm text-gray-500 hover:text-red-600 transition-colors"
-              >
-                <FiLogOut className="mr-1" /> Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Welcome Banner */}
-        <div className="bg-gradient-to-r from-blue-600 to-emerald-600 rounded-xl p-6 mb-8 text-white shadow-md flex flex-col md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-2xl font-bold mb-1">Selamat datang, {user?.name}!</h2>
-            <p className="opacity-90">Anda login sebagai <span className="font-semibold">{user?.role}</span></p>
-            <div className="flex items-center mt-3 text-sm opacity-80">
-              <FiClock className="mr-1" />
-              <span>
-                Terakhir login: {new Date().toLocaleDateString('id-ID', { 
-                  weekday: 'long', 
-                  day: 'numeric', 
-                  month: 'long', 
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </span>
-            </div>
-          </div>
-          <div className="mt-4 md:mt-0 flex gap-2">
-            <button
-              onClick={() => navigate('/perencanaan')}
-              className="bg-white text-blue-600 font-semibold px-4 py-2 rounded-lg shadow hover:bg-blue-50 transition"
-            >
-              + Perencanaan
-            </button>
-            <button
-              onClick={() => navigate('/implementasi')}
-              className="bg-white text-emerald-600 font-semibold px-4 py-2 rounded-lg shadow hover:bg-emerald-50 transition"
-            >
-              + Implementasi
-            </button>
-            <button
-              onClick={() => navigate('/monitoring')}
-              className="bg-white text-amber-600 font-semibold px-4 py-2 rounded-lg shadow hover:bg-amber-50 transition"
-            >
-              + Monitoring
-            </button>
-          </div>
-        </div>
 
         {/* Tabs Navigation */}
         <div className="border-b border-gray-200 mb-8">
@@ -232,34 +172,6 @@ const Dashboard = () => {
             <div className="h-80 flex items-center justify-center">
               <BarChart data={stats?.monthly_stats || []} />
             </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <button
-              onClick={() => navigate('/perencanaan')}
-              className="flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-4 rounded-lg transition-colors shadow hover:shadow-lg"
-            >
-              <FiCalendar />
-              <span>Buat Perencanaan</span>
-            </button>
-            <button
-              onClick={() => navigate('/implementasi')}
-              className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors shadow hover:shadow-lg"
-            >
-              <FiCheckCircle />
-              <span>Input Implementasi</span>
-            </button>
-            <button
-              onClick={() => navigate('/monitoring')}
-              className="flex items-center justify-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white font-medium py-3 px-4 rounded-lg transition-colors shadow hover:shadow-lg"
-            >
-              <FiMonitor />
-              <span>Lakukan Monitoring</span>
-            </button>
           </div>
         </div>
 
