@@ -9,10 +9,14 @@ function App() {
   const location = useLocation();
 
   // Daftar path dimana Navbar tidak ditampilkan
-  const noNavbarRoutes = ["/login", "/register"];
+  const noNavbarRoutes = ["/", "/login", "/register"];
 
   // Cek apakah current path ada di daftar noNavbarRoutes (mencakup kemungkinan query params)
-  const hideNavbar = noNavbarRoutes.some((path) => location.pathname.startsWith(path));
+  // const hideNavbar = noNavbarRoutes.some((path) => location.pathname.startsWith(path));
+  const hideNavbar = noNavbarRoutes.includes(location.pathname);
+
+  console.log("Current Path:", hideNavbar);
+  console.log("Location:", location);
 
   return (
     <AuthProvider>

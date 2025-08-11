@@ -1,15 +1,14 @@
-// src/pages/Login.jsx
+// src/pages/auth/Login.jsx
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { EyeIcon, EyeSlashIcon, HomeIcon } from "@heroicons/react/24/outline";
 
 export default function Login() {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();  // Hapus setUser di sini
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -45,11 +44,23 @@ export default function Login() {
       </div>
 
       {/* Right side form */}
-      <div className="flex flex-1 items-center justify-center p-8">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 space-y-6">
-          <h2 className="text-3xl font-bold text-gray-800 text-center">
-            Login CCS
+      <div className="flex flex-1 items-center justify-center p-6 md:p-12 bg-gradient-to-br from-green-50 to-green-100">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 space-y-6 relative">
+          {/* Home icon */}
+          <Link
+            to="/"
+            className="absolute top-5 left-5 text-green-600 hover:text-green-800 transition-colors"
+            title="Kembali ke Home"
+          >
+            <HomeIcon className="h-6 w-6" />
+          </Link>
+
+          <h2 className="text-3xl font-bold text-green-700 text-center">
+            Selamat Datang
           </h2>
+          <p className="text-center text-gray-500 text-sm">
+            Silakan masuk untuk melanjutkan
+          </p>
 
           {error && (
             <div className="bg-red-100 text-red-700 px-4 py-2 rounded text-sm text-center">
@@ -71,7 +82,7 @@ export default function Login() {
                 }
                 required
                 placeholder="Masukkan email"
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
               />
             </div>
 
@@ -92,7 +103,7 @@ export default function Login() {
                   }
                   required
                   placeholder="Masukkan password"
-                  className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none pr-10"
+                  className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none pr-10"
                 />
                 <button
                   type="button"
@@ -111,7 +122,7 @@ export default function Login() {
             {/* Submit button */}
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
             >
               Login
             </button>
@@ -121,7 +132,7 @@ export default function Login() {
             Belum punya akun?{" "}
             <Link
               to="/register"
-              className="text-blue-600 hover:underline font-medium"
+              className="text-green-600 hover:underline font-medium"
             >
               Daftar disini
             </Link>
