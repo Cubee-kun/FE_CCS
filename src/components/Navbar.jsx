@@ -1,261 +1,142 @@
-import { useAuth } from "../contexts/AuthContext";
-import { FiUser, FiHome, FiInfo, FiCheckCircle, FiMenu, FiX } from "react-icons/fi";
-import { useState, useRef, useEffect } from "react";
+import { FiMenu, FiUser, FiSettings, FiLogOut, FiSun, FiMoon } from "react-icons/fi";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
-export default function Navbar() {
-  const { user, logout, isAuthenticated } = useAuth();
+export default function Navbar({ onMenuClick }) {
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
-  const [showAccountDropdown, setShowAccountDropdown] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const [darkMode, setDarkMode] = useState(() =>
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
 
-  // Close dropdown saat klik di luar
+  // Dark mode toggle effect
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
+
+  // Close dropdown if clicked outside
+  useEffect(() => {
+    function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowAccountDropdown(false);
+        setDropdownOpen(false);
       }
-    };
-    if (showAccountDropdown) {
+    }
+    if (dropdownOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-    } else {
-      document.removeEventListener("mousedown", handleClickOutside);
     }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showAccountDropdown]);
-
-  const handleAccountClick = () => {
-    if (!isAuthenticated) {
-      navigate("/login");
-    } else {
-      setShowAccountDropdown(!showAccountDropdown);
-    }
-  };
-
-  const handleSetting = () => {
-    setShowAccountDropdown(false);
-    setMobileMenuOpen(false);
-    if (user?.role === "admin") {
-      navigate("/admin/dashboard");
-    } else if (user?.role === "user") {
-      navigate("/user/dashboard");
-    }
-  };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dropdownOpen]);
 
   const handleLogout = () => {
     logout();
-    setShowAccountDropdown(false);
-    setMobileMenuOpen(false);
+    setDropdownOpen(false);
     navigate("/");
   };
 
-  const handleVerifikasiClick = () => {
-    setMobileMenuOpen(false);
-    if (!isAuthenticated) {
-      navigate("/login");
-    } else {
-      navigate("/verifikasi");
-    }
-  };
-
-  const menuItems = [
-    { label: "Home", icon: <FiHome />, path: "/" },
-    { label: "Tentang", icon: <FiInfo />, path: "/about" },
-    { label: "Verifikasi", icon: <FiCheckCircle />, action: handleVerifikasiClick, isButton: true },
-  ];
-
   return (
-    <nav className="bg-gradient-to-r from-green-400 to-emerald-600 text-white sticky top-0 z-30 shadow-lg border-b border-green-700">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-        {/* Logo */}
-        <h1
-          className="text-2xl font-extrabold cursor-pointer select-none tracking-wide"
-          onClick={() => {
-            navigate("/");
-            setMobileMenuOpen(false);
-          }}
+    <header className="flex items-center justify-between bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-sm px-6 py-3 sticky top-0 z-50 border-b border-green-200/50 dark:border-green-800/50">
+      
+      {/* Left side - Logo and Menu button */}
+      <div className="flex items-center space-x-4">
+        <button
+          onClick={onMenuClick}
+          className="p-2 rounded-full hover:bg-green-100/50 dark:hover:bg-green-800/50 text-green-700 dark:text-green-300 focus:outline-none transition-colors md:hidden"
+          aria-label="Toggle menu"
         >
-          
-        </h1>
+          <FiMenu size={20} />
+        </button>
 
-        {/* Desktop Menu */}
-        <div className="hidden md:flex items-center space-x-8 font-medium text-lg tracking-wide">
-          {menuItems.map(({ label, icon, path, action, isButton }) =>
-            isButton ? (
-              <button
-                key={label}
-                onClick={action}
-                className="flex items-center space-x-2 bg-white text-green-700 font-semibold px-5 py-2 rounded-md shadow-md hover:shadow-lg hover:bg-green-100 transform hover:scale-[1.05] transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-green-300"
-                aria-label={label}
-              >
-                {icon}
-                <span>{label}</span>
-              </button>
-            ) : (
-              <button
-                key={label}
-                onClick={() => {
-                  navigate(path);
-                  setMobileMenuOpen(false);
-                }}
-                className="flex items-center space-x-2 hover:text-green-200 transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-300 rounded"
-                aria-label={label}
-              >
-                {icon}
-                <span>{label}</span>
-              </button>
-            )
-          )}
+        <div
+          className="text-xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent cursor-pointer flex items-center"
+          onClick={() => navigate("/")}
+        >
+          <span className="mr-2">🌿</span>
+          CCS-Project
+        </div>
+      </div>
 
-          {/* Account Button */}
-          <div className="relative" ref={dropdownRef}>
+      {/* Right side - User controls */}
+      <div className="flex items-center space-x-4 relative" ref={dropdownRef}>
+        {/* Dark mode toggle */}
+        <button
+          onClick={() => setDarkMode((prev) => !prev)}
+          className="p-2 rounded-full hover:bg-green-100/50 dark:hover:bg-green-800/50 text-green-700 dark:text-green-300 focus:outline-none transition-colors"
+          aria-label="Toggle dark mode"
+        >
+          {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
+        </button>
+
+        {!isAuthenticated ? (
+          <>
             <button
-              onClick={handleAccountClick}
-              className="flex items-center space-x-2 bg-green-700 bg-opacity-40 hover:bg-opacity-60 px-4 py-2 rounded-md shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-green-300"
-              aria-haspopup="true"
-              aria-expanded={showAccountDropdown}
-              aria-label="User account menu"
+              onClick={() => navigate("/verifikasi")}
+              className="hidden md:flex items-center space-x-2 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
             >
-              <FiUser className="text-lg" />
-              <span className="truncate max-w-xs">{isAuthenticated ? user?.username || "User" : "Login / Daftar"}</span>
+              Verifikasi
+            </button>
+            <button
+              onClick={() => navigate("/login")}
+              className="bg-transparent border border-green-600 text-green-600 hover:bg-green-600 hover:text-white px-4 py-2 rounded-lg font-medium transition-all"
+            >
+              Login
+            </button>
+            <button
+              onClick={() => navigate("/register")}
+              className="hidden md:inline bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
+            >
+              Sign Up Free
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => setDropdownOpen((open) => !open)}
+              className="flex items-center space-x-2 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
+            >
+              <FiUser className="text-white" />
+              <span>{user?.username || user?.name || "User"}</span>
             </button>
 
-            {/* Dropdown */}
-            {showAccountDropdown && isAuthenticated && (
-              <div
-                className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-green-300 text-green-900 z-40
-                           animate-fadeIn origin-top-right"
-                role="menu"
-                aria-orientation="vertical"
-                aria-labelledby="user-menu"
-              >
+            {/* Dropdown menu */}
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-green-200/50 dark:border-green-800/50 overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-green-200/50 dark:border-green-800/50">
+                  <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                    {user?.email || user?.username}
+                  </p>
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    {user?.role || "User"}
+                  </p>
+                </div>
                 <button
-                  onClick={handleSetting}
-                  className="block w-full text-left px-4 py-2 hover:bg-green-100 transition-colors duration-200 focus:outline-none focus:bg-green-200"
-                  role="menuitem"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    navigate("/settings");
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-left text-green-700 dark:text-green-300 hover:bg-green-100/50 dark:hover:bg-green-700/50 transition-colors"
                 >
-                  Setting
+                  <FiSettings className="text-green-600 dark:text-green-400" />
+                  Settings
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-100 transition-colors duration-200 focus:outline-none focus:bg-red-200"
-                  role="menuitem"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-100/50 dark:hover:bg-red-900/50 transition-colors border-t border-green-200/50 dark:border-green-800/50"
                 >
+                  <FiLogOut className="text-red-500 dark:text-red-400" />
                   Logout
                 </button>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Mobile menu button */}
-        <div className="md:hidden flex items-center">
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-            className="p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-green-300 hover:bg-green-600 transition"
-          >
-            {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-          </button>
-        </div>
+          </>
+        )}
       </div>
-
-      {/* Mobile Sidebar Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-green-50 text-green-900 shadow-lg border-t border-green-200 animate-slideDown">
-          <div className="flex flex-col space-y-2 px-4 py-4 font-medium text-base tracking-wide">
-            {menuItems.map(({ label, icon, path, action, isButton }) =>
-              isButton ? (
-                <button
-                  key={label}
-                  onClick={action}
-                  className="flex items-center space-x-3 bg-green-600 text-white px-4 py-2 rounded-md shadow-md hover:bg-green-700 transition transform hover:scale-[1.05] focus:outline-none focus:ring-4 focus:ring-green-400"
-                  aria-label={label}
-                >
-                  {icon}
-                  <span>{label}</span>
-                </button>
-              ) : (
-                <button
-                  key={label}
-                  onClick={() => {
-                    navigate(path);
-                    setMobileMenuOpen(false);
-                  }}
-                  className="flex items-center space-x-3 hover:bg-green-100 px-4 py-2 rounded-md transition font-semibold focus:outline-none focus:ring-2 focus:ring-green-400"
-                  aria-label={label}
-                >
-                  {icon}
-                  <span>{label}</span>
-                </button>
-              )
-            )}
-
-            <hr className="my-3 border-green-300" />
-
-            {/* Account info & dropdown in mobile */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={handleAccountClick}
-                className="w-full flex items-center space-x-3 bg-green-600 text-white px-4 py-2 rounded-md shadow-md transition hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-400"
-                aria-haspopup="true"
-                aria-expanded={showAccountDropdown}
-                aria-label="User account menu"
-              >
-                <FiUser />
-                <span className="truncate max-w-xs">{isAuthenticated ? user?.username || "User" : "Login / Daftar"}</span>
-              </button>
-
-              {showAccountDropdown && isAuthenticated && (
-                <div
-                  className="mt-2 bg-white rounded-md shadow-lg border border-green-300 text-green-900 z-40 animate-fadeIn"
-                  role="menu"
-                  aria-orientation="vertical"
-                  aria-labelledby="user-menu-mobile"
-                >
-                  <button
-                    onClick={handleSetting}
-                    className="block w-full text-left px-4 py-2 hover:bg-green-100 transition-colors duration-200 focus:outline-none focus:bg-green-200"
-                    role="menuitem"
-                  >
-                    Setting
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-100 transition-colors duration-200 focus:outline-none focus:bg-red-200"
-                    role="menuitem"
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Animations for fadeIn and slideDown */}
-      <style>
-        {`
-          @keyframes fadeIn {
-            from {opacity: 0; transform: translateY(-5px);}
-            to {opacity: 1; transform: translateY(0);}
-          }
-          .animate-fadeIn {
-            animation: fadeIn 0.25s ease forwards;
-          }
-          @keyframes slideDown {
-            from {opacity: 0; max-height: 0;}
-            to {opacity: 1; max-height: 1000px;}
-          }
-          .animate-slideDown {
-            animation: slideDown 0.3s ease forwards;
-          }
-        `}
-      </style>
-    </nav>
+    </header>
   );
 }
