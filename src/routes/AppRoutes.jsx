@@ -6,6 +6,7 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import LandingPage from "../pages/LandingPage";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
+import About from "../pages/About";
 
 // Admin pages
 import Dashboard from "../pages/admin/Dashboard";
@@ -23,6 +24,7 @@ export default function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/about" element={<About />} />
 
       {/* Admin Routes (auto-wrap dengan DashboardLayout) */}
       <Route path="/admin" element={<DashboardLayout />}>

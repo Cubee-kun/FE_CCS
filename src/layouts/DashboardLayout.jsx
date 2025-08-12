@@ -10,14 +10,6 @@ export default function DashboardLayout({ isUser = false }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-100 to-teal-50 flex font-sans">
       {/* Mobile Sidebar Toggle */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-6 left-6 z-50 p-3 rounded-full bg-gradient-to-r from-green-500 to-green-700 text-white shadow-lg hover:scale-110 active:scale-95 transition md:hidden"
-        aria-label="Toggle sidebar"
-      >
-        <FiMenu size={24} />
-      </button>
-
       {/* Sidebar */}
       <div
         className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-white shadow-xl transition-transform duration-300 ease-in-out

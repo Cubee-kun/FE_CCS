@@ -2,12 +2,14 @@ import { FiMenu, FiUser, FiSettings, FiLogOut, FiSun, FiMoon } from "react-icons
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import Sidebar from "../components/Sidebar";
 
-export default function Navbar({ onMenuClick }) {
+export default function Navbar({ isUser = false }) {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() =>
     window.matchMedia("(prefers-color-scheme: dark)").matches
   );
@@ -46,12 +48,19 @@ export default function Navbar({ onMenuClick }) {
       {/* Left side - Logo and Menu button */}
       <div className="flex items-center space-x-4">
         <button
-          onClick={onMenuClick}
+          onClick={() => setSidebarOpen(!sidebarOpen)}
           className="p-2 rounded-full hover:bg-green-100/50 dark:hover:bg-green-800/50 text-green-700 dark:text-green-300 focus:outline-none transition-colors md:hidden"
-          aria-label="Toggle menu"
+          aria-label="Toggle sidebar"
         >
           <FiMenu size={20} />
         </button>
+
+        <div
+          className={`fixed inset-y-0 left-0 w-64 z-10 transform bg-white shadow-xl transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:static`}
+        >
+          <Sidebar isUser={isUser} onClose={() => setSidebarOpen(false)} />
+        </div>
 
         <div
           className="text-xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent cursor-pointer flex items-center"
@@ -63,7 +72,7 @@ export default function Navbar({ onMenuClick }) {
       </div>
 
       {/* Right side - User controls */}
-      <div className="flex items-center space-x-4 relative" ref={dropdownRef}>
+      <div className="flex items-bottom space-x-4 relative" ref={dropdownRef}>
         {/* Dark mode toggle */}
         <button
           onClick={() => setDarkMode((prev) => !prev)}
@@ -106,7 +115,7 @@ export default function Navbar({ onMenuClick }) {
 
             {/* Dropdown menu */}
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-green-200/50 dark:border-green-800/50 overflow-hidden z-50">
+              <div className="absolute right-0 mt-15 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-green-200/50 dark:border-green-800/50 overflow-hidden z-50">
                 <div className="px-4 py-3 border-b border-green-200/50 dark:border-green-800/50">
                   <p className="text-sm font-medium text-green-800 dark:text-green-200">
                     {user?.email || user?.username}
