@@ -29,7 +29,7 @@ export default function Sidebar({ onClose }) {
             className="text-xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent cursor-pointer"
             onClick={() => navigate("/admin/dashboard")}
           >
-            Admin CCS
+            Admin Sebumi
           </h2>
           {/* Close button with leaf color */}
           <button

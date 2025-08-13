@@ -43,7 +43,7 @@ export default function Navbar({ isUser = false }) {
   };
 
   return (
-    <header className="flex items-center justify-between bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-sm px-4 md:px-6 py-3 sticky top-0 z-50 border-b border-green-200/50 dark:border-green-800/50">
+    <header className="flex items-center justify-between bg-white/90 dark:bg-gray-300/90 backdrop-blur-sm shadow-sm px-4 md:px-6 py-3 sticky top-0 z-50 border-b border-green-200/50 dark:border-green-800/50">
       {/* Logo */}
       <div>
         <motion.img
