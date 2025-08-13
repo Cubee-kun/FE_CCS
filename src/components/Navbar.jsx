@@ -2,6 +2,8 @@ import { FiUser, FiSettings, FiLogOut, FiSun, FiMoon, FiCheckCircle } from "reac
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 export default function Navbar({ isUser = false }) {
   const { user, isAuthenticated, logout } = useAuth();
@@ -43,15 +45,15 @@ export default function Navbar({ isUser = false }) {
   return (
     <header className="flex items-center justify-between bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-sm px-4 md:px-6 py-3 sticky top-0 z-50 border-b border-green-200/50 dark:border-green-800/50">
       {/* Logo */}
-      <div
-        className="text-xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent cursor-pointer flex items-center select-none"
-        onClick={() => navigate("/")}
-        tabIndex={0}
-        role="button"
-        aria-label="Go to homepage"
-      >
-        <span className="mr-2">🌿</span>
-        CCS-Project
+      <div>
+        <motion.img
+                  src="/images/sebumi.png"
+                  alt="Sebumi Logo"
+                  className="h-10 w-auto cursor-pointer"
+                  onClick={() => navigate("/")}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                />
       </div>
 
       {/* Right side - User controls */}
