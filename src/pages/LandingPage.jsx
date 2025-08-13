@@ -157,7 +157,7 @@ const LandingPage = () => {
 
       <main className="flex-grow pt-16">
         <section className="relative py-20 md:py-32 overflow-hidden min-h-[80vh] flex items-center">
-          <div className="absolute inset-0 bg-[url('/images/login-bg.jpg')] bg-cover bg-center opacity-50 overflow-hidden ">
+          <div className="absolute inset-0 bg-[url('/images/login-bg.jpg')] bg-cover bg-center opacity-30 overflow-hidden ">
             <motion.div 
               className="absolute inset-0 bg-gradient-to-br from-green-500/10 via-teal-500/10 to-blue-500/10"
               initial={{ opacity: 0 }}
