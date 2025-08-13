@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import { FiFileText, FiCalendar } from "react-icons/fi";
 
 export default function LaporanPage() {
   const [laporan, setLaporan] = useState([]);
@@ -11,9 +12,13 @@ export default function LaporanPage() {
     const fetchLaporan = async () => {
       try {
         const response = await api.get("/laporan");
-        setLaporan(response.data);
+        // Pastikan data adalah array
+        const data = response.data?.data || response.data;
+        setLaporan(Array.isArray(data) ? data : []);
       } catch (err) {
+        console.error("Fetch error:", err);
         setError("Gagal mengambil data laporan.");
+        setLaporan([]); // Reset ke array kosong jika error
       } finally {
         setLoading(false);
       }
@@ -21,25 +26,54 @@ export default function LaporanPage() {
     fetchLaporan();
   }, []);
 
-  if (loading) return <LoadingSpinner />;
-  if (error) return <p className="text-red-600">{error}</p>;
+  if (loading)
+    return (
+      <div className="flex justify-center items-center min-h-[40vh]">
+        <LoadingSpinner />
+      </div>
+    );
+  if (error)
+    return (
+      <div className="flex justify-center items-center min-h-[40vh]">
+        <p className="text-red-600 font-semibold">{error}</p>
+      </div>
+    );
 
   return (
-    <div className="max-w-5xl mx-auto p-6 bg-white rounded-lg shadow">
-      <h1 className="text-2xl font-semibold mb-6">Laporan</h1>
+    <div className="max-w-5xl mx-auto p-4 md:p-8">
+      <h1 className="text-2xl md:text-3xl font-bold mb-8 text-green-800 flex items-center gap-2">
+        <FiFileText className="text-green-600" /> Laporan Kegiatan
+      </h1>
 
       {laporan.length === 0 ? (
-        <p>Tidak ada laporan tersedia.</p>
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg p-6 text-center">
+          Tidak ada laporan tersedia.
+        </div>
       ) : (
-        <ul className="list-disc pl-5 space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {laporan.map((item) => (
-            <li key={item.id} className="border-b border-gray-200 pb-2">
-              <p className="font-semibold">{item.judul}</p>
-              <p className="text-sm text-gray-600">{item.deskripsi}</p>
-              <p className="text-xs text-gray-400">Tanggal: {new Date(item.tanggal).toLocaleDateString("id-ID")}</p>
-            </li>
+            <div
+              key={item.id}
+              className="bg-white rounded-xl shadow hover:shadow-lg transition p-6 border border-gray-100 flex flex-col h-full"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <FiFileText className="text-2xl text-green-500" />
+                <span className="font-semibold text-lg text-green-800">{item.judul}</span>
+              </div>
+              <p className="text-gray-600 mb-4 flex-1">{item.deskripsi}</p>
+              <div className="flex items-center text-sm text-gray-400 mt-auto">
+                <FiCalendar className="mr-1" />
+                {item.tanggal
+                  ? new Date(item.tanggal).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : "-"}
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

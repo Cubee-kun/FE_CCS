@@ -9,7 +9,7 @@ function App() {
   const location = useLocation();
 
   // Daftar path dimana Navbar tidak ditampilkan
-  const noNavbarRoutes = ["/", "/login", "/register", "/"];
+  const noNavbarRoutes = ["/", "/login", "/register"];
 
   // Cek apakah current path ada di daftar noNavbarRoutes (mencakup kemungkinan query params)
   const hideNavbar = noNavbarRoutes.includes(location.pathname);

@@ -9,7 +9,6 @@ export default function DashboardLayout({ isUser = false }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-100 to-teal-50 flex font-sans">
-      {/* Mobile Sidebar Toggle */}
       {/* Sidebar */}
       <div
         className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-white shadow-xl transition-transform duration-300 ease-in-out
@@ -20,9 +19,17 @@ export default function DashboardLayout({ isUser = false }) {
 
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 md:ml-8 p-4 md:p-8 relative">
-        {/* Navbar is now integrated into the main content header */}
-        
-        {/* The Outlet will render the dashboard content */}
+        {/* Hamburger button for mobile */}
+        <button
+          className="md:hidden mb-4 w-10 h-10 flex items-center justify-center rounded-lg bg-white shadow border border-green-100 text-green-700 hover:bg-green-50 transition self-start"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Buka menu sidebar"
+        >
+          <FiMenu size={24} />
+        </button>
+        {/* Navbar khusus dashboard */}
+        {/* <Navbar isUser /> */}
+        {/* Konten halaman dashboard */}
         <Outlet />
       </div>
     </div>
