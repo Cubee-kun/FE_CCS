@@ -1,15 +1,13 @@
-import { FiMenu, FiUser, FiSettings, FiLogOut, FiSun, FiMoon } from "react-icons/fi";
+import { FiUser, FiSettings, FiLogOut, FiSun, FiMoon, FiCheckCircle } from "react-icons/fi";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import Sidebar from "../components/Sidebar";
 
 export default function Navbar({ isUser = false }) {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() =>
     window.matchMedia("(prefers-color-scheme: dark)").matches
   );
@@ -43,45 +41,21 @@ export default function Navbar({ isUser = false }) {
   };
 
   return (
-    <header className="flex items-center justify-between bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-sm px-6 py-3 sticky top-0 z-50 border-b border-green-200/50 dark:border-green-800/50">
-      
-      {/* Left side - Logo and Menu button */}
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 rounded-full hover:bg-green-100/50 dark:hover:bg-green-800/50 text-green-700 dark:text-green-300 focus:outline-none transition-colors md:hidden"
-          aria-label="Toggle sidebar"
-        >
-          <FiMenu size={20} />
-        </button>
-
-        <div
-          className={`fixed inset-y-0 left-0 w-64 z-10 transform bg-white shadow-xl transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:static`}
-        >
-          <Sidebar isUser={isUser} onClose={() => setSidebarOpen(false)} />
-        </div>
-
-        <div
-          className="text-xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent cursor-pointer flex items-center"
-          onClick={() => navigate("/")}
-        >
-          <span className="mr-2">🌿</span>
-          CCS-Project
-        </div>
+    <header className="flex items-center justify-between bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-sm px-4 md:px-6 py-3 sticky top-0 z-50 border-b border-green-200/50 dark:border-green-800/50">
+      {/* Logo */}
+      <div
+        className="text-xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent cursor-pointer flex items-center select-none"
+        onClick={() => navigate("/")}
+        tabIndex={0}
+        role="button"
+        aria-label="Go to homepage"
+      >
+        <span className="mr-2">🌿</span>
+        CCS-Project
       </div>
 
       {/* Right side - User controls */}
-      <div className="flex items-bottom space-x-4 relative" ref={dropdownRef}>
-        {/* Dark mode toggle */}
-        <button
-          onClick={() => setDarkMode((prev) => !prev)}
-          className="p-2 rounded-full hover:bg-green-100/50 dark:hover:bg-green-800/50 text-green-700 dark:text-green-300 focus:outline-none transition-colors"
-          aria-label="Toggle dark mode"
-        >
-          {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
-        </button>
-
+      <div className="flex items-center space-x-2 md:space-x-4 relative" ref={dropdownRef}>
         {!isAuthenticated ? (
           <>
             <button
@@ -92,7 +66,7 @@ export default function Navbar({ isUser = false }) {
             </button>
             <button
               onClick={() => navigate("/login")}
-              className="bg-transparent border border-green-600 text-green-600 hover:bg-green-600 hover:text-white px-4 py-2 rounded-lg font-medium transition-all"
+              className="border border-green-600 text-green-600 hover:bg-green-600 hover:text-white px-4 py-2 rounded-lg font-medium transition-all"
             >
               Login
             </button>
@@ -105,25 +79,51 @@ export default function Navbar({ isUser = false }) {
           </>
         ) : (
           <>
+            {/* Tombol Verifikasi selalu tampil di samping user */}
+            <button
+              onClick={() => navigate("/verifikasi")}
+              className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
+            >
+              <FiCheckCircle />
+              <span>Verifikasi</span>
+            </button>
             <button
               onClick={() => setDropdownOpen((open) => !open)}
               className="flex items-center space-x-2 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
+              aria-haspopup="true"
+              aria-expanded={dropdownOpen}
+              aria-label="User menu"
             >
               <FiUser className="text-white" />
               <span>{user?.username || user?.name || "User"}</span>
             </button>
-
             {/* Dropdown menu */}
             {dropdownOpen && (
-              <div className="absolute right-0 mt-15 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-green-200/50 dark:border-green-800/50 overflow-hidden z-50">
+              <div className="absolute right-0 mt-60 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-green-200/50 dark:border-green-800/50 overflow-hidden z-50 animate-fade-in">
                 <div className="px-4 py-3 border-b border-green-200/50 dark:border-green-800/50">
-                  <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                  <p className="text-sm font-medium text-green-800 dark:text-green-200 truncate">
                     {user?.email || user?.username}
                   </p>
                   <p className="text-xs text-green-600 dark:text-green-400">
                     {user?.role || "User"}
                   </p>
                 </div>
+                <button
+                  onClick={() => setDarkMode((prev) => !prev)}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-left text-green-700 dark:text-green-300 hover:bg-green-100/50 dark:hover:bg-green-700/50 transition-colors"
+                >
+                  {darkMode ? (
+                    <>
+                      <FiSun className="text-yellow-500" />
+                      Light Mode
+                    </>
+                  ) : (
+                    <>
+                      <FiMoon className="text-green-600 dark:text-green-400" />
+                      Dark Mode
+                    </>
+                  )}
+                </button>
                 <button
                   onClick={() => {
                     setDropdownOpen(false);
@@ -146,6 +146,6 @@ export default function Navbar({ isUser = false }) {
           </>
         )}
       </div>
-    </header>
-  );
-}
+        </header>
+      );
+    }

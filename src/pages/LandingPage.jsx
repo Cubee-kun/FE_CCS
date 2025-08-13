@@ -37,14 +37,14 @@ const LandingPage = () => {
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <motion.div
-          className="text-2xl font-bold cursor-pointer bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent"
+        <motion.img
+          src="/images/sebumi.png"
+          alt="Sebumi Logo"
+          className="h-10 w-auto cursor-pointer"
           onClick={() => navigate("/")}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-        >
-          CCS-Project
-        </motion.div>
+        />
 
         <ul className="hidden md:flex space-x-8 items-center">
           {navItems.map((item) => (
@@ -535,10 +535,9 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <motion.div
               whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 300 }}
+              transition={{ type: "spring", stiffness: 300, duration: 0.6, delay: 0. }}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0. }}
               viewport={{ once: true }}
             >
               <h3 className="text-2xl font-bold bg-gradient-to-r from-green-400 to-teal-400 bg-clip-text text-transparent mb-4">
@@ -583,10 +582,9 @@ const LandingPage = () => {
               <motion.div 
                 key={index}
                 whileHover={{ scale: 1.01 }}
-                transition={{ type: "spring", stiffness: 300 }}
+                transition={{ type: "spring", stiffness: 300, duration: 0.6, delay: index * 0.1  }}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
                 viewport={{ once: true }}
               >
                 <h4 className="text-lg font-semibold mb-4 text-gray-200">{column.title}</h4>
@@ -595,10 +593,9 @@ const LandingPage = () => {
                     <motion.li 
                       key={i}
                       whileHover={{ x: 5 }}
-                      transition={{ type: "spring", stiffness: 300 }}
+                      transition={{ type: "spring", stiffness: 300, duration: 0.6, delay: i * 0.1 + index * 0.1  }}
                       initial={{ opacity: 0 }}
                       whileInView={{ opacity: 1 }}
-                      transition={{ duration: 0.6, delay: i * 0.1 + index * 0.1 }}
                       viewport={{ once: true }}
                     >
                       <a href="#" className="text-gray-400 hover:text-green-400 transition-colors">
