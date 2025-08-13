@@ -29,240 +29,203 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen flex flex-col font-sans bg-gradient-to-br from-gray-50 to-gray-100 text-gray-800 overflow-x-hidden">
       {/* Modern Navbar */}
-    <motion.nav 
-      className={`flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3 fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-white/95 shadow-md backdrop-blur-md border-b border-gray-200/50" : "bg-transparent"
-      }`}
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-    >
-      {/* Logo with curved background */}
-      <motion.div
-        className="flex items-center cursor-pointer"
-        onClick={() => navigate("/")}
-        whileHover={{ scale: 1.03 }}
-        whileTap={{ scale: 0.97 }}
+      <motion.nav
+        className={`flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3 fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? "bg-white/95 shadow-md backdrop-blur-md border-b border-gray-200/50"
+            : "bg-transparent"
+        }`}
+        animate={{
+          borderBottomLeftRadius: scrolled ? "0px" : "50% 25px",
+          borderBottomRightRadius: scrolled ? "0px" : "50% 25px",
+          y: 0
+        }}
+        initial={{ y: -100 }}
+        transition={{
+          duration: 0.6,
+          ease: [0.16, 1, 0.3, 1]
+        }}
+        whileHover={{
+          borderBottomLeftRadius: "50% 35px",
+          borderBottomRightRadius: "50% 35px",
+          transition: { duration: 0.4 }
+        }}
       >
-        <motion.div 
-          className="p-2 rounded-2xl bg-gradient-to-br from-green-50 to-teal-50"
+
+        {/* Logo with curved background */}
+        <motion.div
+          className="flex items-center cursor-pointer"
+          onClick={() => navigate("/")}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+        >
+          <motion.div 
+            className="p-2 rounded-2xl bg-gradient-to-br from-green-50 to-teal-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            <img
+              src="/images/sebumi.png"
+              alt="Sebumi Logo"
+              className="h-8 w-auto"
+            />
+          </motion.div>
+          {scrolled && (
+            <motion.span 
+              className="ml-3 text-xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent tracking-tight"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              Sebumi
+            </motion.span>
+          )}
+        </motion.div>
+
+        {/* Desktop Navigation with curved elements */}
+        <ul className="hidden md:flex space-x-2 items-center">
+          {navItems.map((item) => (
+            <motion.li
+              key={item}
+              className="relative"
+              onHoverStart={() => setHoveredItem(item)}
+              onHoverEnd={() => setHoveredItem(null)}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 + navItems.indexOf(item) * 0.05 }}
+            >
+              <span className={`px-4 py-2 text-[15px] font-medium tracking-wide transition-colors cursor-pointer relative z-10 rounded-xl ${
+                hoveredItem === item ? "text-green-700" : "text-gray-700 hover:text-gray-900"
+              }`}>
+                {item}
+              </span>
+              {hoveredItem === item && (
+                <motion.span
+                  className="absolute inset-0 bg-green-100/70 rounded-xl"
+                  layoutId="navHover"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 300, 
+                    damping: 20,
+                    bounce: 0.2
+                  }}
+                />
+              )}
+            </motion.li>
+          ))}
+          
+          <div className="flex space-x-3 ml-4">
+            <motion.button
+              onClick={() => navigate("/login")}
+              className="px-5 py-2 text-[15px] font-medium tracking-wide rounded-xl transition-all border border-gray-300 hover:border-gray-400"
+              whileHover={{ 
+                scale: 1.03,
+                backgroundColor: "rgba(243, 244, 246, 0.5)"
+              }}
+              whileTap={{ scale: 0.97 }}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <span className="bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent">
+                Log in
+              </span>
+            </motion.button>
+            
+            <motion.button
+              onClick={() => navigate("/register")}
+              className="relative overflow-hidden bg-gradient-to-br from-green-500 to-teal-600 text-white text-[15px] font-semibold tracking-wide px-6 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: "0 8px 20px -5px rgba(16, 185, 129, 0.3)",
+                background: "linear-gradient(to bottom right, #10b981, #0d9488)"
+              }}
+              whileTap={{ scale: 0.97 }}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.45 }}
+            >
+              <span className="relative z-10 flex items-center">
+                Sign Up Free
+                <motion.span 
+                  className="ml-2"
+                  animate={{ x: [0, 2, 0] }}
+                  transition={{ 
+                    repeat: Infinity,
+                    duration: 1.5,
+                    ease: "easeInOut"
+                  }}
+                >
+                  <FiArrowRight size={16} />
+                </motion.span>
+              </span>
+              <motion.div 
+                className="absolute inset-0 bg-gradient-to-br from-green-600 to-teal-700 opacity-0"
+                whileHover={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              />
+            </motion.button>
+          </div>
+        </ul>
+
+        {/* Mobile Menu Button with curved design */}
+        <motion.button 
+          className="md:hidden p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-200 bg-white/50 backdrop-blur-sm border border-gray-200/50"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+          whileHover={{ 
+            scale: 1.05,
+            backgroundColor: "rgba(255,255,255,0.7)"
+          }}
+          whileTap={{ scale: 0.95 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.5 }}
         >
-          <img
-            src="/images/sebumi.png"
-            alt="Sebumi Logo"
-            className="h-8 w-auto"
-          />
-        </motion.div>
-        {scrolled && (
-          <motion.span 
-            className="ml-3 text-xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent tracking-tight"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            Sebumi
-          </motion.span>
-        )}
-      </motion.div>
+          {mobileMenuOpen ? (
+            <FiX size={24} className="text-gray-700" />
+          ) : (
+            <FiMenu size={24} className="text-gray-700" />
+          )}
+        </motion.button>
 
-      {/* Desktop Navigation with curved elements */}
-      <ul className="hidden md:flex space-x-2 items-center">
-        {navItems.map((item) => (
-          <motion.li
-            key={item}
-            className="relative"
-            onHoverStart={() => setHoveredItem(item)}
-            onHoverEnd={() => setHoveredItem(null)}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 + navItems.indexOf(item) * 0.05 }}
-          >
-            <span className={`px-4 py-2 text-[15px] font-medium tracking-wide transition-colors cursor-pointer relative z-10 rounded-xl ${
-              hoveredItem === item ? "text-green-700" : "text-gray-700 hover:text-gray-900"
-            }`}>
-              {item}
-            </span>
-            {hoveredItem === item && (
-              <motion.span
-                className="absolute inset-0 bg-green-100/70 rounded-xl"
-                layoutId="navHover"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ 
-                  type: "spring", 
-                  stiffness: 300, 
-                  damping: 20,
-                  bounce: 0.2
-                }}
-              />
-            )}
-          </motion.li>
-        ))}
-        
-        <div className="flex space-x-3 ml-4">
-          <motion.button
-            onClick={() => navigate("/login")}
-            className="px-5 py-2 text-[15px] font-medium tracking-wide rounded-xl transition-all border border-gray-300 hover:border-gray-400"
-            whileHover={{ 
-              scale: 1.03,
-              backgroundColor: "rgba(243, 244, 246, 0.5)"
-            }}
-            whileTap={{ scale: 0.97 }}
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <span className="bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent">
-              Log in
-            </span>
-          </motion.button>
-          
-          <motion.button
-            onClick={() => navigate("/register")}
-            className="relative overflow-hidden bg-gradient-to-br from-green-500 to-teal-600 text-white text-[15px] font-semibold tracking-wide px-6 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
-            whileHover={{ 
-              scale: 1.05,
-              boxShadow: "0 8px 20px -5px rgba(16, 185, 129, 0.3)",
-              background: "linear-gradient(to bottom right, #10b981, #0d9488)"
-            }}
-            whileTap={{ scale: 0.97 }}
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.45 }}
-          >
-            <span className="relative z-10 flex items-center">
-              Sign Up Free
-              <motion.span 
-                className="ml-2"
-                animate={{ x: [0, 2, 0] }}
-                transition={{ 
-                  repeat: Infinity,
-                  duration: 1.5,
-                  ease: "easeInOut"
-                }}
-              >
-                <FiArrowRight size={16} />
-              </motion.span>
-            </span>
-            <motion.div 
-              className="absolute inset-0 bg-gradient-to-br from-green-600 to-teal-700 opacity-0"
-              whileHover={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            />
-          </motion.button>
-        </div>
-      </ul>
-
-      {/* Mobile Menu Button with curved design */}
-      <motion.button 
-        className="md:hidden p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-200 bg-white/50 backdrop-blur-sm border border-gray-200/50"
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        aria-label="Toggle menu"
-        whileHover={{ 
-          scale: 1.05,
-          backgroundColor: "rgba(255,255,255,0.7)"
-        }}
-        whileTap={{ scale: 0.95 }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
-        {mobileMenuOpen ? (
-          <FiX size={24} className="text-gray-700" />
-        ) : (
-          <FiMenu size={24} className="text-gray-700" />
-        )}
-      </motion.button>
-
-      {/* Mobile Menu with curved design */}
-      {mobileMenuOpen && (
-        <motion.div 
-          className="md:hidden fixed top-16 left-0 right-0 bg-white/95 backdrop-blur-md shadow-xl border-t border-gray-200/50"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.2 }}
-        >
-          <div className="px-5 py-4 space-y-2">
-            {navItems.map((item) => (
-              <motion.div
-                key={item}
-                className="px-4 py-3 rounded-xl hover:bg-gray-50/80 transition-colors"
-                whileHover={{ x: 5 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="text-[15px] font-medium text-gray-800 tracking-wide">{item}</span>
-              </motion.div>
-            ))}
-            <div className="pt-3 space-y-3 border-t border-gray-200/50 mt-2">
-              <motion.button
-                onClick={() => navigate("/login")}
-                className="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50/80 transition-colors border border-gray-300"
-                whileHover={{ x: 5 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="text-[15px] font-medium text-gray-800 tracking-wide">Log in</span>
-              </motion.button>
-              <motion.button
-                onClick={() => navigate("/register")}
-                className="w-full bg-gradient-to-br from-green-500 to-teal-600 text-white text-[15px] font-semibold tracking-wide px-4 py-3 rounded-xl shadow-sm"
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                Sign Up Free
-              </motion.button>
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </motion.nav>
-
-      {/* Mobile Menu */}
-      <AnimatePresence>
+        {/* Mobile Menu with curved design */}
         {mobileMenuOpen && (
-          <motion.div
-            className="fixed inset-0 z-40 pt-20 bg-white/95 backdrop-blur-lg md:hidden"
+          <motion.div 
+            className="md:hidden fixed top-16 left-0 right-0 bg-white/95 backdrop-blur-md shadow-xl border-t border-gray-200/50"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2 }}
           >
-            <div className="flex flex-col space-y-6 px-6 py-4">
+            <div className="px-5 py-4 space-y-2">
               {navItems.map((item) => (
                 <motion.div
                   key={item}
-                  className="text-lg font-medium text-gray-800 hover:text-green-600 transition-colors border-b border-gray-100 py-3 flex items-center"
-                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-3 rounded-xl hover:bg-gray-50/80 transition-colors"
                   whileHover={{ x: 5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  {item}
-                  <FiArrowRight className="ml-auto opacity-70" />
-                </motion.div>
-              ))}
-              <div className="flex flex-col space-y-4 pt-4">
-                <motion.button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    navigate("/login");
-                  }}
-                  className="w-full py-3 text-center font-medium text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  LOG IN
+                  <span className="text-[15px] font-medium text-gray-800 tracking-wide">{item}</span>
+                </motion.div>
+              ))}
+              <div className="pt-3 space-y-3 border-t border-gray-200/50 mt-2">
+                <motion.button
+                  onClick={() => navigate("/login")}
+                  className="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50/80 transition-colors border border-gray-300"
+                  whileHover={{ x: 5 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span className="text-[15px] font-medium text-gray-800 tracking-wide">Log in</span>
                 </motion.button>
                 <motion.button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    navigate("/register");
-                  }}
-                  className="w-full py-3 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-semibold rounded-full transition-all shadow-md"
-                  whileHover={{ scale: 1.02 }}
+                  onClick={() => navigate("/register")}
+                  className="w-full bg-gradient-to-br from-green-500 to-teal-600 text-white text-[15px] font-semibold tracking-wide px-4 py-3 rounded-xl shadow-sm"
+                  whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   Sign Up Free
@@ -271,7 +234,8 @@ const LandingPage = () => {
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </motion.nav>
+
 
       <main className="flex-grow pt-16">
         <section className="relative py-20 md:py-32 overflow-hidden min-h-[80vh] flex items-center">
