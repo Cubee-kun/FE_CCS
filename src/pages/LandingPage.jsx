@@ -76,7 +76,7 @@ const LandingPage = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              LOG IN
+              Log in
             </motion.button>
             <motion.button
               onClick={() => navigate("/register")}
