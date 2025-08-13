@@ -29,6 +29,7 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen flex flex-col font-sans bg-gradient-to-br from-gray-50 to-gray-100 text-gray-800 overflow-x-hidden">
       {/* Modern Navbar */}
+      
       <motion.nav 
         className={`flex items-center justify-between px-6 py-4 fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled ? "bg-white/95 shadow-md backdrop-blur-md" : "bg-transparent"
