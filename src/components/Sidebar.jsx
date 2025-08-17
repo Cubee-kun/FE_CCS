@@ -1,48 +1,71 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { FiHome, FiUsers, FiFileText, FiActivity, FiX } from "react-icons/fi";
+import {
+  FiHome,
+  FiUsers,
+  FiFileText,
+  FiActivity,
+  FiX,
+  FiLayers,
+  FiPlayCircle,
+  FiEye,
+} from "react-icons/fi";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Sidebar({ onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
-  const menuItems = [
-    { label: "Dashboard", path: "/admin/dashboard", icon: <FiHome /> },
-    { label: "Users", path: "/admin/users", icon: <FiUsers /> },
-    { label: "Laporan", path: "/admin/laporan", icon: <FiFileText /> },
-    { label: "Activity", path: "/admin/activity", icon: <FiActivity /> },
-  ];
+  // Menu berdasarkan role
+  const menuItems =
+    user?.role === "admin"
+      ? [
+          { label: "Dashboard", path: "/admin/dashboard", icon: <FiHome /> },
+          { label: "Users", path: "/admin/users", icon: <FiUsers /> },
+          { label: "Laporan", path: "/admin/laporan", icon: <FiFileText /> },
+          { label: "Activity", path: "/admin/activity", icon: <FiActivity /> },
+          { label: "Perencanaan", path: "/admin/perencanaan", icon: <FiLayers /> },
+          { label: "Implementasi", path: "/admin/implementasi", icon: <FiPlayCircle /> },
+          { label: "Monitoring", path: "/admin/monitoring", icon: <FiEye /> },
+        ]
+      : [
+          { label: "Dashboard", path: "/dashboard", icon: <FiHome /> },
+          { label: "Perencanaan", path: "/perencanaan", icon: <FiLayers /> },
+          { label: "Implementasi", path: "/implementasi", icon: <FiPlayCircle /> },
+          { label: "Monitoring", path: "/monitoring", icon: <FiEye /> },
+        ];
 
   return (
     <>
-      {/* Mobile overlay with nature-inspired gradient */}
+      {/* Overlay for mobile */}
       <div
-        className="fixed inset-0 bg-gradient-to-br from-green-500/10 to-teal-400/10 backdrop-blur-sm z-30 md:hidden"
+        className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 md:hidden"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Sidebar container with nature theme */}
-      <aside className="flex flex-col h-full bg-gradient-to-b from-green-50 to-teal-50 border-r border-green-200/50 shadow-lg p-6 w-64 z-40 relative">
-        {/* Header with leaf-inspired design */}
-        <div className="flex justify-between items-center mb-8 pb-4 border-b border-green-200/50">
+      {/* Sidebar */}
+      <aside className="flex flex-col h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-lg p-6 w-64 z-40 relative">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
           <h2
-            className="text-xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent cursor-pointer"
-            onClick={() => navigate("/admin/dashboard")}
+            className="text-xl font-bold text-green-700 cursor-pointer"
+            onClick={() =>
+              navigate(user?.role === "admin" ? "/admin/dashboard" : "/dashboard")
+            }
           >
-            Admin Sebumi
+            AgroPariwisata {user?.role === "admin" ? "Admin" : "User"}
           </h2>
-          {/* Close button with leaf color */}
           <button
             onClick={onClose}
-            className="md:hidden p-1 rounded-full hover:bg-green-200/30 text-green-600 focus:outline-none transition-colors"
-            aria-label="Close sidebar"
+            className="md:hidden p-1 rounded hover:bg-green-100 text-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
           >
-            <FiX size={20} />
+            <FiX size={24} />
           </button>
         </div>
 
-        {/* Menu with natural transitions */}
-        <nav className="flex flex-col space-y-1.5">
+        {/* Menu */}
+        <nav className="flex flex-col space-y-2">
           {menuItems.map(({ label, path, icon }) => {
             const isActive = location.pathname === path;
             return (
@@ -52,28 +75,23 @@ export default function Sidebar({ onClose }) {
                   navigate(path);
                   onClose();
                 }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition
                   ${
                     isActive
-                      ? "bg-gradient-to-r from-green-500/90 to-teal-500/90 text-white shadow-md shadow-green-200"
-                      : "text-green-700 hover:bg-green-100/50 hover:text-green-800 hover:translate-x-1"
+                      ? "bg-green-600 text-white shadow-md"
+                      : "text-green-700 hover:bg-green-100 hover:text-green-900"
                   }
                 `}
               >
-                <span className={`text-lg ${isActive ? "text-white" : "text-green-600"}`}>
-                  {icon}
-                </span>
+                <span className="text-lg">{icon}</span>
                 <span className="font-medium">{label}</span>
-                {isActive && (
-                  <span className="ml-auto h-2 w-2 rounded-full bg-white/80 animate-pulse" />
-                )}
               </button>
             );
           })}
         </nav>
 
-        {/* Footer with subtle nature theme */}
-        <div className="mt-auto pt-4 text-xs text-center text-green-600/70">
+        {/* Footer */}
+        <div className="mt-auto pt-6 text-xs text-center text-green-600/70 dark:text-green-400/70">
           <p>AgroPariwisata v1.0</p>
           <p className="mt-1">Nature Conservation System</p>
         </div>
