@@ -10,7 +10,7 @@ const LeafSpinner = ({ show, message = "Memuat data, mohon tunggu..." }) => {
       <div className="relative">
         {/* Main rotating leaf */}
         <svg
-          className="animate-spin-slow h-20 w-20"
+          className="leaf-spin-slow h-20 w-20"
           viewBox="0 0 64 64"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
@@ -39,7 +39,7 @@ const LeafSpinner = ({ show, message = "Memuat data, mohon tunggu..." }) => {
         {[1, 2, 3].map((i) => (
           <svg
             key={i}
-            className={`absolute h-6 w-6 animate-float-leaf-${i}`}
+            className={`absolute h-6 w-6 leaf-float-${i}`}
             style={{
               top: `${Math.random() * 30 + 5}px`,
               left: `${Math.random() * 30 + 5}px`,
@@ -65,42 +65,57 @@ const LeafSpinner = ({ show, message = "Memuat data, mohon tunggu..." }) => {
           {[1, 2, 3].map((dot) => (
             <div
               key={dot}
-              className={`h-2 w-2 rounded-full bg-green-600 animate-bounce`}
+              className={`h-2 w-2 rounded-full bg-green-600 dot-bounce`}
               style={{ animationDelay: `${dot * 0.2}s` }}
             />
           ))}
         </div>
       </div>
 
-      {/* Custom animations */}
-      <style jsx>{`
-        @keyframes spinSlow {
+      {/* CSS styles */}
+      <style>{`
+        .leaf-spin-slow {
+          animation: leafSpinSlow 2.5s linear infinite;
+        }
+        
+        .leaf-float-1 {
+          animation: leafFloat1 3s ease-in-out infinite;
+        }
+        
+        .leaf-float-2 {
+          animation: leafFloat2 3.5s ease-in-out infinite;
+        }
+        
+        .leaf-float-3 {
+          animation: leafFloat3 4s ease-in-out infinite;
+        }
+        
+        .dot-bounce {
+          animation: dotBounce 0.6s infinite alternate;
+        }
+        
+        @keyframes leafSpinSlow {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
-        .animate-spin-slow {
-          animation: spinSlow 2.5s linear infinite;
-        }
-        @keyframes float-leaf-1 {
+        
+        @keyframes leafFloat1 {
           0%, 100% { transform: translateY(0) rotate(0deg); }
           50% { transform: translateY(-15px) rotate(10deg); }
         }
-        @keyframes float-leaf-2 {
+        
+        @keyframes leafFloat2 {
           0%, 100% { transform: translateY(0) rotate(0deg); }
           50% { transform: translateY(-20px) rotate(-5deg); }
         }
-        @keyframes float-leaf-3 {
+        
+        @keyframes leafFloat3 {
           0%, 100% { transform: translateY(0) rotate(0deg); }
           50% { transform: translateY(-10px) rotate(15deg); }
         }
-        .animate-float-leaf-1 {
-          animation: float-leaf-1 3s ease-in-out infinite;
-        }
-        .animate-float-leaf-2 {
-          animation: float-leaf-2 3.5s ease-in-out infinite;
-        }
-        .animate-float-leaf-3 {
-          animation: float-leaf-3 4s ease-in-out infinite;
+        
+        @keyframes dotBounce {
+          to { transform: translateY(-6px); }
         }
       `}</style>
     </div>
