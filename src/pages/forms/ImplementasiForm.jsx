@@ -12,8 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-
-// Untuk map
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -87,13 +85,13 @@ const ImplementasiForm = () => {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-      <Card className="shadow-xl rounded-2xl border border-gray-200">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xl font-semibold text-gray-800">
+      <Card className="shadow-2xl rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-colors">
+        <CardHeader className="pb-2 border-b border-gray-100 dark:border-gray-700">
+          <CardTitle className="text-xl font-semibold text-gray-800 dark:text-gray-100">
             Form Implementasi Kegiatan
           </CardTitle>
           {success && (
-            <p className="text-green-600 text-sm mt-1">
+            <p className="text-green-600 dark:text-green-400 text-sm mt-1">
               ✅ Data berhasil disimpan!
             </p>
           )}
@@ -103,14 +101,14 @@ const ImplementasiForm = () => {
           <form onSubmit={formik.handleSubmit} className="space-y-8">
             {/* Checklist */}
             <div>
-              <h3 className="text-base font-semibold mb-3 text-gray-700">
+              <h3 className="text-base font-semibold mb-3 text-gray-700 dark:text-gray-200">
                 Checklist Kesesuaian Perencanaan
               </h3>
               <div className="grid sm:grid-cols-2 gap-3">
                 {Object.keys(formik.values.kesesuaian).map((field) => (
                   <label
                     key={field}
-                    className="flex items-center space-x-2 p-2 rounded-md border hover:bg-gray-50 transition cursor-pointer text-sm"
+                    className="flex items-center space-x-2 p-3 rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer text-sm bg-gray-50 dark:bg-gray-800"
                   >
                     <Checkbox
                       checked={formik.values.kesesuaian[field]}
@@ -118,7 +116,7 @@ const ImplementasiForm = () => {
                         formik.setFieldValue(`kesesuaian.${field}`, val)
                       }
                     />
-                    <span className="capitalize">
+                    <span className="capitalize text-gray-700 dark:text-gray-300">
                       {field.replace("_", " ")} sesuai
                     </span>
                   </label>
@@ -130,7 +128,7 @@ const ImplementasiForm = () => {
             <div>
               <Label
                 htmlFor="pic_koorlap"
-                className="text-sm font-medium text-gray-700"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
               >
                 PIC Koorlap <span className="text-red-500">*</span>
               </Label>
@@ -141,7 +139,7 @@ const ImplementasiForm = () => {
                 value={formik.values.pic_koorlap}
                 onChange={formik.handleChange}
                 className={cn(
-                  "mt-1",
+                  "mt-1 bg-gray-50 dark:bg-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700",
                   formik.touched.pic_koorlap &&
                     formik.errors.pic_koorlap &&
                     "border-red-500"
@@ -156,7 +154,7 @@ const ImplementasiForm = () => {
 
             {/* Upload file dengan preview */}
             <div>
-              <Label className="text-sm font-medium text-gray-700">
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Dokumentasi Monitoring <span className="text-red-500">*</span>
               </Label>
 
@@ -168,12 +166,12 @@ const ImplementasiForm = () => {
                   const files = Array.from(event.currentTarget.files);
                   formik.setFieldValue("dokumentasi", files);
                 }}
-                className="mt-2 block w-full text-sm text-gray-600
+                className="mt-2 block w-full text-sm text-gray-600 dark:text-gray-400
                   file:mr-4 file:py-2 file:px-4
                   file:rounded-lg file:border-0
                   file:text-sm file:font-semibold
-                  file:bg-green-100 file:text-green-700
-                  hover:file:bg-green-200 transition"
+                  file:bg-green-100 dark:file:bg-green-900 file:text-green-700 dark:file:text-green-300
+                  hover:file:bg-green-200 dark:hover:file:bg-green-800 transition"
               />
 
               {formik.touched.dokumentasi && formik.errors.dokumentasi && (
@@ -189,7 +187,7 @@ const ImplementasiForm = () => {
                     {formik.values.dokumentasi.map((file, index) => (
                       <div
                         key={index}
-                        className="relative w-full h-32 border rounded-lg overflow-hidden shadow-sm"
+                        className="relative w-full h-32 border dark:border-gray-700 rounded-lg overflow-hidden shadow-md bg-gray-100 dark:bg-gray-800"
                       >
                         <img
                           src={URL.createObjectURL(file)}
@@ -215,11 +213,11 @@ const ImplementasiForm = () => {
 
             {/* Geotagging */}
             <div>
-              <Label className="text-sm font-medium text-gray-700">
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Geotagging Lokasi Penanaman{" "}
                 <span className="text-red-500">*</span>
               </Label>
-              <div className="h-64 w-full rounded-lg overflow-hidden border mt-2">
+              <div className="h-64 w-full rounded-lg overflow-hidden border dark:border-gray-700 mt-2 shadow-sm">
                 <MapContainer
                   center={[-6.2, 106.8]} // default Jakarta
                   zoom={5}
@@ -249,7 +247,7 @@ const ImplementasiForm = () => {
                 </p>
               )}
               {formik.values.geotagging && (
-                <p className="text-xs text-gray-600 mt-1">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                   Titik dipilih: {formik.values.geotagging}
                 </p>
               )}
@@ -259,7 +257,7 @@ const ImplementasiForm = () => {
             <div className="flex justify-end">
               <Button
                 type="submit"
-                className="w-full sm:w-auto px-6"
+                className="w-full sm:w-auto px-6 rounded-lg shadow-md bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white font-medium transition"
                 disabled={submitting}
               >
                 {submitting ? "Menyimpan..." : "Simpan"}
