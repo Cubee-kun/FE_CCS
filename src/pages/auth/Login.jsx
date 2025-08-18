@@ -332,14 +332,14 @@ export default function Login() {
             >
               <p>
                 Belum punya akun?{" "}
-                <motion.div className="inline-block">
+                <motion.span className="inline-block">
                   <Link
                     to="/register"
                     className="font-medium text-emerald-600 hover:text-emerald-800 hover:underline"
                   >
                     Buat akun baru
                   </Link>
-                </motion.div>
+                </motion.span>
               </p>
             </motion.div>
 

@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import AppRoutes from "./routes/AppRoutes";
 import Navbar from "./components/Navbar";
+import { ToastContainer } from "react-toastify"; // 👉 import
+import "react-toastify/dist/ReactToastify.css"; // 👉 style bawaan
 import "./index.css";
 
 function App() {
@@ -11,16 +13,24 @@ function App() {
   // Daftar path dimana Navbar tidak ditampilkan
   const noNavbarRoutes = ["/", "/login", "/register"];
 
-  // Cek apakah current path ada di daftar noNavbarRoutes (mencakup kemungkinan query params)
+  // Cek apakah current path ada di daftar noNavbarRoutes
   const hideNavbar = noNavbarRoutes.includes(location.pathname);
-
-  console.log("Current Path:", hideNavbar);
-  console.log("Location:", location);
 
   return (
     <AuthProvider>
       {!hideNavbar && <Navbar />}
       <AppRoutes />
+      {/* 👉 container notifikasi, bisa dipasang sekali di root */}
+      <ToastContainer 
+        position="top-right" 
+        autoClose={3000} 
+        hideProgressBar={false} 
+        newestOnTop={true} 
+        closeOnClick 
+        pauseOnHover 
+        draggable 
+        theme="colored"
+      />
     </AuthProvider>
   );
 }

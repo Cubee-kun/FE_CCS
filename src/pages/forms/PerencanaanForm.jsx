@@ -3,10 +3,11 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import api from "../../api/axios";
 import { FiMapPin } from "react-icons/fi";
+import { toast } from "react-toastify"; // 👉 notifikasi
+import "react-toastify/dist/ReactToastify.css";
 
 const PerencanaanForm = () => {
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [loadingLokasi, setLoadingLokasi] = useState(false);
   const [errorLokasi, setErrorLokasi] = useState("");
 
@@ -16,9 +17,7 @@ const PerencanaanForm = () => {
     narahubung: Yup.string().required("Wajib diisi"),
     jenis_kegiatan: Yup.string().required("Pilih salah satu"),
     lokasi: Yup.string().required("Wajib diisi"),
-    jumlah_bibit: Yup.number()
-      .required("Wajib diisi")
-      .positive("Harus positif"),
+    jumlah_bibit: Yup.number().required("Wajib diisi").positive("Harus positif"),
     jenis_bibit: Yup.string().required("Wajib diisi"),
     tanggal_pelaksanaan: Yup.date().required("Wajib diisi"),
   });
@@ -29,21 +28,21 @@ const PerencanaanForm = () => {
       nama_pic: "",
       narahubung: "",
       jenis_kegiatan: "",
-      lokasi: "", // ini akan kita isi otomatis dari geotagging
+      lokasi: "",
       jumlah_bibit: "",
       jenis_bibit: "",
       tanggal_pelaksanaan: "",
     },
     validationSchema,
-    onSubmit: async (values) => {
+    onSubmit: async (values, { resetForm }) => {
       setSubmitting(true);
       try {
-        await api.post("/perencanaan", values);
-        setSuccess(true);
-        formik.resetForm();
-        setTimeout(() => setSuccess(false), 3000);
+        const res = await api.post("/perencanaan", values); // kirim ke backend
+        toast.success("✅ Data berhasil disimpan!", { autoClose: 3000 });
+        resetForm();
       } catch (error) {
         console.error("Error submitting form:", error);
+        toast.error("❌ Gagal menyimpan data!", { autoClose: 4000 });
       } finally {
         setSubmitting(false);
       }
@@ -77,12 +76,6 @@ const PerencanaanForm = () => {
           <h1 className="text-3xl font-bold mb-6 text-green-800 text-center">
             Form Perencanaan Kegiatan
           </h1>
-
-          {success && (
-            <div className="mb-6 p-3 text-green-800 bg-green-100 border border-green-300 rounded-lg text-center animate-fade-in">
-              ✅ Data berhasil disimpan!
-            </div>
-          )}
 
           <form onSubmit={formik.handleSubmit} className="space-y-5">
             {/* Input generator */}
@@ -129,11 +122,7 @@ const PerencanaanForm = () => {
                   name="lokasi"
                   value={formik.values.lokasi}
                   readOnly
-                  className={`flex-grow border rounded-lg px-3 py-2 bg-gray-50 focus:outline-none ${
-                    formik.touched.lokasi && formik.errors.lokasi
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
+                  className="flex-grow border rounded-lg px-3 py-2 bg-gray-50 focus:outline-none border-gray-300"
                   placeholder="Klik Ambil Lokasi"
                 />
                 <button
@@ -146,11 +135,6 @@ const PerencanaanForm = () => {
                   {loadingLokasi ? "Mencari..." : "Ambil"}
                 </button>
               </div>
-              {formik.touched.lokasi && formik.errors.lokasi && (
-                <p className="text-red-500 text-sm mt-1">
-                  {formik.errors.lokasi}
-                </p>
-              )}
               {errorLokasi && (
                 <p className="text-red-500 text-sm mt-1">{errorLokasi}</p>
               )}
@@ -190,12 +174,11 @@ const PerencanaanForm = () => {
                   </label>
                 ))}
               </div>
-              {formik.touched.jenis_kegiatan &&
-                formik.errors.jenis_kegiatan && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {formik.errors.jenis_kegiatan}
-                  </p>
-                )}
+              {formik.touched.jenis_kegiatan && formik.errors.jenis_kegiatan && (
+                <p className="text-red-500 text-sm mt-1">
+                  {formik.errors.jenis_kegiatan}
+                </p>
+              )}
             </div>
 
             <button

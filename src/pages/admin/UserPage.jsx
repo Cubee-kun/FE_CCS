@@ -239,6 +239,69 @@ export default function UserPage() {
           )}
         </div>
       </div>
+
+      {/* ✅ Modal Add/Edit User */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-md p-6 relative">
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+              {editUser ? "Edit User" : "Add New User"}
+            </h2>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <input
+                type="text"
+                placeholder="Name"
+                className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+              />
+              <select
+                className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+              {!editUser && (
+                <input
+                  type="password"
+                  placeholder="Password"
+                  className="w-full px-3 py-2 rounded-lg border dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  required
+                />
+              )}
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-teal-500 text-white hover:from-green-600 hover:to-teal-600"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
