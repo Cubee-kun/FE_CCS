@@ -29,10 +29,8 @@ export default function Sidebar({ onClose }) {
           { label: "Monitoring", path: "/admin/monitoring", icon: <FiEye /> },
         ]
       : [
-          { label: "Dashboard", path: "/dashboard", icon: <FiHome /> },
+          { label: "Dashboard", path: "/dashboardUser", icon: <FiHome /> },
           { label: "Perencanaan", path: "/perencanaan", icon: <FiLayers /> },
-          { label: "Implementasi", path: "/implementasi", icon: <FiPlayCircle /> },
-          { label: "Monitoring", path: "/monitoring", icon: <FiEye /> },
         ];
 
   return (
@@ -51,7 +49,7 @@ export default function Sidebar({ onClose }) {
           <h2
             className="text-xl font-bold text-green-700 cursor-pointer"
             onClick={() =>
-              navigate(user?.role === "admin" ? "/admin/dashboard" : "/dashboard")
+              navigate(user?.role === "admin" ? "/admin/dashboard" : "/dashboardUser")
             }
           >
             AgroPariwisata {user?.role === "admin" ? "Admin" : "User"}
