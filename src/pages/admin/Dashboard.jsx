@@ -48,7 +48,8 @@ export default function Dashboard() {
       title: "Total Perencanaan",
       value: stats.total_perencanaan,
       icon: <FiCalendar className="text-3xl" />,
-      color: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200",
+      color:
+        "bg-gradient-to-tr from-green-200 to-green-100 text-green-800 dark:from-green-800 dark:to-green-900 dark:text-green-100",
       trend: "12% increase",
       trendColor: "text-green-600 dark:text-green-400",
     },
@@ -57,7 +58,7 @@ export default function Dashboard() {
       value: stats.total_implementasi,
       icon: <FiCheckCircle className="text-3xl" />,
       color:
-        "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200",
+        "bg-gradient-to-tr from-emerald-200 to-emerald-100 text-emerald-800 dark:from-emerald-800 dark:to-emerald-900 dark:text-emerald-100",
       trend: "8% increase",
       trendColor: "text-emerald-600 dark:text-emerald-400",
     },
@@ -66,7 +67,7 @@ export default function Dashboard() {
       value: stats.total_monitoring,
       icon: <FiMonitor className="text-3xl" />,
       color:
-        "bg-lime-100 text-lime-700 dark:bg-lime-900 dark:text-lime-200",
+        "bg-gradient-to-tr from-lime-200 to-lime-100 text-lime-800 dark:from-lime-800 dark:to-lime-900 dark:text-lime-100",
       trend: "5% increase",
       trendColor: "text-lime-600 dark:text-lime-400",
     },
@@ -74,34 +75,35 @@ export default function Dashboard() {
       title: "User Aktif",
       value: "3",
       icon: <FiUser className="text-3xl" />,
-      color: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-200",
+      color:
+        "bg-gradient-to-tr from-teal-200 to-teal-100 text-teal-800 dark:from-teal-800 dark:to-teal-900 dark:text-teal-100",
       trend: "3 new users",
       trendColor: "text-teal-600 dark:text-teal-400",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-100 to-teal-50 
-      dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex font-sans relative transition-colors">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 
+      dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex font-sans relative transition-colors duration-500">
 
       <main className="flex-grow p-3 md:p-6 relative">
         {/* Loading Overlay */}
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-black/40 z-50">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-black/50 backdrop-blur-sm z-50">
             <LoadingSpinner />
           </div>
         )}
 
         {/* Header */}
-        <header className="bg-white dark:bg-gray-800 rounded-xl p-6 mb-8 shadow-md sticky top-0 z-10 transition">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-green-900 dark:text-green-200">
+        <header className="bg-white/80 dark:bg-gray-800/70 backdrop-blur-md rounded-2xl p-6 mb-8 shadow-lg border border-green-100 dark:border-green-800 sticky top-0 z-10 transition">
+          <h2 className="text-2xl md:text-3xl font-extrabold text-green-900 dark:text-green-200 tracking-tight">
             Selamat datang, {user?.name || "User"}!
           </h2>
-          <p className="text-green-800 dark:text-green-400">
+          <p className="text-green-700 dark:text-green-400 text-sm md:text-base">
             Anda login sebagai{" "}
             <span className="font-semibold">{user?.role || "-"}</span>
           </p>
-          <div className="flex items-center mt-2 text-sm text-green-700 dark:text-green-400">
+          <div className="flex items-center mt-3 text-xs md:text-sm text-green-700 dark:text-green-400">
             <FiClock className="mr-2" />
             Terakhir login:{" "}
             {new Date().toLocaleDateString("id-ID", {
@@ -117,15 +119,15 @@ export default function Dashboard() {
 
         {/* Tabs */}
         <nav className="mb-8 border-b border-green-300 dark:border-green-700 overflow-x-auto">
-          <ul className="flex space-x-6 text-sm md:text-lg">
+          <ul className="flex space-x-6 text-sm md:text-lg font-medium">
             {["overview", "users", "reports", "activity"].map((tab) => (
               <li key={tab}>
                 <button
                   onClick={() => setActiveTab(tab)}
-                  className={`pb-3 font-semibold border-b-4 transition-colors capitalize ${
+                  className={`pb-3 capitalize transition-colors duration-300 ${
                     activeTab === tab
-                      ? "border-green-600 text-green-700 dark:text-green-300"
-                      : "border-transparent text-green-400 hover:text-green-600 dark:text-green-500 dark:hover:text-green-300"
+                      ? "border-b-4 border-green-600 text-green-700 dark:text-green-300"
+                      : "text-green-400 hover:text-green-600 dark:text-green-500 dark:hover:text-green-300"
                   }`}
                 >
                   {tab}
@@ -136,18 +138,19 @@ export default function Dashboard() {
         </nav>
 
         {/* Stat Cards */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {statCards.map(({ title, value, icon, color, trend, trendColor }, i) => (
             <article
               key={i}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-xl transition"
+              className="bg-white/80 dark:bg-gray-800/70 backdrop-blur-md rounded-2xl shadow-lg p-6 border border-green-100 dark:border-gray-700 
+                transform transition-all hover:-translate-y-1 hover:shadow-2xl"
             >
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-center mb-5">
                 <div>
                   <p className="text-sm font-medium text-green-600 dark:text-green-400">{title}</p>
-                  <p className="text-3xl font-bold text-green-900 dark:text-green-100">{value}</p>
+                  <p className="text-3xl md:text-4xl font-bold text-green-900 dark:text-green-100">{value}</p>
                 </div>
-                <div className={`rounded-lg p-3 ${color} shadow-inner`}>{icon}</div>
+                <div className={`rounded-xl p-4 ${color} shadow-inner`}>{icon}</div>
               </div>
               <p className={`text-xs ${trendColor}`}>{trend}</p>
             </article>
@@ -174,7 +177,7 @@ export default function Dashboard() {
 
 function ChartPanel({ title, data, ChartComponent }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition">
+    <div className="bg-white/80 dark:bg-gray-800/70 backdrop-blur-md rounded-2xl shadow-lg p-6 border border-green-100 dark:border-gray-700 transition-all hover:shadow-2xl">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <h3 className="text-lg md:text-xl font-semibold text-green-900 dark:text-green-200">
           {title}
@@ -182,7 +185,7 @@ function ChartPanel({ title, data, ChartComponent }) {
         <div className="relative w-40 mt-3 sm:mt-0">
           <select
             className="w-full appearance-none bg-white dark:bg-gray-700 border border-green-300 dark:border-green-600 
-            rounded-md pl-3 pr-8 py-2 text-sm text-green-800 dark:text-green-200
+            rounded-lg pl-3 pr-8 py-2 text-sm text-green-800 dark:text-green-200
             focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400"
             aria-label={`${title} filter`}
           >
