@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 // Layouts
@@ -10,31 +10,49 @@ import Dashboard from "../pages/admin/Dashboard";
 import UserPage from "../pages/admin/UserPage";
 import LaporanPage from "../pages/admin/LaporanPage";
 import ActivityPage from "../pages/admin/ActivityPage";
-
-// User pages (shared forms)
-import PerencanaanForm from "../pages/forms/PerencanaanForm";
 import ImplementasiForm from "../pages/forms/ImplementasiForm";
 import MonitoringForm from "../pages/forms/MonitoringForm";
 
-// Public
+// User pages
+import DashboardUser from "../pages/user/DashboardUser";
+import PerencanaanForm from "../pages/forms/PerencanaanForm";
+
+// Public pages
 import LandingPage from "../pages/LandingPage";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
+import Verifikasi from "../pages/Verifikasi";
 import About from "../pages/About";
+// import Unauthorized from "../pages/Unauthorized";
+
+// Protected Route Component
+const ProtectedRoute = ({ role, children }) => {
+  const { user } = useAuth();
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (role && user.role !== role) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  return children ? children : <Outlet />;
+};
 
 export default function AppRoutes() {
-  const { user } = useAuth(); // misalnya { role: "admin" | "user" }
-
   return (
     <Routes>
-      {/* Public */}
+      {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/about" element={<About />} />
+      <Route path="/verifikasi" element={<Verifikasi />} />
+      {/* <Route path="/unauthorized" element={<Unauthorized />} /> */}
 
       {/* Admin Routes */}
-      {user?.role === "admin" && (
+      <Route element={<ProtectedRoute role="admin" />}>
         <Route path="/admin" element={<DashboardLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="users" element={<UserPage />} />
@@ -43,19 +61,20 @@ export default function AppRoutes() {
           <Route path="perencanaan" element={<PerencanaanForm />} />
           <Route path="implementasi" element={<ImplementasiForm />} />
           <Route path="monitoring" element={<MonitoringForm />} />
+          <Route index element={<Navigate to="dashboard" replace />} />
         </Route>
-      )}
+      </Route>
 
       {/* User Routes */}
-      {user?.role === "user" && (
+      <Route element={<ProtectedRoute role="user" />}>
         <Route path="/user" element={<UserLayout />}>
+          <Route path="dashboard" element={<DashboardUser />} />
           <Route path="perencanaan" element={<PerencanaanForm />} />
-          <Route path="implementasi" element={<ImplementasiForm />} />
-          <Route path="monitoring" element={<MonitoringForm />} />
+          <Route index element={<Navigate to="dashboard" replace />} />
         </Route>
-      )}
+      </Route>
 
-      {/* Fallback: kalau nggak cocok role */}
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
