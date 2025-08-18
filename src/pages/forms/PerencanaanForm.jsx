@@ -3,7 +3,7 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import api from "../../api/axios";
 import { FiMapPin } from "react-icons/fi";
-import { toast } from "react-toastify"; // 👉 notifikasi
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const PerencanaanForm = () => {
@@ -37,7 +37,7 @@ const PerencanaanForm = () => {
     onSubmit: async (values, { resetForm }) => {
       setSubmitting(true);
       try {
-        const res = await api.post("/perencanaan", values); // kirim ke backend
+        await api.post("/perencanaan", values);
         toast.success("✅ Data berhasil disimpan!", { autoClose: 3000 });
         resetForm();
       } catch (error) {
@@ -70,66 +70,68 @@ const PerencanaanForm = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-green-50 to-green-100 px-4">
-      <div className="w-full max-w-2xl">
-        <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200">
-          <h1 className="text-3xl font-bold mb-6 text-green-800 text-center">
+    <div className="flex justify-center items-center min-h-screen px-4 py-8 bg-gradient-to-br from-green-50 to-green-100 dark:from-gray-900 dark:to-gray-950">
+      <div className="w-full max-w-3xl">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-800 transition">
+          <h1 className="text-3xl font-extrabold mb-8 text-green-800 dark:text-green-400 text-center tracking-wide">
             Form Perencanaan Kegiatan
           </h1>
 
-          <form onSubmit={formik.handleSubmit} className="space-y-5">
+          <form onSubmit={formik.handleSubmit} className="space-y-6">
             {/* Input generator */}
-            {[
-              { name: "nama_perusahaan", label: "Nama Perusahaan", type: "text" },
-              { name: "nama_pic", label: "Nama PIC", type: "text" },
-              { name: "narahubung", label: "Narahubung", type: "text" },
-              { name: "jumlah_bibit", label: "Jumlah Bibit yang Ditanam", type: "number" },
-              { name: "jenis_bibit", label: "Jenis Bibit Tanaman", type: "text" },
-              { name: "tanggal_pelaksanaan", label: "Tanggal Pelaksanaan", type: "date" },
-            ].map((field) => (
-              <div key={field.name}>
-                <label className="block text-gray-700 font-medium mb-1">
-                  {field.label}
-                </label>
-                <input
-                  type={field.type}
-                  name={field.name}
-                  value={formik.values[field.name]}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 transition ${
-                    formik.touched[field.name] && formik.errors[field.name]
-                      ? "border-red-500 focus:ring-red-400"
-                      : "border-gray-300 focus:ring-green-500"
-                  }`}
-                />
-                {formik.touched[field.name] && formik.errors[field.name] && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {formik.errors[field.name]}
-                  </p>
-                )}
-              </div>
-            ))}
+            <div className="grid md:grid-cols-2 gap-6">
+              {[
+                { name: "nama_perusahaan", label: "Nama Perusahaan", type: "text" },
+                { name: "nama_pic", label: "Nama PIC", type: "text" },
+                { name: "narahubung", label: "Narahubung", type: "text" },
+                { name: "jumlah_bibit", label: "Jumlah Bibit yang Ditanam", type: "number" },
+                { name: "jenis_bibit", label: "Jenis Bibit Tanaman", type: "text" },
+                { name: "tanggal_pelaksanaan", label: "Tanggal Pelaksanaan", type: "date" },
+              ].map((field) => (
+                <div key={field.name} className="flex flex-col">
+                  <label className="block text-gray-700 dark:text-gray-200 font-medium mb-1">
+                    {field.label}
+                  </label>
+                  <input
+                    type={field.type}
+                    name={field.name}
+                    value={formik.values[field.name]}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    className={`w-full border rounded-xl px-4 py-3 bg-gray-50 dark:bg-gray-800 dark:text-gray-100 transition focus:outline-none focus:ring-2 ${
+                      formik.touched[field.name] && formik.errors[field.name]
+                        ? "border-red-500 focus:ring-red-400"
+                        : "border-gray-300 dark:border-gray-700 focus:ring-green-500"
+                    }`}
+                  />
+                  {formik.touched[field.name] && formik.errors[field.name] && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {formik.errors[field.name]}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
 
             {/* Lokasi dengan Geotagging */}
             <div>
-              <label className="block text-gray-700 font-medium mb-1">
+              <label className="block text-gray-700 dark:text-gray-200 font-medium mb-2">
                 Lokasi (Geotagging)
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <input
                   type="text"
                   name="lokasi"
                   value={formik.values.lokasi}
                   readOnly
-                  className="flex-grow border rounded-lg px-3 py-2 bg-gray-50 focus:outline-none border-gray-300"
+                  className="flex-grow border rounded-xl px-4 py-3 bg-gray-50 dark:bg-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-700 focus:outline-none"
                   placeholder="Klik Ambil Lokasi"
                 />
                 <button
                   type="button"
                   onClick={ambilLokasi}
                   disabled={loadingLokasi}
-                  className="flex items-center gap-1 px-3 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 disabled:opacity-50 transition"
                 >
                   <FiMapPin />
                   {loadingLokasi ? "Mencari..." : "Ambil"}
@@ -141,7 +143,7 @@ const PerencanaanForm = () => {
               {formik.values.lokasi && (
                 <iframe
                   title="Map Preview"
-                  className="mt-3 w-full h-60 rounded-lg border border-gray-300"
+                  className="mt-4 w-full h-64 rounded-xl border border-gray-300 dark:border-gray-700"
                   src={`https://maps.google.com/maps?q=${formik.values.lokasi}&z=15&output=embed`}
                 ></iframe>
               )}
@@ -149,17 +151,17 @@ const PerencanaanForm = () => {
 
             {/* Radio group */}
             <div>
-              <label className="block text-gray-700 font-medium mb-2">
+              <label className="block text-gray-700 dark:text-gray-200 font-medium mb-2">
                 Jenis Kegiatan
               </label>
               <div className="flex flex-wrap gap-4">
                 {["Planting Mangrove", "Coral Transplanting"].map((option) => (
                   <label
                     key={option}
-                    className={`flex items-center gap-2 px-4 py-2 border rounded-lg cursor-pointer transition ${
+                    className={`flex items-center gap-2 px-5 py-3 rounded-xl border cursor-pointer transition font-medium ${
                       formik.values.jenis_kegiatan === option
-                        ? "border-green-600 bg-green-50 text-green-700"
-                        : "border-gray-300 hover:bg-gray-50"
+                        ? "border-green-600 bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-300"
+                        : "border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                     }`}
                   >
                     <input
@@ -181,13 +183,14 @@ const PerencanaanForm = () => {
               )}
             </div>
 
+            {/* Submit button */}
             <button
               type="submit"
               disabled={submitting}
-              className={`w-full py-3 rounded-lg font-semibold transition ${
+              className={`w-full py-4 rounded-xl font-semibold text-lg shadow-md transition ${
                 submitting
                   ? "bg-green-400 text-white cursor-not-allowed"
-                  : "bg-green-700 hover:bg-green-800 text-white shadow-md"
+                  : "bg-green-700 hover:bg-green-800 text-white"
               }`}
             >
               {submitting ? "Menyimpan..." : "Simpan"}
