@@ -1,5 +1,4 @@
-// pages/admin/Dashboard.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { PieChart, BarChart } from "../../components/Charts";
@@ -28,19 +27,30 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const navigate = useNavigate();
+  const pollingRef = useRef();
 
+  // Polling function for realtime data
   useEffect(() => {
+    let isMounted = true;
+
     const fetchStats = async () => {
       try {
         const { data } = await api.get("/dashboard/stats");
-        setStats({ ...defaultStats, ...data });
+        if (isMounted) setStats({ ...defaultStats, ...data });
       } catch (error) {
-        console.error("Error fetching dashboard stats:", error);
+        if (isMounted) console.error("Error fetching dashboard stats:", error);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
+
     fetchStats();
+    pollingRef.current = setInterval(fetchStats, 10000); // refresh every 10 seconds
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollingRef.current);
+    };
   }, []);
 
   const statCards = [
@@ -73,7 +83,7 @@ export default function Dashboard() {
     },
     {
       title: "User Aktif",
-      value: "3",
+      value: stats.total_user || "3",
       icon: <FiUser className="text-3xl" />,
       color:
         "bg-gradient-to-tr from-teal-200 to-teal-100 text-teal-800 dark:from-teal-800 dark:to-teal-900 dark:text-teal-100",
