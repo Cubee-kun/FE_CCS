@@ -23,35 +23,27 @@ import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import Verifikasi from "../pages/Verifikasi";
 import About from "../pages/About";
-// import Unauthorized from "../pages/Unauthorized";
 
-// Protected Route Component
+// Protected Route
 const ProtectedRoute = ({ role, children }) => {
-  const { user } = useAuth();
-  
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (role && user.role !== role) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-
+  const { user, loading } = useAuth();
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (role && user.role !== role) return <Navigate to="/" replace />;
   return children ? children : <Outlet />;
 };
 
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* Public Routes */}
+      {/* Public */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/about" element={<About />} />
       <Route path="/verifikasi" element={<Verifikasi />} />
-      {/* <Route path="/unauthorized" element={<Unauthorized />} /> */}
 
-      {/* Admin Routes */}
+      {/* Admin */}
       <Route element={<ProtectedRoute role="admin" />}>
         <Route path="/admin" element={<DashboardLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
@@ -65,7 +57,7 @@ export default function AppRoutes() {
         </Route>
       </Route>
 
-      {/* User Routes */}
+      {/* User */}
       <Route element={<ProtectedRoute role="user" />}>
         <Route path="/user" element={<UserLayout />}>
           <Route path="dashboard" element={<DashboardUser />} />
