@@ -54,7 +54,7 @@ const MonitoringForm = () => {
           }
         });
 
-        await api.post("/monitoring", formData, {
+        await api.post("/forms/monitoring", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
 

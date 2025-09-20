@@ -68,7 +68,7 @@ const ImplementasiForm = () => {
         formData.append("dokumentasi", values.dokumentasi);
         formData.append("geotagging", values.geotagging);
 
-        await api.post("/implementasi", formData, {
+        await api.post("/forms/implementasi", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
 

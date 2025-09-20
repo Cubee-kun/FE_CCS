@@ -37,7 +37,7 @@ const PerencanaanForm = () => {
     onSubmit: async (values, { resetForm }) => {
       setSubmitting(true);
       try {
-        await api.post("/perencanaan", values);
+        await api.post("/forms/perencanaan", values);
         toast.success("✅ Data berhasil disimpan!", { autoClose: 3000 });
         resetForm();
       } catch (error) {
