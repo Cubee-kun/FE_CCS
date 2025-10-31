@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(defaultStats);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const pollingRef = useRef();
 
@@ -36,15 +37,15 @@ export default function Dashboard() {
     const fetchStats = async () => {
       try {
         const { data } = await api.get("/dashboard/stats");
-        if (isMounted) setStats({ ...defaultStats, ...data });
+        if (isMounted) {
+          setStats({ ...defaultStats, ...data });
+          setError(null);
+        }
       } catch (error) {
         if (isMounted) {
           console.error("Error fetching dashboard stats:", error);
-          // Jika endpoint tidak tersedia, gunakan data default
-          if (error.response?.status === 404 || error.response?.status === 405) {
-            console.warn("Dashboard stats endpoint not available, using default data");
-            setStats(defaultStats);
-          }
+          setError("Gagal memuat data dashboard. Backend sedang bermasalah.");
+          setStats(defaultStats);
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -52,7 +53,7 @@ export default function Dashboard() {
     };
 
     fetchStats();
-    pollingRef.current = setInterval(fetchStats, 30000); // refresh every 30 seconds (dikurangi dari 10s)
+    pollingRef.current = setInterval(fetchStats, 30000);
 
     return () => {
       isMounted = false;
@@ -108,6 +109,11 @@ export default function Dashboard() {
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-black/50 backdrop-blur-sm z-50">
             <LoadingSpinner />
+          </div>
+        )}
+        {error && (
+          <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-6 text-center font-semibold">
+            {error}
           </div>
         )}
 
@@ -176,16 +182,20 @@ export default function Dashboard() {
 
         {/* Charts */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <ChartPanel
-            title="Jenis Kegiatan"
-            data={stats.kegiatan_stats}
-            ChartComponent={PieChart}
-          />
-          <ChartPanel
-            title="Progress Bulan Ini"
-            data={stats.monthly_stats}
-            ChartComponent={BarChart}
-          />
+          {!error && (
+            <>
+              <ChartPanel
+                title="Jenis Kegiatan"
+                data={stats.kegiatan_stats}
+                ChartComponent={PieChart}
+              />
+              <ChartPanel
+                title="Progress Bulan Ini"
+                data={stats.monthly_stats}
+                ChartComponent={BarChart}
+              />
+            </>
+          )}
         </section>
       </main>
     </div>

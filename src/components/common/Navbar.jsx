@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTheme } from "../../contexts/ThemeContext"; // tambahkan
+import { useTheme } from "../../contexts/ThemeContext";
 
 
 export default function Navbar({ isUser = false }) {
@@ -11,7 +11,7 @@ export default function Navbar({ isUser = false }) {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const { theme, toggleTheme } = useTheme(); // gunakan ThemeContext
+  const { theme, toggleTheme } = useTheme();
 
   // Close dropdown if clicked outside
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function Navbar({ isUser = false }) {
     <header className="fixed top-0 left-0 right-0 z-50 animate-slide-down">
       <div className="glass-effect border-b border-white/10 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-16 relative">
             {/* Logo Section */}
             <div className="flex items-center space-x-4">
               <motion.div
@@ -59,17 +59,18 @@ export default function Navbar({ isUser = false }) {
             </div>
 
             {/* Right Section */}
-            <div className="flex items-center space-x-2 md:space-x-3" ref={dropdownRef}>
+            <div className="flex items-center space-x-2 md:space-x-3 relative" ref={dropdownRef}>
               {!isAuthenticated ? (
                 <>
+                  {/* Tombol Verifikasi - Visible on all screens */}
                   <motion.button
                     onClick={() => navigate("/verifikasi")}
-                    className="hidden sm:flex items-center space-x-2 glass-effect glass-hover px-4 py-2 rounded-xl text-sm font-medium text-emerald-600 dark:text-emerald-400"
+                    className="flex items-center space-x-2 glass-effect glass-hover px-4 py-2 rounded-xl text-sm font-medium text-emerald-600 dark:text-emerald-400"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <FiCheckCircle className="w-4 h-4" />
-                    <span className="hidden md:inline">Verifikasi</span>
+                    <span className="hidden sm:inline">Verifikasi</span>
                   </motion.button>
                   
                   <motion.button
@@ -92,6 +93,7 @@ export default function Navbar({ isUser = false }) {
                 </>
               ) : (
                 <>
+                  {/* Tombol Verifikasi - Desktop only when logged in */}
                   <motion.button
                     onClick={() => navigate("/verifikasi")}
                     className="hidden md:flex items-center space-x-2 premium-gradient text-white px-4 py-2 rounded-xl text-sm font-medium shadow-lg"
@@ -124,6 +126,11 @@ export default function Navbar({ isUser = false }) {
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
                         className="absolute right-0 top-full mt-2 w-64 glass-effect rounded-2xl shadow-2xl overflow-hidden"
+                        style={{
+                          zIndex: 60,
+                          minWidth: "16rem",
+                          maxWidth: "90vw",
+                        }}
                       >
                         {/* Header */}
                         <div className="px-4 py-3 border-b border-white/10 bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
@@ -174,7 +181,7 @@ export default function Navbar({ isUser = false }) {
                           <motion.button
                             onClick={() => {
                               setDropdownOpen(false);
-                              navigate("/settings");
+                              navigate(user?.role === "admin" ? "/admin/settings" : "/user/settings");
                             }}
                             className="flex items-center gap-3 w-full px-4 py-2.5 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
                             whileHover={{ x: 4 }}
