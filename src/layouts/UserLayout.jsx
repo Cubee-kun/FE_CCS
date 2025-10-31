@@ -1,25 +1,13 @@
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { FiClipboard, FiHome, FiX, FiMoon, FiSun } from "react-icons/fi";
-import { useState, useEffect } from "react";
+import { FiClipboard, FiHome, FiX } from "react-icons/fi";
+import { useState } from "react";
+import { useTheme } from "../contexts/ThemeContext"; // tambahkan
 
 export default function UserLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(
-    () => localStorage.getItem("theme") === "dark"
-  );
-
-  // Apply dark mode to <html> class
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [darkMode]);
+  const { theme, toggleTheme } = useTheme(); // gunakan ThemeContext
 
   const menuItems = [
     { label: "Dashboard", path: "/user/dashboard", icon: <FiHome /> },
@@ -50,7 +38,6 @@ export default function UserLayout() {
             User Panel
           </h2>
           <div className="flex items-center gap-2">
-            
             {/* Close (mobile only) */}
             <button
               onClick={() => setSidebarOpen(false)}

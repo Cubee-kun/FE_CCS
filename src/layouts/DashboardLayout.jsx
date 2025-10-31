@@ -1,24 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Outlet } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
-import { FiMenu, FiSun, FiMoon } from "react-icons/fi";
+import Sidebar from "../components/common/Sidebar";
+import { FiMenu } from "react-icons/fi";
+import { useTheme } from "../contexts/ThemeContext";
 
 export default function DashboardLayout({ isUser = false }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(
-    localStorage.getItem("theme") === "dark"
-  );
-
-  // Sync dark mode ke HTML <html>
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [darkMode]);
+  const { theme, toggleTheme } = useTheme(); // gunakan ThemeContext
 
   return (
     <div className="min-h-screen flex font-sans bg-gradient-to-br from-green-50 via-emerald-100 to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
