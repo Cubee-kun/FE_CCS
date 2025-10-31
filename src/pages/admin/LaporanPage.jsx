@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { FiFileText, FiCalendar } from "react-icons/fi";
 
 export default function LaporanPage() {
@@ -12,13 +12,17 @@ export default function LaporanPage() {
     const fetchLaporan = async () => {
       try {
         const response = await api.get("/laporan");
-        // Pastikan data adalah array
         const data = response.data?.data || response.data;
         setLaporan(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Fetch error:", err);
-        setError("Gagal mengambil data laporan.");
-        setLaporan([]); // Reset ke array kosong jika error
+        // Jika endpoint tidak tersedia, set data kosong dan tampilkan pesan
+        if (err.response?.status === 404 || err.response?.status === 405) {
+          setError("Endpoint laporan belum tersedia di backend.");
+        } else {
+          setError("Gagal mengambil data laporan.");
+        }
+        setLaporan([]);
       } finally {
         setLoading(false);
       }

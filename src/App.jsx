@@ -2,10 +2,10 @@
 import { useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import AppRoutes from "./routes/AppRoutes";
-import Navbar from "./components/Navbar";
-import { ToastContainer } from "react-toastify"; // 👉 import
-import "react-toastify/dist/ReactToastify.css"; // 👉 style bawaan
-import "./index.css";
+import Navbar from "./components/common/Navbar";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import "./assets/styles/index.css";
 
 function App() {
   const location = useLocation();

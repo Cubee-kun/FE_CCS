@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+import { toast } from "react-toastify";
 
 export default function UserPage() {
   const [users, setUsers] = useState([]);
@@ -18,9 +19,14 @@ export default function UserPage() {
     const fetchUsers = async () => {
       try {
         const response = await api.get("/users");
-        setUsers(response.data);
+        setUsers(response.data?.data || response.data || []);
       } catch (err) {
-        setError("Failed to fetch user data. Please try again later.");
+        console.error("Fetch users error:", err);
+        if (err.response?.status === 405) {
+          setError("Backend endpoint /users tidak mendukung method GET. Hubungi developer backend.");
+        } else {
+          setError("Failed to fetch user data. Please try again later.");
+        }
       } finally {
         setLoading(false);
       }
@@ -58,22 +64,35 @@ export default function UserPage() {
     try {
       if (editUser) {
         await api.put(`/users/${editUser.id}`, form);
+        toast.success("User berhasil diupdate!");
       } else {
         await api.post("/users", form);
+        toast.success("User berhasil ditambahkan!");
       }
       setModalOpen(false);
       const response = await api.get("/users");
-      setUsers(response.data);
+      setUsers(response.data?.data || response.data || []);
     } catch (err) {
-      alert("Gagal menyimpan user");
+      console.error("Save user error:", err);
+      if (err.response?.status === 405) {
+        toast.error("Method tidak didukung oleh backend!");
+      } else {
+        toast.error("Gagal menyimpan user!");
+      }
     }
   };
 
   const handleDelete = async (id) => {
     if (window.confirm("Hapus user ini?")) {
-      await api.delete(`/users/${id}`);
-      const response = await api.get("/users");
-      setUsers(response.data);
+      try {
+        await api.delete(`/users/${id}`);
+        toast.success("User berhasil dihapus!");
+        const response = await api.get("/users");
+        setUsers(response.data?.data || response.data || []);
+      } catch (err) {
+        console.error("Delete user error:", err);
+        toast.error("Gagal menghapus user!");
+      }
     }
   };
 

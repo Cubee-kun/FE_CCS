@@ -2,9 +2,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { PieChart, BarChart } from "../../components/Charts";
-import api from "../../api/axios";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import { PieChart, BarChart } from "../../components/charts/Charts";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 import {
   FiCalendar,
   FiCheckCircle,
@@ -36,6 +35,13 @@ export default function Dashboard() {
         setStats({ ...defaultStats, ...data });
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
+        // Jika endpoint tidak tersedia, gunakan data default
+        if (error.response?.status === 404 || error.response?.status === 405) {
+          console.warn(
+            "Dashboard stats endpoint not available, using default data"
+          );
+          setStats(defaultStats);
+        }
       } finally {
         setLoading(false);
       }

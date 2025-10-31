@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { PieChart, BarChart } from "../../components/Charts";
+import { PieChart, BarChart } from "../../components/charts/Charts";
 import api from "../../api/axios";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 import {
   FiCalendar,
   FiCheckCircle,
@@ -38,14 +38,21 @@ export default function Dashboard() {
         const { data } = await api.get("/dashboard/stats");
         if (isMounted) setStats({ ...defaultStats, ...data });
       } catch (error) {
-        if (isMounted) console.error("Error fetching dashboard stats:", error);
+        if (isMounted) {
+          console.error("Error fetching dashboard stats:", error);
+          // Jika endpoint tidak tersedia, gunakan data default
+          if (error.response?.status === 404 || error.response?.status === 405) {
+            console.warn("Dashboard stats endpoint not available, using default data");
+            setStats(defaultStats);
+          }
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
     fetchStats();
-    pollingRef.current = setInterval(fetchStats, 10000); // refresh every 10 seconds
+    pollingRef.current = setInterval(fetchStats, 30000); // refresh every 30 seconds (dikurangi dari 10s)
 
     return () => {
       isMounted = false;
