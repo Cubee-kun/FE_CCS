@@ -1,97 +1,103 @@
-# CCS Project - Frontend
+# 🚀 CCS System - Deployment Guide
 
-## 📁 Struktur Folder
+## Netlify Deployment
 
-```
-src/
-├── api/                    # API configuration & axios instance
-├── assets/                 # Static assets
-│   └── styles/            # Global styles & CSS
-├── components/            # Reusable components
-│   ├── common/           # Common UI components (Navbar, Sidebar, Loading, etc)
-│   ├── charts/           # Chart components
-│   └── ui/               # UI primitives (future)
-├── contexts/              # React Context providers
-├── hooks/                 # Custom React hooks
-├── layouts/               # Layout components (Dashboard, User, etc)
-├── pages/                 # Page components
-│   ├── admin/            # Admin pages
-│   ├── auth/             # Authentication pages
-│   ├── forms/            # Form pages
-│   ├── public/           # Public pages
-│   ├── settings/         # Settings pages
-│   └── user/             # User pages
-├── routes/                # Route configuration & Protected routes
-└── utils/                 # Utility functions & helpers
-```
+### Method 1: Deploy via Netlify CLI
 
-## 🎯 Naming Conventions
-
-- **Components**: PascalCase (e.g., `LoadingSpinner.jsx`)
-- **Contexts**: PascalCase with Context suffix (e.g., `AuthContext.jsx`)
-- **Utils**: camelCase (e.g., `formatDate.js`)
-- **Folders**: kebab-case or camelCase
-
-## 🔧 Development
-
+1. **Install Netlify CLI**
 ```bash
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
+npm install -g netlify-cli
 ```
 
-## 📦 Main Dependencies
+2. **Login ke Netlify**
+```bash
+netlify login
+```
 
-- React 18
-- React Router v6
-- Tailwind CSS v3
-- Framer Motion (animations)
-- Formik + Yup (forms)
-- React Leaflet (maps)
-- React Icons
-- React Toastify
-- Axios
+3. **Initialize Netlify**
+```bash
+netlify init
+```
 
-## 🎨 Design System
+4. **Deploy**
+```bash
+netlify deploy --prod
+```
 
-### Colors
-- Primary: Emerald/Teal gradient
-- Dark Mode: Slate/Gray tones
-- Accent: Cyan
+### Method 2: Deploy via Git (Recommended)
 
-### Components
-- Glass morphism effects
-- Premium gradients
-- Smooth animations
-- Responsive design (mobile-first)
+1. **Push ke GitHub/GitLab/Bitbucket**
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin <your-repo-url>
+git push -u origin main
+```
 
-## 🔐 Authentication
+2. **Connect Repository di Netlify Dashboard**
+   - Buka https://app.netlify.com
+   - Click "New site from Git"
+   - Choose your Git provider
+   - Select repository
+   - Configure build settings:
+     - **Build command**: `npm run build`
+     - **Publish directory**: `dist`
+     - **Branch**: `main`
 
-Uses JWT-based authentication with:
-- Token refresh mechanism
-- Protected routes
-- Role-based access (admin/user)
+3. **Add Environment Variables di Netlify**
+   - Go to Site settings > Environment variables
+   - Add:
+     - `VITE_API_URL`: Your API URL
+     - `VITE_APP_NAME`: CCS System
+     - `VITE_APP_VERSION`: 1.0.0
 
-## 📝 Code Style
+4. **Deploy!**
+   - Click "Deploy site"
+   - Wait for build to complete
 
-- Use functional components with hooks
-- Prefer named exports for utilities
-- Use default exports for pages/components
-- Keep components small and focused
-- Extract reusable logic to custom hooks
+### Method 3: Manual Deploy via Netlify Drop
 
-## 🚀 Deployment
+1. **Build locally**
+```bash
+npm run build
+```
 
-Backend API: https://apiccshbobwkigoazltg3hzsfcvh6xot4pure.soundofiwu.com/api
+2. **Drag & Drop**
+   - Go to https://app.netlify.com/drop
+   - Drag your `dist` folder to the upload area
+   - Done!
 
-## 📄 License
+## Custom Domain Setup
 
-Proprietary - CCS Project
+1. Go to Site settings > Domain management
+2. Add custom domain
+3. Configure DNS settings
+4. Enable HTTPS (automatic)
+
+## Troubleshooting
+
+### Build Fails
+- Check Node.js version (should be 18+)
+- Verify environment variables
+- Check for syntax errors
+
+### 404 on Page Refresh
+- Ensure `netlify.toml` redirect rules are in place
+
+### API Connection Issues
+- Verify `VITE_API_URL` is correct
+- Check CORS settings on backend
+
+## Performance Optimization
+
+- ✅ Code splitting enabled
+- ✅ Asset optimization
+- ✅ Gzip compression
+- ✅ CDN enabled by default
+
+## Monitoring
+
+- Check deploy logs in Netlify dashboard
+- Monitor performance with Lighthouse
+- Setup error tracking (Sentry recommended)

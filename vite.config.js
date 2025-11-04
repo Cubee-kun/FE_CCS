@@ -10,4 +10,32 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    // Optimize build output
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+          "ui-vendor": ["framer-motion", "react-icons"],
+          "chart-vendor": ["chart.js", "react-chartjs-2"],
+          "map-vendor": ["leaflet", "react-leaflet"],
+        },
+      },
+    },
+    // Increase chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+    // Enable source maps for debugging (optional)
+    sourcemap: false,
+  },
+  // Preview server config
+  preview: {
+    port: 4173,
+    host: true,
+  },
+  // Dev server config
+  server: {
+    port: 5173,
+    host: true,
+    open: true,
+  },
 });
