@@ -10,6 +10,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  css: {
+    postcss: {
+      plugins: [
+        require('tailwindcss'),
+        require('autoprefixer'),
+      ],
+    },
+  },
   build: {
     // Optimize build output
     rollupOptions: {
@@ -26,6 +34,9 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     // Enable source maps for debugging (optional)
     sourcemap: false,
+    // Fix for CSS build issues
+    cssCodeSplit: true,
+    assetsInlineLimit: 4096,
   },
   // Preview server config
   preview: {
