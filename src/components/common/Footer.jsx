@@ -6,7 +6,7 @@ export default function Footer() {
 
   const footerLinks = {
     produk: [
-      { name: "Dashboard", href: "#" },
+      { name: "Beranda", href: "/" },
       { name: "Monitoring", href: "#" },
       { name: "Analytics", href: "#" },
       { name: "Reporting", href: "#" },
@@ -18,13 +18,6 @@ export default function Footer() {
       { name: "Karir", href: "#" },
       { name: "Blog", href: "#" },
       { name: "Press Kit", href: "#" },
-    ],
-    dukungan: [
-      { name: "Help Center", href: "#" },
-      { name: "Dokumentasi", href: "#" },
-      { name: "API", href: "#" },
-      { name: "Status", href: "#" },
-      { name: "Kontak", href: "/contact" },
     ],
   };
 
@@ -51,10 +44,9 @@ export default function Footer() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
         {/* Top Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12 mb-12">
-          {/* Brand Section - Takes 2 columns on large screens */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 mb-12">
+          {/* Brand Section */}
           <motion.div
-            className="lg:col-span-2"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -81,23 +73,6 @@ export default function Footer() {
             <p className="text-gray-400 mb-6 leading-relaxed text-sm">
               Platform konservasi digital berbasis blockchain yang membantu organisasi mengelola proyek lingkungan dengan transparansi data dan keamanan tingkat enterprise.
             </p>
-
-            {/* Contact Info */}
-            <div className="space-y-3 mb-6">
-              {contactInfo.map((item, index) => (
-                <motion.div
-                  key={index}
-                  className="flex items-center space-x-3 text-sm"
-                  whileHover={{ x: 5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-900/30 flex items-center justify-center">
-                    <item.icon className="w-4 h-4 text-emerald-400" />
-                  </div>
-                  <span className="text-gray-400">{item.text}</span>
-                </motion.div>
-              ))}
-            </div>
 
             {/* Social Links */}
             <div className="flex space-x-3">
@@ -147,45 +122,38 @@ export default function Footer() {
               </ul>
             </motion.div>
           ))}
-        </div>
 
-        {/* Newsletter Section */}
-        <motion.div
-          className="border-t border-b border-gray-800 py-8 mb-8"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          viewport={{ once: true }}
-        >
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="text-center md:text-left">
-              <h4 className="text-white font-semibold mb-2">
-                📬 Berlangganan Newsletter
-              </h4>
-              <p className="text-gray-400 text-sm">
-                Dapatkan update terbaru tentang konservasi dan teknologi
-              </p>
+          {/* Contact Info Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            viewport={{ once: true }}
+          >
+            <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">
+              Hubungi Kami
+            </h4>
+            <div className="space-y-3">
+              {contactInfo.map((item, index) => (
+                <motion.div
+                  key={index}
+                  className="flex items-center space-x-3 text-sm"
+                  whileHover={{ x: 5 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                    <item.icon className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <span className="text-gray-400">{item.text}</span>
+                </motion.div>
+              ))}
             </div>
-            <div className="flex w-full md:w-auto">
-              <input
-                type="email"
-                placeholder="Email Anda"
-                className="flex-1 md:w-64 px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-l-lg text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 transition-colors text-sm"
-              />
-              <motion.button
-                className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium rounded-r-lg transition-all duration-300 text-sm whitespace-nowrap"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Subscribe
-              </motion.button>
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
 
         {/* Bottom Section */}
         <motion.div
-          className="flex flex-col md:flex-row justify-between items-center gap-4 pt-8"
+          className="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-gray-800"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.4 }}
@@ -197,9 +165,6 @@ export default function Footer() {
               © {currentYear}{" "}
               <span className="text-emerald-400 font-semibold">CCS-System</span>
               . All rights reserved.
-            </p>
-            <p className="text-gray-600 text-xs mt-1">
-              Built with ❤️ for a greener future 🌱
             </p>
           </div>
 
@@ -216,34 +181,6 @@ export default function Footer() {
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-400 group-hover:w-full transition-all duration-300"></span>
               </motion.a>
             ))}
-          </div>
-        </motion.div>
-
-        {/* Trust Badges */}
-        <motion.div
-          className="mt-8 pt-8 border-t border-gray-800"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          viewport={{ once: true }}
-        >
-          <div className="flex flex-wrap justify-center items-center gap-6 text-xs text-gray-600">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>✅ Blockchain Verified</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span>🔒 SSL Secure</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-              <span>🌍 Carbon Neutral</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-              <span>⚡ 99.9% Uptime</span>
-            </div>
           </div>
         </motion.div>
       </div>

@@ -532,10 +532,6 @@ const LandingPage = () => {
                 Hubungi Sales
               </motion.button>
             </div>
-            
-            <p className="text-emerald-100 text-sm">
-              ✅ Blockchain-verified • ✅ Data immutable • ✅ Transparansi penuh
-            </p>
           </motion.div>
         </div>
       </section>
