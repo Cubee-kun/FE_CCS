@@ -9,7 +9,6 @@ export default function Sidebar({ isUser = false, onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -59,7 +58,7 @@ export default function Sidebar({ isUser = false, onClose }) {
       <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center space-x-3">
           <motion.img
-            src="/images/sebumi.png"
+            src="/images/icon.png"
             alt="Logo"
             className="h-10 w-10 object-contain"
             whileHover={{ rotate: 360 }}
@@ -116,26 +115,6 @@ export default function Sidebar({ isUser = false, onClose }) {
         >
           <FiCheckCircle />
           <span className="font-medium">Verifikasi</span>
-        </motion.button>
-
-        {/* Theme Toggle */}
-        <motion.button
-          onClick={toggleTheme}
-          className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
-          whileHover={{ x: 5 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          {theme === "dark" ? (
-            <>
-              <FiSun className="text-yellow-500" />
-              <span className="font-medium">Mode Terang</span>
-            </>
-          ) : (
-            <>
-              <FiMoon className="text-gray-600" />
-              <span className="font-medium">Mode Gelap</span>
-            </>
-          )}
         </motion.button>
       </nav>
 
