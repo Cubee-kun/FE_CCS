@@ -9,21 +9,26 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const refreshTimer = useRef(null);
+  const initRef = useRef(false); // ✅ Prevent double initialization
 
   // Fungsi untuk menyetel timer refresh token
   const setRefreshTimer = (token) => {
-    const decoded = jwtDecode(token);
-    if (!decoded.exp) return;
+    try {
+      const decoded = jwtDecode(token);
+      if (!decoded.exp) return;
 
-    const expiresInMs = decoded.exp * 1000 - Date.now();
-    const refreshBeforeMs = expiresInMs - 60 * 1000; // refresh 1 menit sebelum expired
+      const expiresInMs = decoded.exp * 1000 - Date.now();
+      const refreshBeforeMs = expiresInMs - 60 * 1000; // refresh 1 menit sebelum expired
 
-    if (refreshTimer.current) {
-      clearTimeout(refreshTimer.current);
-    }
+      if (refreshTimer.current) {
+        clearTimeout(refreshTimer.current);
+      }
 
-    if (refreshBeforeMs > 0) {
-      refreshTimer.current = setTimeout(refreshToken, refreshBeforeMs);
+      if (refreshBeforeMs > 0) {
+        refreshTimer.current = setTimeout(refreshToken, refreshBeforeMs);
+      }
+    } catch (error) {
+      console.error('[AuthContext] Error setting refresh timer:', error);
     }
   };
 
@@ -48,26 +53,52 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Cek token saat pertama kali load
+  // ✅ Cek token saat pertama kali load - with proper initialization
   useEffect(() => {
+    // Prevent double initialization in React.StrictMode
+    if (initRef.current) return;
+    initRef.current = true;
+
     const checkAuth = () => {
       const token = localStorage.getItem("token");
+      
+      console.log('[AuthContext] Initial check - token:', token ? 'exists' : 'null');
+      
       if (token) {
         try {
           const decoded = jwtDecode(token);
+          console.log('[AuthContext] Token decoded:', decoded);
+          
+          // Check if token is expired
           if (decoded.exp && Date.now() >= decoded.exp * 1000) {
-            logout();
+            console.log('[AuthContext] Token expired, logging out');
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setUser(null);
+            setIsAuthenticated(false);
           } else {
+            console.log('[AuthContext] Token valid, user authenticated');
             setUser(decoded);
             setIsAuthenticated(true);
             setRefreshTimer(token);
           }
         } catch (error) {
-          logout();
+          console.error('[AuthContext] Error decoding token:', error);
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          setUser(null);
+          setIsAuthenticated(false);
         }
+      } else {
+        console.log('[AuthContext] No token, user not authenticated');
+        setIsAuthenticated(false);
+        setUser(null);
       }
+      
+      // ✅ Set loading false after all checks
       setLoading(false);
     };
+    
     checkAuth();
 
     return () => {
@@ -75,7 +106,7 @@ export const AuthProvider = ({ children }) => {
         clearTimeout(refreshTimer.current);
       }
     };
-  }, []);
+  }, []); // Empty dependency array
 
   // Fungsi login
   const login = async (credentials) => {
@@ -88,12 +119,18 @@ export const AuthProvider = ({ children }) => {
 
       localStorage.setItem("token", token);
       const decoded = jwtDecode(token);
-      setUser({ ...decoded, ...(userData || {}) });
+      const mergedUser = { ...decoded, ...(userData || {}) };
+      
+      // ✅ Update state in correct order
+      setUser(mergedUser);
       setIsAuthenticated(true);
       setRefreshTimer(token);
 
+      console.log('[AuthContext] Login successful:', mergedUser);
+
       return { success: true, data: response.data };
     } catch (error) {
+      console.error('[AuthContext] Login error:', error);
       return {
         success: false,
         message:
@@ -120,13 +157,25 @@ export const AuthProvider = ({ children }) => {
 
   // Fungsi logout
   const logout = () => {
+    console.log('[AuthContext] Logging out');
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setUser(null);
     setIsAuthenticated(false);
     if (refreshTimer.current) {
       clearTimeout(refreshTimer.current);
     }
   };
+
+  // ✅ Debug log dengan useEffect terpisah
+  useEffect(() => {
+    console.log('[AuthContext] State updated:', {
+      isAuthenticated,
+      user: user?.username || user?.email || user?.name || 'none',
+      loading,
+      timestamp: new Date().toISOString()
+    });
+  }, [isAuthenticated, user, loading]);
 
   return (
     <AuthContext.Provider
@@ -144,5 +193,10 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Hook untuk memanggil AuthContext
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};

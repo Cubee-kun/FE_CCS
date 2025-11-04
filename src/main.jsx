@@ -5,12 +5,11 @@ import App from "./App.jsx";
 import "./assets/styles/index.css";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
+// ✅ Remove StrictMode to prevent double initialization in development
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <ThemeProvider>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </ThemeProvider>
-  </React.StrictMode>
+  <ThemeProvider>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </ThemeProvider>
 );

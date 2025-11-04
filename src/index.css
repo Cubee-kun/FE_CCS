@@ -10,6 +10,11 @@
     @apply h-full;
   }
 
+  /* ✅ Smooth scroll behavior untuk seluruh aplikasi */
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-gradient-to-br from-slate-50 via-white to-slate-100;
     @apply dark:from-slate-950 dark:via-slate-900 dark:to-slate-950;

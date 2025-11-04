@@ -1,6 +1,6 @@
 import React from "react";
 
-const LeafSpinner = ({ show, message = "Memuat data, mohon tunggu...", size = "normal" }) => {
+const LoadingSpinner = ({ show = true, message = "Memuat data, mohon tunggu...", size = "normal" }) => {
   const sizeClasses = {
     small: "h-12 w-12",
     normal: "h-20 w-20",
@@ -13,10 +13,11 @@ const LeafSpinner = ({ show, message = "Memuat data, mohon tunggu...", size = "n
     large: "text-xl"
   };
 
+  if (!show) return null;
+
   return (
     <div
-      className={`fixed inset-0 flex flex-col items-center justify-center bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm transition-all duration-300 ease-in-out z-[9999]
-        ${show ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+      className="fixed inset-0 flex flex-col items-center justify-center bg-white/95 dark:bg-gray-900/95 backdrop-blur-md transition-all duration-300 ease-in-out z-[9999]"
     >
       {/* Animated leaf container */}
       <div className="relative">
@@ -77,7 +78,7 @@ const LeafSpinner = ({ show, message = "Memuat data, mohon tunggu...", size = "n
           {[1, 2, 3].map((dot) => (
             <div
               key={dot}
-              className={`h-2 w-2 rounded-full bg-green-600 dot-bounce`}
+              className="h-2 w-2 rounded-full bg-green-600 dot-bounce"
               style={{ animationDelay: `${dot * 0.2}s` }}
             />
           ))}
@@ -134,4 +135,4 @@ const LeafSpinner = ({ show, message = "Memuat data, mohon tunggu...", size = "n
   );
 };
 
-export default LeafSpinner;
+export default LoadingSpinner;

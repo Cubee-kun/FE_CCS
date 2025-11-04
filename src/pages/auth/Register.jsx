@@ -118,30 +118,37 @@ export default function Register() {
 
 
       {/* Right Side Form */}
-      <div className="flex flex-1 items-center justify-center p-6 md:p-12">
+      <div className="flex flex-1 items-center justify-center p-6 md:p-12 relative">
+        {/* ✅ Home Button - Better positioned */}
+        <Link
+          to="/"
+          className="absolute top-6 right-6 md:top-8 md:right-8 z-10 group"
+          title="Kembali ke Beranda"
+        >
+          <motion.div
+            className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md rounded-full shadow-lg border border-green-200 hover:shadow-xl transition-all"
+            whileHover={{ scale: 1.05, x: -3 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <motion.div
+              animate={{ x: [-2, 0, -2] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              <HomeIcon className="h-5 w-5 text-green-600" />
+            </motion.div>
+            <span className="hidden sm:inline text-sm font-medium text-green-700">
+              Beranda
+            </span>
+          </motion.div>
+        </Link>
+
         <motion.div 
           className="max-w-md w-full bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 space-y-6 relative border border-green-100"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
         >
-          {/* Home Button */}
-         <Link
-            to="/"
-            className="absolute top-5 left-5 text-green-700 hover:text-green-900 transition-colors"
-            title="Kembali ke Home"
-          >
-            <motion.div
-              whileHover={{ rotate: 10 }}
-              whileTap={{ scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 300, damping: 15 }}
-              style={{ display: "inline-block", transformOrigin: "center" }}
-            >
-              <HomeIcon className="h-6 w-6" />
-            </motion.div>
-          </Link>
-
-
+        
           <motion.div 
             className="text-center"
             initial={{ opacity: 0 }}

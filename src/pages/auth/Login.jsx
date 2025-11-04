@@ -51,7 +51,8 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-emerald-50 via-white to-teal-50">
-       <motion.div 
+      {/* Left Side - Floating Elements and Image */}
+      <motion.div 
         className="hidden md:flex md:w-1/2 items-center justify-center p-10 relative overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -137,7 +138,30 @@ export default function Login() {
       </motion.div>
 
       {/* Right Side Form */}
-      <div className="flex flex-1 items-center justify-center p-6 md:p-12">
+      <div className="flex flex-1 items-center justify-center p-6 md:p-12 relative">
+        {/* ✅ Home Button - Better positioned */}
+        <Link
+          to="/"
+          className="absolute top-6 right-6 md:top-8 md:right-8 z-10 group"
+          title="Kembali ke Beranda"
+        >
+          <motion.div
+            className="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-full shadow-lg border border-emerald-200 dark:border-emerald-700 hover:shadow-xl transition-all"
+            whileHover={{ scale: 1.05, x: -3 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <motion.div
+              animate={{ x: [-2, 0, -2] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              <HomeIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            </motion.div>
+            <span className="hidden sm:inline text-sm font-medium text-emerald-700 dark:text-emerald-300">
+              Beranda
+            </span>
+          </motion.div>
+        </Link>
+
         <motion.div 
           className="w-full max-w-md bg-white rounded-2xl md:rounded-3xl shadow-xl overflow-hidden border border-white/20 relative"
           initial={{ opacity: 0, scale: 0.95 }}
@@ -145,21 +169,7 @@ export default function Login() {
           transition={{ delay: 0.2, duration: 0.5 }}
         >
           {/* Home Button - Top Right */}
-          <Link
-            to="/"
-            className="absolute top-5 left-5 text-green-700 hover:text-green-900 transition-colors"
-            title="Kembali ke Home"
-          >
-            <motion.div
-              whileHover={{ rotate: 10 }}
-              whileTap={{ scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 300, damping: 15 }}
-              style={{ display: "inline-block", transformOrigin: "center" }}
-            >
-              <HomeIcon className="h-6 w-6" />
-            </motion.div>
-          </Link>
-
+          
 
           {/* Form Header */}
           <motion.div 

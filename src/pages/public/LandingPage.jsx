@@ -1,638 +1,547 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiMenu, FiX, FiArrowRight, FiChevronRight } from "react-icons/fi";
+import { FiArrowRight, FiPlay, FiStar, FiUsers, FiTrendingUp, FiShield, FiZap, FiHeart } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
-import About from "./About";
+import Footer from "../../components/common/Footer"; // ✅ Import Footer
 
 const LandingPage = () => {
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [hoveredItem, setHoveredItem] = useState(null);
-  const aboutRef = useRef(null);
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
 
-  const navItems = ["Home", "About", "Services", "Gallery", "Pricing", "Contact"];
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const scrollToAbout = () => {
-    aboutRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const floatingShapes = [
-    { icon: "🌿", size: "text-4xl", position: "top-1/4 left-1/6" },
-    { icon: "🌱", size: "text-3xl", position: "top-1/3 right-1/5" },
-    { icon: "🍃", size: "text-5xl", position: "bottom-1/4 left-1/4" },
-    { icon: "🌲", size: "text-6xl", position: "bottom-1/3 right-1/6" },
+  const stats = [
+    { label: "Pengguna Aktif", value: "10K+", icon: FiUsers },
+    { label: "Proyek Selesai", value: "500+", icon: FiTrendingUp },
+    { label: "Rating Kepuasan", value: "4.9/5", icon: FiStar },
+    { label: "Tahun Pengalaman", value: "5+", icon: FiShield }
   ];
 
+  const features = [
+    {
+      title: "Blockchain Recording",
+      description: "Sistem pencatatan data menggunakan teknologi blockchain untuk transparansi dan keamanan data yang tidak dapat diubah.",
+      icon: "⛓️",
+      color: "from-blue-500 to-cyan-500",
+      benefits: ["Data immutable", "Transparansi penuh", "Audit trail lengkap"]
+    },
+    {
+      title: "Smart Contracts",
+      description: "Otomatisasi proses verifikasi dan validasi data menggunakan smart contract untuk menjamin integritas sistem.",
+      icon: "📋",
+      color: "from-purple-500 to-pink-500",
+      benefits: ["Verifikasi otomatis", "Validasi real-time", "Kontrak digital"]
+    },
+    {
+      title: "Distributed Ledger",
+      description: "Penyimpanan data tersebar dengan sistem ledger yang memastikan keamanan dan aksesibilitas data konservasi.",
+      icon: "🌐",
+      color: "from-green-500 to-teal-500",
+      benefits: ["Sinkronisasi multi-node", "Backup otomatis", "High availability"]
+    },
+    {
+      title: "Crypto Analytics",
+      description: "Analisis data konservasi dengan teknologi blockchain analytics untuk insights yang lebih mendalam dan terverifikasi.",
+      icon: "📈",
+      color: "from-orange-500 to-red-500",
+      benefits: ["Data terenkripsi", "Analytics on-chain", "Reporting terverifikasi"]
+    }
+  ];
+
+  const testimonials = [
+    {
+      name: "Dr. Sari Wijaya",
+      role: "Environmental Scientist",
+      company: "Green Indonesia Foundation",
+      content: "Platform ini benar-benar mengubah cara kami mengelola proyek konservasi. Interface yang intuitif dan fitur monitoring real-time sangat membantu!",
+      avatar: "👩‍🔬",
+      rating: 5
+    },
+    {
+      name: "Budi Santoso",
+      role: "Project Manager",
+      company: "EcoTech Solutions",
+      content: "Dengan AgroPariwisata, produktivitas tim kami meningkat 300%. Fitur kolaborasi dan AI-nya luar biasa!",
+      avatar: "👨‍💼",
+      rating: 5
+    },
+    {
+      name: "Maya Kusuma",
+      role: "Research Director",
+      company: "Marine Conservation NGO",
+      content: "Tool terbaik untuk monitoring proyek marine conservation. Dashboard analytics-nya sangat comprehensive dan mudah dipahami.",
+      avatar: "👩‍🔬",
+      rating: 5
+    }
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const scrollToSection = (sectionId) => {
+    const element = document.querySelector(sectionId);
+    element?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-gradient-to-br from-gray-50 to-gray-100 text-gray-800 overflow-x-hidden">
-      {/* Modern Navbar */}
-      
-      <motion.nav 
-        className={`flex items-center justify-between px-6 py-4 fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? "bg-white/95 shadow-md backdrop-blur-md" : "bg-transparent"
-        }`}
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <motion.img
-          src="/images/sebumi.png"
-          alt="Sebumi Logo"
-          className="h-10 w-auto cursor-pointer"
-          onClick={() => navigate("/")}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        />
-
-        <ul className="hidden md:flex space-x-8 items-center">
-          {navItems.map((item) => (
-            <motion.li
-              key={item}
-              className="relative px-2 py-1"
-              onHoverStart={() => setHoveredItem(item)}
-              onHoverEnd={() => setHoveredItem(null)}
-            >
-              <span className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors cursor-pointer relative z-10">
-                {item}
-              </span>
-              {hoveredItem === item && (
-                <motion.span
-                  className="absolute inset-0 bg-green-100 rounded-md"
-                  layoutId="navHover"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
-                />
-              )}
-            </motion.li>
-          ))}
-          <div className="flex space-x-4 ml-6">
-            <motion.button
-              onClick={() => navigate("/login")}
-              className="text-sm font-semibold text-gray-600 hover:text-green-600 transition-colors"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Log in
-            </motion.button>
-            <motion.button
-              onClick={() => navigate("/register")}
-              className="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white text-sm font-semibold px-5 py-2 rounded-full transition-all shadow-md hover:shadow-lg"
-              whileHover={{ 
-                scale: 1.05,
-                boxShadow: "0 10px 25px -5px rgba(16, 185, 129, 0.4)"
+    <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
+      {/* Hero Section */}
+      <section id="home" className="relative pt-20 min-h-screen flex items-center overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-white to-teal-50"></div>
+          <div className="absolute inset-0 bg-[url('/images/login-bg.jpg')] bg-cover bg-center opacity-5"></div>
+          
+          {/* Floating Elements */}
+          {Array.from({ length: 15 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 bg-emerald-200 rounded-full"
+              style={{
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
               }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Sign Up Free
-            </motion.button>
-          </div>
-        </ul>
-
-        <motion.button 
-          className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-        </motion.button>
-      </motion.nav>
-
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            className="fixed inset-0 z-40 pt-20 bg-white/95 backdrop-blur-lg md:hidden"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="flex flex-col space-y-6 px-6 py-4">
-              {navItems.map((item) => (
-                <motion.div
-                  key={item}
-                  className="text-lg font-medium text-gray-800 hover:text-green-600 transition-colors border-b border-gray-100 py-3 flex items-center"
-                  onClick={() => setMobileMenuOpen(false)}
-                  whileHover={{ x: 5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  {item}
-                  <FiArrowRight className="ml-auto opacity-70" />
-                </motion.div>
-              ))}
-              <div className="flex flex-col space-y-4 pt-4">
-                <motion.button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    navigate("/login");
-                  }}
-                  className="w-full py-3 text-center font-medium text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  LOG IN
-                </motion.button>
-                <motion.button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    navigate("/register");
-                  }}
-                  className="w-full py-3 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-semibold rounded-full transition-all shadow-md"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Sign Up Free
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <main className="flex-grow pt-16">
-        <section className="relative py-20 md:py-32 overflow-hidden min-h-[80vh] flex items-center">
-          <div className="absolute inset-0 bg-[url('/images/login-bg.jpg')] bg-cover bg-center opacity-20 overflow-hidden ">
-            <motion.div 
-              className="absolute inset-0 bg-gradient-to-br from-green-500/10 via-teal-500/10 to-blue-500/10"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1.5 }}
+              animate={{
+                y: [0, -30, 0],
+                opacity: [0.3, 0.8, 0.3],
+              }}
+              transition={{
+                duration: Math.random() * 3 + 2,
+                repeat: Infinity,
+                delay: Math.random() * 2,
+              }}
             />
-            
-            <div className="absolute inset-0 opacity-10">
-              {Array.from({ length: 20 }).map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute border border-gray-300 rounded-lg"
-                  style={{
-                    width: `${Math.random() * 200 + 50}px`,
-                    height: `${Math.random() * 200 + 50}px`,
-                    top: `${Math.random() * 100}%`,
-                    left: `${Math.random() * 100}%`,
-                    rotate: Math.random() * 360
-                  }}
-                  animate={{
-                    y: [0, (Math.random() - 0.5) * 50],
-                    x: [0, (Math.random() - 0.5) * 50],
-                    opacity: [0.3, 0.7, 0.3],
-                  }}
-                  transition={{
-                    duration: Math.random() * 10 + 10,
-                    repeat: Infinity,
-                    repeatType: "reverse",
-                    ease: "linear",
-                  }}
-                />
-              ))}
-            </div>
-            
-            {floatingShapes.map((shape, index) => (
-              <motion.div
-                key={index}
-                className={`absolute ${shape.position} ${shape.size} text-green-600/20`}
-                animate={{
-                  y: [0, (Math.random() - 0.5) * 40],
-                  x: [0, (Math.random() - 0.5) * 40],
-                  rotate: [0, Math.random() * 360],
-                }}
-                transition={{
-                  duration: Math.random() * 10 + 10,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                  ease: "easeInOut",
-                }}
-              >
-                {shape.icon}
-              </motion.div>
-            ))}
-          </div>
+          ))}
+        </div>
 
-          <div className="container mx-auto px-6 relative z-10">
-            <motion.div 
-              className="text-center max-w-4xl mx-auto"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.8 }}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left Content */}
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
             >
+              {/* Badge */}
               <motion.div 
-                className="inline-flex items-center bg-white backdrop-blur-sm rounded-full px-4 py-1.5 text-xs mb-6 uppercase tracking-widest shadow-lg border border-gray-200"
+                className="inline-flex items-center bg-white backdrop-blur-sm rounded-full px-4 py-2 text-sm mb-6 shadow-lg border border-emerald-200"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
+                transition={{ delay: 0.2 }}
                 whileHover={{ scale: 1.05 }}
               >
-                <motion.span 
-                  className="mr-2"
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  🌍
-                </motion.span>
-                Sustainable Digital Future
-                <motion.button
-                  onClick={() => navigate("/register")}
-                  className="ml-3 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 px-3 py-0.5 rounded-full text-xs font-semibold text-white transition-all"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  JOIN NOW
-                </motion.button>
+                <span className="mr-2">🌱</span>
+                <span className="font-medium text-emerald-700">Platform Konservasi Terdepan</span>
+                <div className="ml-2 w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
               </motion.div>
 
+              {/* Main Heading */}
               <motion.h1
-                className="text-4xl md:text-6xl font-bold leading-tight mb-6 text-gray-800"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.8 }}
+                className="text-4xl md:text-6xl font-bold leading-tight mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.8 }}
               >
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-600">
-                  Innovating
+                <span className="text-gray-900">Revolusi</span>{" "}
+                <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                  Konservasi Digital
                 </span>{" "}
                 <motion.span
                   className="inline-block"
-                  animate={{ 
-                    rotate: [0, 5, -5, 0],
-                    y: [0, -5, 5, 0]
-                  }}
-                  transition={{ 
-                    duration: 4,
-                    repeat: Infinity,
-                    repeatType: "reverse"
-                  }}
+                  animate={{ rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 4, repeat: Infinity }}
                 >
-                  With Nature
-                </motion.span>
-                <br />
-                For a{" "}
-                <motion.span
-                  className="relative inline-block"
-                  animate={{
-                    color: ["#10B981", "#3B82F6", "#10B981"]
-                  }}
-                  transition={{
-                    duration: 6,
-                    repeat: Infinity
-                  }}
-                >
-                  Better Tomorrow
+                  🌍
                 </motion.span>
               </motion.h1>
-              
+
+              {/* Subtitle */}
               <motion.p
-                className="text-lg md:text-xl max-w-2xl mx-auto mb-8 md:mb-12 text-gray-600"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7, duration: 0.8 }}
+                className="text-xl text-gray-600 mb-8 leading-relaxed"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.8 }}
               >
-                Where cutting-edge technology meets environmental consciousness to
-                create{" "}
-                <motion.span
-                  className="font-semibold text-green-600"
-                  animate={{
-                    scale: [1, 1.05, 1],
-                    color: ["#10B981", "#059669", "#10B981"]
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity
-                  }}
-                >
-                  sustainable digital solutions
-                </motion.span>{" "}
-                for the modern world.
+                Platform all-in-one untuk manajemen proyek konservasi dengan{" "}
+                <span className="font-semibold text-emerald-600">teknologi blockchain</span>,{" "}
+                pencatatan immutable, dan transparansi data yang terjamin.
               </motion.p>
-              
+
+              {/* Key Points */}
+              <motion.div
+                className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.8 }}
+              >
+                {[
+                  { icon: FiZap, text: "Blockchain-powered" },
+                  { icon: FiShield, text: "Data immutable" },
+                  { icon: FiHeart, text: "Transparansi penuh" },
+                  { icon: FiUsers, text: "Distributed network" }
+                ].map((item, index) => {
+                  const Icon = item.icon;
+                  return (
+                    <motion.div
+                      key={index}
+                      className="flex items-center space-x-3"
+                      whileHover={{ x: 5 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <div className="flex-shrink-0 w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                        <Icon className="w-4 h-4 text-emerald-600" />
+                      </div>
+                      <span className="text-gray-700 font-medium">{item.text}</span>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+
+              {/* CTA Buttons */}
               <motion.div 
-                className="flex flex-col sm:flex-row justify-center gap-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.9, staggerChildren: 0.1 }}
+                className="flex flex-col sm:flex-row gap-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.8 }}
               >
                 <motion.button
                   onClick={() => navigate("/register")}
-                  className="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-semibold px-8 py-4 rounded-full transition-all text-lg shadow-lg hover:shadow-xl flex items-center justify-center"
+                  className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center group"
                   whileHover={{ 
                     scale: 1.05,
-                    boxShadow: "0 10px 25px -5px rgba(16, 185, 129, 0.4)"
+                    boxShadow: "0 20px 40px -10px rgba(16, 185, 129, 0.4)"
                   }}
                   whileTap={{ scale: 0.95 }}
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.9, duration: 0.5 }}
                 >
-                  Get Started Free
-                  <motion.span 
-                    className="ml-2"
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    🚀
-                  </motion.span>
+                  Mulai Gratis Sekarang
+                  <FiArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
                 </motion.button>
+                
                 <motion.button
-                  onClick={() => navigate("/about")}
-                  className="bg-white hover:bg-gray-50 text-gray-800 font-medium px-8 py-4 rounded-full transition-all text-lg shadow-lg hover:shadow-xl border border-gray-200 flex items-center justify-center"
+                  onClick={() => scrollToSection("#features")}
+                  className="px-8 py-4 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-xl shadow-lg hover:shadow-xl transition-all border border-gray-200 flex items-center justify-center group"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 1.0, duration: 0.5 }}
                 >
-                  Learn More
-                  <motion.span 
-                    className="ml-2"
-                    animate={{ rotate: [0, 360] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                  >
-                    🔄
-                  </motion.span>
+                  <FiPlay className="mr-2 group-hover:scale-110 transition-transform" />
+                  Lihat Demo
                 </motion.button>
               </motion.div>
-            </motion.div>
-          </div>
 
-          <motion.div
-            className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-            animate={{ 
-              y: [0, 10, 0],
-              opacity: [0.6, 1, 0.6]
-            }}
-            transition={{ 
-              duration: 2,
-              repeat: Infinity
-            }}
-          >
-            <div className="flex flex-col items-center">
-              <span className="text-sm text-gray-600 mb-2">Scroll Down</span>
-              <div className="w-6 h-10 border-2 border-gray-400 rounded-full flex justify-center">
-                <motion.div
-                  className="w-1 h-2 bg-gray-600 rounded-full mt-2"
-                  animate={{ 
-                    y: [0, 4, 0],
-                    opacity: [1, 0.5, 1]
-                  }}
-                  transition={{ 
-                    duration: 1.5,
-                    repeat: Infinity
-                  }}
-                />
-              </div>
-            </div>
-          </motion.div>
-        </section>
-
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-6">
-            <div className="text-center mb-16">
-              <motion.h2 
-                className="text-3xl md:text-4xl font-bold text-gray-800 mb-4"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                viewport={{ once: true }}
-              >
-                Our <span className="text-green-600">Key Features</span>
-              </motion.h2>
+              {/* Trust Indicators */}
               <motion.p
-                className="text-lg text-gray-600 max-w-2xl mx-auto"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                viewport={{ once: true }}
+                className="text-sm text-gray-500 mt-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
               >
-                Discover what makes our platform unique and powerful
+                ⭐ Dipercaya oleh 10,000+ organisasi konservasi di Indonesia
               </motion.p>
-            </div>
+            </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {[
-                { 
-                  title: "Eco-Inspired Design", 
-                  description: "Sustainable digital solutions that reduce environmental impact while delivering exceptional user experiences.",
-                  icon: "🌿",
-                  color: "from-green-100 to-green-50"
-                },
-                { 
-                  title: "Smart Technology", 
-                  description: "AI-powered analytics that help you make data-driven decisions with confidence.",
-                  icon: "🤖",
-                  color: "from-blue-100 to-blue-50"
-                },
-                { 
-                  title: "Community Focus", 
-                  description: "Connect with like-minded people who share your passion for sustainability.",
-                  icon: "👥",
-                  color: "from-purple-100 to-purple-50"
-                },
-                { 
-                  title: "Future Ready", 
-                  description: "Scalable architecture designed to grow with your business needs.",
-                  icon: "🚀",
-                  color: "from-orange-100 to-orange-50"
-                }
-              ].map((item, index) => (
-                <motion.div 
-                  key={index}
-                  className={`bg-gradient-to-br ${item.color} rounded-xl p-8 shadow-lg border border-gray-200 hover:border-green-400 transition-all cursor-pointer h-full flex flex-col`}
-                  whileHover={{ 
-                    y: -10,
-                    boxShadow: "0 20px 40px -10px rgba(16, 185, 129, 0.2)"
-                  }}
-                  whileTap={{ scale: 0.98 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
+            {/* Right Content - Dashboard Preview */}
+            <motion.div
+              className="relative"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              <div className="relative">
+                {/* Main Dashboard Card with Image */}
+                <motion.div
+                  className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 300 }}
                 >
-                  <motion.div 
-                    className="text-4xl mb-6"
-                    whileHover={{ scale: 1.2 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                  >
-                    {item.icon}
-                  </motion.div>
-                  <h3 className="font-bold text-xl mb-4 text-gray-800">{item.title}</h3>
-                  <p className="text-gray-600 mb-6 flex-grow">{item.description}</p>
-                  <div className="flex items-center text-green-600 group font-medium">
-                    <span>Learn more</span>
-                    <FiChevronRight className="ml-1 transition-transform group-hover:translate-x-2" />
+                  <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                    <h3 className="font-semibold text-gray-900">Dashboard CCS</h3>
+                    <div className="flex space-x-2">
+                      <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+                      <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                      <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                    </div>
+                  </div>
+                  
+                  {/* Image Dashboard */}
+                  <div className="relative h-96 overflow-hidden">
+                    <motion.img
+                      src="/images/login-bg.jpg"
+                      alt="Dashboard Preview"
+                      className="w-full h-full object-cover"
+                      initial={{ scale: 1.1 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 1.5 }}
+                    />
+                    {/* Overlay gradient untuk efek premium */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/30 via-transparent to-transparent"></div>
+                    
+                    {/* Stats overlay di bagian bawah */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
+                      <div className="grid grid-cols-3 gap-4">
+                        {[
+                          { label: "Proyek Aktif", value: "24" },
+                          { label: "Tim Online", value: "12" },
+                          { label: "Progress", value: "87%" }
+                        ].map((stat, index) => (
+                          <motion.div 
+                            key={index} 
+                            className="text-center"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5 + index * 0.1 }}
+                          >
+                            <div className="text-xl md:text-2xl font-bold text-white">{stat.value}</div>
+                            <div className="text-xs text-emerald-200">{stat.label}</div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
 
-        <section className="py-20 bg-gradient-to-r from-green-50 to-teal-50">
-          <div className="container mx-auto px-6 text-center">
-            <motion.div
-              className="max-w-3xl mx-auto"
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <motion.h2 
-                className="text-3xl md:text-4xl font-bold text-gray-800 mb-6"
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ duration: 0.6 }}
-                viewport={{ once: true }}
-              >
-                Ready to <span className="text-green-600">Transform</span> Your Digital Experience?
-              </motion.h2>
-              <motion.p
-                className="text-lg text-gray-600 mb-8"
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                viewport={{ once: true }}
-              >
-                Join thousands of satisfied users who are already benefiting from our platform.
-              </motion.p>
-              <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <motion.button
-                  onClick={() => navigate("/register")}
-                  className="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-semibold px-8 py-4 rounded-full transition-all text-lg shadow-lg hover:shadow-xl"
-                  whileHover={{ 
-                    scale: 1.05,
-                    boxShadow: "0 10px 25px -5px rgba(16, 185, 129, 0.4)"
-                  }}
-                  whileTap={{ scale: 0.95 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.4 }}
-                  viewport={{ once: true }}
+                {/* Floating Cards */}
+                <motion.div
+                  className="absolute -top-4 -right-4 bg-white rounded-lg shadow-lg p-3 border border-gray-200 backdrop-blur-sm"
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 3, repeat: Infinity }}
                 >
-                  Start Your Free Trial
-                </motion.button>
-                <motion.button
-                  onClick={() => navigate("/contact")}
-                  className="bg-white hover:bg-gray-50 text-gray-800 font-medium px-8 py-4 rounded-full transition-all text-lg shadow-lg hover:shadow-xl border border-gray-200"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.5 }}
-                  viewport={{ once: true }}
+                  <div className="text-xs text-gray-600">Real-time Update</div>
+                  <div className="text-sm font-semibold text-green-600">+5 New Reports</div>
+                </motion.div>
+
+                <motion.div
+                  className="absolute -bottom-4 -left-4 bg-white rounded-lg shadow-lg p-3 border border-gray-200 backdrop-blur-sm"
+                  animate={{ y: [0, 10, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, delay: 1 }}
                 >
-                  Contact Sales
-                </motion.button>
+                  <div className="text-xs text-gray-600">Blockchain Verified</div>
+                  <div className="text-sm font-semibold text-blue-600">100% Secure</div>
+                </motion.div>
               </div>
             </motion.div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* About Section */}
-        <section ref={aboutRef} id="about-section" className="scroll-mt-20">
-          <About />
-        </section>
-      </main>
-
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 300, duration: 0.6, delay: 0. }}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-green-400 to-teal-400 bg-clip-text text-transparent mb-4">
-                CCS-Project
-              </h3>
-              <p className="text-gray-400 mb-4">
-                Bridging the gap between technology and nature for a sustainable future.
-              </p>
-              <div className="flex space-x-4">
-                {["Twitter", "Facebook", "Instagram", "LinkedIn"].map((social, i) => (
-                  <motion.a
-                    key={i}
-                    href="#"
-                    className="text-gray-400 hover:text-green-400"
-                    whileHover={{ y: -2 }}
-                    whileTap={{ scale: 0.9 }}
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    transition={{ duration: 0.6, delay: i * 0.1 }}
-                    viewport={{ once: true }}
-                  >
-                    {social}
-                  </motion.a>
-                ))}
-              </div>
-            </motion.div>
-
-            {[
-              {
-                title: "Product",
-                links: ["Features", "Pricing", "Case Studies", "Updates"]
-              },
-              {
-                title: "Company",
-                links: ["About", "Careers", "Contact", "Blog"]
-              },
-              {
-                title: "Support",
-                links: ["Help Center", "Terms", "Privacy", "Status"]
-              }
-            ].map((column, index) => (
-              <motion.div 
+      {/* Stats Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="grid grid-cols-2 md:grid-cols-4 gap-8"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+          >
+            {stats.map((stat, index) => (
+              <motion.div
                 key={index}
-                whileHover={{ scale: 1.01 }}
-                transition={{ type: "spring", stiffness: 300, duration: 0.6, delay: index * 0.1  }}
+                className="text-center group"
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:shadow-lg transition-shadow">
+                  <stat.icon className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-3xl font-bold text-gray-900 mb-2">{stat.value}</div>
+                <div className="text-gray-600">{stat.label}</div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+              Teknologi <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Blockchain</span> untuk Konservasi
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Sistem pencatatan data konservasi yang transparan, aman, dan tidak dapat diubah menggunakan teknologi blockchain terdepan
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all border border-gray-200 group"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: index * 0.1 }}
                 viewport={{ once: true }}
+                whileHover={{ y: -5 }}
               >
-                <h4 className="text-lg font-semibold mb-4 text-gray-200">{column.title}</h4>
-                <ul className="space-y-3">
-                  {column.links.map((link, i) => (
-                    <motion.li 
-                      key={i}
+                <div className="flex items-start space-x-4">
+                  <motion.div 
+                    className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center text-2xl shadow-lg group-hover:scale-110 transition-transform`}
+                  >
+                    {feature.icon}
+                  </motion.div>
+                  
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
+                    <p className="text-gray-600 mb-4 leading-relaxed">{feature.description}</p>
+                    
+                    <ul className="space-y-2">
+                      {feature.benefits.map((benefit, i) => (
+                        <li key={i} className="flex items-center text-sm text-gray-700">
+                          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-3"></div>
+                          {benefit}
+                        </li>
+                      ))}
+                    </ul>
+                    
+                    <motion.button
+                      className="mt-4 text-emerald-600 font-medium flex items-center group-hover:text-emerald-700 transition-colors"
                       whileHover={{ x: 5 }}
-                      transition={{ type: "spring", stiffness: 300, duration: 0.6, delay: i * 0.1 + index * 0.1  }}
-                      initial={{ opacity: 0 }}
-                      whileInView={{ opacity: 1 }}
-                      viewport={{ once: true }}
                     >
-                      <a href="#" className="text-gray-400 hover:text-green-400 transition-colors">
-                        {link}
-                      </a>
-                    </motion.li>
-                  ))}
-                </ul>
+                      Pelajari lebih lanjut
+                      <FiArrowRight className="ml-1 w-4 h-4" />
+                    </motion.button>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
 
+      {/* Testimonials Section */}
+      <section id="testimonials" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
-            className="pt-8 mt-8 border-t border-gray-800 text-center"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <p className="text-gray-500 text-sm">
-              © {new Date().getFullYear()} CCS-Project. All rights reserved.
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+              Apa Kata <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Pengguna Kami</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Bergabunglah dengan ribuan profesional yang telah merasakan manfaat platform kami
+            </p>
+          </motion.div>
+
+          <div className="relative">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTestimonial}
+                className="bg-gray-50 rounded-2xl p-8 md:p-12 max-w-4xl mx-auto"
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
+                  <div className="flex-shrink-0">
+                    <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-3xl shadow-lg">
+                      {testimonials[activeTestimonial].avatar}
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 text-center md:text-left">
+                    <div className="flex justify-center md:justify-start mb-4">
+                      {[...Array(testimonials[activeTestimonial].rating)].map((_, i) => (
+                        <FiStar key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                      ))}
+                    </div>
+                    
+                    <blockquote className="text-xl md:text-2xl text-gray-700 mb-6 leading-relaxed">
+                      "{testimonials[activeTestimonial].content}"
+                    </blockquote>
+                    
+                    <div>
+                      <div className="font-bold text-gray-900 text-lg">
+                        {testimonials[activeTestimonial].name}
+                      </div>
+                      <div className="text-emerald-600 font-medium">
+                        {testimonials[activeTestimonial].role}
+                      </div>
+                      <div className="text-gray-500">
+                        {testimonials[activeTestimonial].company}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Testimonial Indicators */}
+            <div className="flex justify-center mt-8 space-x-2">
+              {testimonials.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setActiveTestimonial(index)}
+                  className={`w-3 h-3 rounded-full transition-all ${
+                    index === activeTestimonial
+                      ? "bg-emerald-500 w-8"
+                      : "bg-gray-300 hover:bg-gray-400"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-br from-emerald-600 to-teal-600 relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Siap Memulai Revolusi Konservasi?
+            </h2>
+            <p className="text-xl text-emerald-100 mb-8 max-w-3xl mx-auto">
+              Bergabunglah dengan ribuan organisasi yang telah mempercayakan proyek konservasi mereka pada platform kami
+            </p>
+            
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+              <motion.button
+                onClick={() => navigate("/register")}
+                className="px-8 py-4 bg-white text-emerald-600 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Mulai Gratis 14 Hari
+              </motion.button>
+              <motion.button
+                onClick={() => navigate("/contact")}
+                className="px-8 py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-emerald-600 transition-all"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Hubungi Sales
+              </motion.button>
+            </div>
+            
+            <p className="text-emerald-100 text-sm">
+              ✅ Blockchain-verified • ✅ Data immutable • ✅ Transparansi penuh
             </p>
           </motion.div>
         </div>
-      </footer>
+      </section>
+
+      {/* ✅ Footer Component */}
+      <Footer />
     </div>
   );
 };

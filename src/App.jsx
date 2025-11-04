@@ -1,26 +1,47 @@
 // src/App.jsx
 import { useLocation } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import AppRoutes from "./routes/AppRoutes";
 import Navbar from "./components/common/Navbar";
+import ScrollToTop from "./components/common/ScrollToTop";
+import LoadingSpinner from "./components/common/LoadingSpinner";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./assets/styles/index.css";
 
-function App() {
+function AppContent() {
   const location = useLocation();
+  const { isAuthenticated, loading } = useAuth();
 
-  // Daftar path dimana Navbar tidak ditampilkan
-  const noNavbarRoutes = ["/", "/login", "/register"];
+  // Daftar path yang TIDAK menampilkan Navbar
+  const noNavbarRoutes = ["/login", "/register", "/admin", "/user"];
+  
+  // Cek apakah di route yang tidak perlu navbar
+  const isNoNavbarRoute = noNavbarRoutes.some(route => location.pathname.startsWith(route));
 
-  // Cek apakah current path ada di daftar noNavbarRoutes
-  const hideNavbar = noNavbarRoutes.includes(location.pathname);
+  // Tampilkan Navbar jika: Bukan di route yang tidak perlu navbar DAN user belum login
+  const showNavbar = !isNoNavbarRoute && !isAuthenticated;
+
+  // ✅ Debug logs
+  console.log('[App] Render state:', {
+    path: location.pathname,
+    isAuthenticated,
+    loading,
+    isNoNavbarRoute,
+    showNavbar,
+    timestamp: new Date().toISOString()
+  });
+
+  // ✅ Show loading spinner while checking auth
+  if (loading) {
+    return <LoadingSpinner show={true} message="Memuat aplikasi..." />;
+  }
 
   return (
-    <AuthProvider>
-      {!hideNavbar && <Navbar />}
+    <>
+      <ScrollToTop />
+      {showNavbar && <Navbar />}
       <AppRoutes />
-      {/* 👉 container notifikasi, bisa dipasang sekali di root */}
       <ToastContainer 
         position="top-right" 
         autoClose={3000} 
@@ -31,6 +52,14 @@ function App() {
         draggable 
         theme="colored"
       />
+    </>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
     </AuthProvider>
   );
 }

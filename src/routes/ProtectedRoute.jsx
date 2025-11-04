@@ -1,25 +1,36 @@
 // src/components/ProtectedRoute.jsx
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export default function ProtectedRoute({ children, role }) {
   const { isAuthenticated, loading, user } = useAuth();
 
+  console.log('[ProtectedRoute] Checking access:', {
+    isAuthenticated,
+    loading,
+    userRole: user?.role,
+    requiredRole: role
+  });
+
   if (loading) {
-    // Bisa diganti loading spinner juga
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner show={true} message="Memverifikasi akses..." />
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
-    // Kalau belum login, redirect ke login
+    console.log('[ProtectedRoute] Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   if (role && user?.role !== role) {
-    // Kalau role tidak sesuai, redirect ke landing atau halaman lain
+    console.log('[ProtectedRoute] Role mismatch, redirecting to home');
     return <Navigate to="/" replace />;
   }
 
-  // Kalau sudah login dan role sesuai, render komponen anaknya
+  console.log('[ProtectedRoute] Access granted');
   return children;
 }
