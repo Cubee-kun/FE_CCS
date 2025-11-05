@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import api from "../../api/axios";
-import { FiMapPin, FiCalendar, FiUser, FiPhone, FiBriefcase, FiCheckCircle, FiNavigation } from "react-icons/fi";
+import { FiMapPin, FiCalendar, FiUser, FiPhone, FiBriefcase, FiCheckCircle, FiNavigation, FiLink } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "react-toastify/dist/ReactToastify.css";
+import { useBlockchain } from "../../contexts/BlockchainContext";
 
 // ✅ Fix Leaflet default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -59,6 +60,9 @@ const PerencanaanForm = () => {
   const [success, setSuccess] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [mapCenter, setMapCenter] = useState([-2.5489, 118.0149]); // Indonesia center
+  const { isConnected, connectWallet, storeDocument } = useBlockchain();
+  const [blockchainData, setBlockchainData] = useState(null);
+  const [savingToBlockchain, setSavingToBlockchain] = useState(false);
 
   const validationSchema = Yup.object({
     nama_perusahaan: Yup.string().required("Wajib diisi"),
@@ -85,21 +89,60 @@ const PerencanaanForm = () => {
     validationSchema,
     onSubmit: async (values, { resetForm }) => {
       setSubmitting(true);
+      
       try {
-        // ✅ Kirim data dengan koordinat yang sudah ditandai
-        await api.post("/forms/perencanaan", values);
+        // ✅ 1. Save to backend first
+        const response = await api.post("/forms/perencanaan", values);
+        const savedId = response.data?.id;
+        
         setSuccess(true);
-        toast.success("✅ Perencanaan berhasil disimpan dengan lokasi yang ditandai!", { autoClose: 3000 });
+        toast.success("✅ Data berhasil disimpan!");
+
+        // ✅ 2. Save hash to blockchain
+        if (isConnected) {
+          setSavingToBlockchain(true);
+          toast.info("💎 Menyimpan hash ke blockchain...");
+          
+          const blockchainResult = await storeDocument(
+            'PERENCANAAN',
+            values,
+            {
+              backendId: savedId,
+              nama_perusahaan: values.nama_perusahaan,
+              jenis_kegiatan: values.jenis_kegiatan,
+            }
+          );
+
+          if (blockchainResult) {
+            setBlockchainData(blockchainResult);
+            
+            // Update backend with blockchain info
+            await api.put(`/forms/perencanaan/${savedId}`, {
+              blockchain_tx_hash: blockchainResult.txHash,
+              blockchain_doc_id: blockchainResult.docId,
+              blockchain_doc_hash: blockchainResult.docHash,
+            });
+            
+            toast.success("✅ Hash berhasil disimpan ke blockchain!");
+          }
+          
+          setSavingToBlockchain(false);
+        } else {
+          toast.warning("⚠️ Wallet tidak terhubung. Data hanya tersimpan di database.");
+        }
+
         setTimeout(() => {
           resetForm();
           setSelectedLocation(null);
           setSuccess(false);
-        }, 2000);
+          setBlockchainData(null);
+        }, 5000);
       } catch (error) {
         console.error("Error submitting form:", error);
-        toast.error("❌ Gagal menyimpan data!", { autoClose: 4000 });
+        toast.error("❌ Gagal menyimpan data!");
       } finally {
         setSubmitting(false);
+        setSavingToBlockchain(false);
       }
     },
   });
@@ -188,6 +231,77 @@ const PerencanaanForm = () => {
               </motion.div>
               <h3 className="text-2xl font-bold mb-2">Berhasil Disimpan!</h3>
               <p>Data perencanaan Anda telah tersimpan dengan baik</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ✅ Blockchain Connection Card */}
+        {!isConnected && (
+          <motion.div
+            className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-4"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-start gap-3">
+              <FiLink className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-bold text-blue-900 dark:text-blue-200 mb-2">
+                  💎 Simpan Hash ke Blockchain
+                </h4>
+                <p className="text-sm text-blue-800 dark:text-blue-300 mb-3">
+                  Hubungkan wallet MetaMask untuk menyimpan hash dokumen ke blockchain Ethereum. 
+                  Ini memberikan bukti kriptografis yang tidak dapat diubah.
+                </p>
+                <motion.button
+                  onClick={connectWallet}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-medium shadow-lg transition-all"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" className="w-5 h-5" />
+                  <span>Hubungkan MetaMask</span>
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ✅ Blockchain Success Info */}
+        <AnimatePresence>
+          {blockchainData && (
+            <motion.div
+              className="mb-6 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-xl p-6"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <h4 className="font-bold text-purple-900 dark:text-purple-200 mb-3 flex items-center gap-2">
+                <FiCheckCircle className="w-5 h-5" />
+                ✅ Hash Tersimpan di Blockchain
+              </h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold text-gray-700 dark:text-gray-300 w-32">Document Hash:</span>
+                  <code className="flex-1 bg-white dark:bg-gray-800 px-2 py-1 rounded text-xs font-mono break-all">
+                    {blockchainData.docHash}
+                  </code>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold text-gray-700 dark:text-gray-300 w-32">Transaction:</span>
+                  <a
+                    href={`https://sepolia.etherscan.io/tx/${blockchainData.txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-blue-600 hover:text-blue-800 underline break-all text-xs"
+                  >
+                    {blockchainData.txHash}
+                  </a>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold text-gray-700 dark:text-gray-300 w-32">Block Number:</span>
+                  <span className="text-gray-900 dark:text-gray-100">{blockchainData.blockNumber}</span>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -429,28 +543,24 @@ const PerencanaanForm = () => {
             >
               <motion.button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || savingToBlockchain}
                 className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-all ${
-                  submitting
+                  submitting || savingToBlockchain
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 text-white"
                 }`}
-                whileHover={!submitting ? { scale: 1.02, boxShadow: "0 20px 60px -10px rgba(16, 185, 129, 0.5)" } : {}}
-                whileTap={!submitting ? { scale: 0.98 } : {}}
               >
-                {submitting ? (
+                {savingToBlockchain ? (
                   <span className="flex items-center justify-center gap-2">
-                    <motion.div
-                      className="w-5 h-5 border-3 border-white border-t-transparent rounded-full"
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    />
-                    Menyimpan...
+                    <motion.div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
+                    Menyimpan ke Blockchain...
                   </span>
+                ) : submitting ? (
+                  <span>Menyimpan...</span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
                     <FiCheckCircle className="w-6 h-6" />
-                    Simpan Data Perencanaan
+                    {isConnected ? "Simpan Data & Hash ke Blockchain" : "Simpan Data Perencanaan"}
                   </span>
                 )}
               </motion.button>

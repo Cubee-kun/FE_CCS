@@ -8,6 +8,7 @@ import LoadingSpinner from "./components/common/LoadingSpinner";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./assets/styles/index.css";
+import { BlockchainProvider } from "./contexts/BlockchainContext";
 
 function AppContent() {
   const location = useLocation();
@@ -61,7 +62,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <BlockchainProvider>
+        <AppContent />
+      </BlockchainProvider>
     </AuthProvider>
   );
 }
