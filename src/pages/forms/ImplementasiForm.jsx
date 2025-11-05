@@ -1,38 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import api from "../../api/axios";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { FiCheck, FiX, FiUpload, FiImage, FiCheckCircle } from "react-icons/fi";
+import { FiCheck, FiX, FiUpload, FiCheckCircle, FiMapPin, FiAlertCircle } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
 
-// Icon marker default Leaflet fix
-const markerIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
+// ✅ Blue marker for existing planned locations
+const existingMarkerIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
 });
 
-const LocationPicker = ({ onSelect }) => {
-  useMapEvents({
-    click(e) {
-      onSelect(e.latlng);
-    },
-  });
-  return null;
-};
+// ✅ Selected marker (red)
+const selectedMarkerIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
 
 const ImplementasiForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [existingLocations, setExistingLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const validationSchema = Yup.object({
     pic_koorlap: Yup.string().required("Wajib diisi"),
     dokumentasi: Yup.mixed().required("Wajib diisi"),
-    geotagging: Yup.string().required("Wajib diisi"),
+    geotagging: Yup.string().required("Wajib diisi - Pilih lokasi dari peta"),
   });
 
   const formik = useFormik({
@@ -56,26 +63,58 @@ const ImplementasiForm = () => {
         const formData = new FormData();
         formData.append("kesesuaian", JSON.stringify(values.kesesuaian));
         formData.append("pic_koorlap", values.pic_koorlap);
-        // if dokumentasi is array, append each file
         if (Array.isArray(values.dokumentasi)) {
           values.dokumentasi.forEach((file) => formData.append("dokumentasi[]", file));
         }
         formData.append("geotagging", values.geotagging);
+        formData.append("perencanaan_id", selectedLocation?.id); // Link to perencanaan
 
         await api.post("/forms/implementasi", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
 
         setSuccess(true);
-        formik.resetForm();
-        setSelectedLocation(null);
+        toast.success("✅ Implementasi berhasil disimpan!");
+        setTimeout(() => {
+          formik.resetForm();
+          setSelectedLocation(null);
+          setSuccess(false);
+        }, 2000);
       } catch (error) {
         console.error("Error submitting form:", error);
+        toast.error("❌ Gagal menyimpan implementasi!");
       } finally {
         setSubmitting(false);
       }
     },
   });
+
+  // ✅ Fetch existing locations from perencanaan
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const response = await api.get("/forms/perencanaan/locations");
+        const locations = response.data?.data || response.data || [];
+        setExistingLocations(locations);
+        toast.success(`📍 ${locations.length} lokasi perencanaan ditemukan`);
+      } catch (error) {
+        console.error("Error fetching locations:", error);
+        toast.warning("Tidak dapat memuat lokasi perencanaan");
+        setExistingLocations([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLocations();
+  }, []);
+
+  // ✅ Handle marker selection
+  const handleLocationSelect = (location) => {
+    setSelectedLocation(location);
+    formik.setFieldValue("geotagging", location.lokasi);
+    toast.success(`📍 Lokasi "${location.nama_perusahaan}" dipilih!`);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-emerald-50 to-green-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 py-12 px-4">
@@ -223,7 +262,7 @@ const ImplementasiForm = () => {
               transition={{ delay: 0.5 }}
             >
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                Dokumentasi Monitoring <span className="text-red-500">*</span>
+                Dokumentasi Implementasi <span className="text-red-500">*</span>
               </label>
 
               <div className="relative">
@@ -308,39 +347,147 @@ const ImplementasiForm = () => {
               )}
             </motion.div>
 
-            {/* Geotagging Map */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Geotagging Lokasi Penanaman <span className="text-red-500">*</span>
+            {/* ✅ SELECT FROM EXISTING LOCATIONS */}
+            <motion.div
+              className="mb-10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                <FiMapPin className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                Pilih Lokasi Implementasi
+                <span className="text-red-500">*</span>
               </label>
-              <div className="h-64 w-full rounded-lg overflow-hidden border dark:border-gray-700 mt-2 shadow-sm">
-                <MapContainer
-                  center={[-6.2, 106.8]}
-                  zoom={5}
-                  style={{ height: "100%", width: "100%" }}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/">OSM</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  <LocationPicker
-                    onSelect={(latlng) => {
-                      setSelectedLocation(latlng);
-                      formik.setFieldValue("geotagging", `${latlng.lat},${latlng.lng}`);
-                    }}
-                  />
-                  {selectedLocation && <Marker position={selectedLocation} icon={markerIcon} />}
-                </MapContainer>
+
+              {/* Info Box */}
+              <div className="mb-4 bg-teal-50 dark:bg-teal-900/20 border-2 border-teal-200 dark:border-teal-700 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <FiMapPin className="w-5 h-5 text-teal-600 dark:text-teal-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="font-bold text-teal-900 dark:text-teal-200 mb-2">
+                      📍 Pilih dari Lokasi yang Sudah Direncanakan
+                    </h4>
+                    <p className="text-sm text-teal-800 dark:text-teal-300">
+                      Klik pada marker biru di peta untuk memilih lokasi implementasi. 
+                      Lokasi ini berasal dari data perencanaan yang sudah dibuat sebelumnya.
+                    </p>
+                  </div>
+                </div>
               </div>
+
+              {/* Selected Location Display */}
+              {selectedLocation && (
+                <motion.div
+                  className="mb-4 bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-teal-900/20 dark:to-emerald-900/20 border-2 border-teal-300 dark:border-teal-700 rounded-xl p-4"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0">
+                      <FiCheckCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-teal-900 dark:text-teal-200 mb-1">
+                        Lokasi Terpilih
+                      </h4>
+                      <p className="text-sm text-teal-800 dark:text-teal-300">
+                        <strong>Perusahaan:</strong> {selectedLocation.nama_perusahaan}
+                      </p>
+                      <p className="text-xs text-teal-700 dark:text-teal-400 font-mono mt-1">
+                        Koordinat: {selectedLocation.lokasi}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Map with Existing Locations */}
+              {loading ? (
+                <div className="h-96 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-400">Memuat lokasi perencanaan...</p>
+                  </div>
+                </div>
+              ) : existingLocations.length === 0 ? (
+                <div className="h-96 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-700 flex items-center justify-center">
+                  <div className="text-center p-8">
+                    <FiAlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-amber-900 dark:text-amber-200 mb-2">
+                      Belum Ada Lokasi Perencanaan
+                    </h3>
+                    <p className="text-amber-700 dark:text-amber-300">
+                      Silakan buat perencanaan terlebih dahulu untuk menandai lokasi.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <motion.div
+                  className="rounded-2xl overflow-hidden border-2 border-teal-200 dark:border-teal-700 shadow-xl"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <MapContainer
+                    center={
+                      existingLocations.length > 0
+                        ? existingLocations[0].lokasi.split(',').map(Number)
+                        : [-2.5489, 118.0149]
+                    }
+                    zoom={13}
+                    style={{ height: "500px", width: "100%" }}
+                    className="z-0"
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    {existingLocations.map((location) => {
+                      const [lat, lng] = location.lokasi.split(',').map(Number);
+                      const isSelected = selectedLocation?.id === location.id;
+                      
+                      return (
+                        <Marker
+                          key={location.id}
+                          position={[lat, lng]}
+                          icon={isSelected ? selectedMarkerIcon : existingMarkerIcon}
+                          eventHandlers={{
+                            click: () => handleLocationSelect(location),
+                          }}
+                        >
+                          <Popup>
+                            <div className="text-center">
+                              <p className="font-bold text-teal-700">{location.nama_perusahaan}</p>
+                              <p className="text-xs text-gray-600 mb-2">
+                                {location.jenis_kegiatan}
+                              </p>
+                              <button
+                                onClick={() => handleLocationSelect(location)}
+                                className="px-3 py-1 bg-teal-500 hover:bg-teal-600 text-white text-xs rounded-lg transition-colors"
+                              >
+                                Pilih Lokasi Ini
+                              </button>
+                            </div>
+                          </Popup>
+                        </Marker>
+                      );
+                    })}
+                  </MapContainer>
+                </motion.div>
+              )}
+
+              {/* Validation Error */}
               {formik.touched.geotagging && formik.errors.geotagging && (
-                <p className="text-red-500 text-xs mt-1">{formik.errors.geotagging}</p>
+                <motion.p
+                  className="text-red-500 text-sm mt-3 flex items-center gap-1"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <span>⚠️</span>
+                  {formik.errors.geotagging}
+                </motion.p>
               )}
-              {formik.values.geotagging && (
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  Titik dipilih: {formik.values.geotagging}
-                </p>
-              )}
-            </div>
+            </motion.div>
 
             {/* Submit Button */}
             <motion.button
@@ -354,7 +501,7 @@ const ImplementasiForm = () => {
               whileHover={!submitting ? { scale: 1.02, boxShadow: "0 20px 60px -10px rgba(20, 184, 166, 0.5)" } : {}}
               whileTap={!submitting ? { scale: 0.98 } : {}}
             >
-              {submitting ? "Menyimpan..." : "💾 Simpan Data Implementasi"}
+              {submitting ? "Menyimpan..." : "Simpan Data Implementasi"}
             </motion.button>
           </form>
         </motion.div>
