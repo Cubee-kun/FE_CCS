@@ -50,14 +50,18 @@ export default function Verifikasi() {
     setError(null);
   };
 
-  // Conditional wrapper - jika sudah login, tidak perlu full page wrapper
-  const contentClass = isAuthenticated 
-    ? "" // Akan menggunakan layout dari DashboardLayout/UserLayout
-    : "min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-6 px-3 sm:px-6 lg:px-8 transition-colors";
+  // ✅ Conditional styling - untuk public mode tambahkan padding top agar tidak tertimpa navbar
+  const containerClass = isAuthenticated 
+    ? "" // Menggunakan layout dari DashboardLayout/UserLayout (sudah ada padding)
+    : "min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 pt-24 pb-12 px-3 sm:px-6 lg:px-8 transition-colors";
+
+  const innerContainerClass = isAuthenticated 
+    ? "" // Tidak perlu max-width karena sudah dalam layout
+    : "max-w-4xl mx-auto";
 
   return (
-    <div className={contentClass}>
-      <div className={isAuthenticated ? "" : "max-w-4xl mx-auto"}>
+    <div className={containerClass}>
+      <div className={innerContainerClass}>
         {/* Header Card */}
         <motion.div 
           className="bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden border border-green-100 dark:border-gray-700 mb-6"

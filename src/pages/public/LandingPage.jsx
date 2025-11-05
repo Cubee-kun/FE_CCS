@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiArrowRight, FiPlay, FiStar, FiUsers, FiTrendingUp, FiShield, FiZap, FiHeart } from "react-icons/fi";
+import { FiArrowRight, FiPlay, FiStar, FiUsers, FiTrendingUp, FiShield, FiZap, FiHeart, FiCheck } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
-import Footer from "../../components/common/Footer"; // ✅ Import Footer
+import Footer from "../../components/common/Footer";
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -20,28 +20,32 @@ const LandingPage = () => {
       title: "Blockchain Recording",
       description: "Sistem pencatatan data menggunakan teknologi blockchain untuk transparansi dan keamanan data yang tidak dapat diubah.",
       icon: "⛓️",
-      color: "from-blue-500 to-cyan-500",
+      gradient: "from-blue-500 via-blue-600 to-cyan-500",
+      glowColor: "rgba(59, 130, 246, 0.3)",
       benefits: ["Data immutable", "Transparansi penuh", "Audit trail lengkap"]
     },
     {
       title: "Smart Contracts",
       description: "Otomatisasi proses verifikasi dan validasi data menggunakan smart contract untuk menjamin integritas sistem.",
       icon: "📋",
-      color: "from-purple-500 to-pink-500",
+      gradient: "from-purple-500 via-purple-600 to-pink-500",
+      glowColor: "rgba(168, 85, 247, 0.3)",
       benefits: ["Verifikasi otomatis", "Validasi real-time", "Kontrak digital"]
     },
     {
       title: "Distributed Ledger",
       description: "Penyimpanan data tersebar dengan sistem ledger yang memastikan keamanan dan aksesibilitas data konservasi.",
       icon: "🌐",
-      color: "from-green-500 to-teal-500",
+      gradient: "from-green-500 via-emerald-600 to-teal-500",
+      glowColor: "rgba(16, 185, 129, 0.3)",
       benefits: ["Sinkronisasi multi-node", "Backup otomatis", "High availability"]
     },
     {
       title: "Crypto Analytics",
       description: "Analisis data konservasi dengan teknologi blockchain analytics untuk insights yang lebih mendalam dan terverifikasi.",
       icon: "📈",
-      color: "from-orange-500 to-red-500",
+      gradient: "from-orange-500 via-red-500 to-pink-500",
+      glowColor: "rgba(249, 115, 22, 0.3)",
       benefits: ["Data terenkripsi", "Analytics on-chain", "Reporting terverifikasi"]
     }
   ];
@@ -53,7 +57,8 @@ const LandingPage = () => {
       company: "Green Indonesia Foundation",
       content: "Platform ini benar-benar mengubah cara kami mengelola proyek konservasi. Interface yang intuitif dan fitur monitoring real-time sangat membantu!",
       avatar: "👩‍🔬",
-      rating: 5
+      rating: 5,
+      image: "/images/login-bg.jpg"
     },
     {
       name: "Budi Santoso",
@@ -61,7 +66,8 @@ const LandingPage = () => {
       company: "EcoTech Solutions",
       content: "Dengan AgroPariwisata, produktivitas tim kami meningkat 300%. Fitur kolaborasi dan AI-nya luar biasa!",
       avatar: "👨‍💼",
-      rating: 5
+      rating: 5,
+      image: "/images/login-bg.jpg"
     },
     {
       name: "Maya Kusuma",
@@ -69,7 +75,8 @@ const LandingPage = () => {
       company: "Marine Conservation NGO",
       content: "Tool terbaik untuk monitoring proyek marine conservation. Dashboard analytics-nya sangat comprehensive dan mudah dipahami.",
       avatar: "👩‍🔬",
-      rating: 5
+      rating: 5,
+      image: "/images/login-bg.jpg"
     }
   ];
 
@@ -226,7 +233,7 @@ const LandingPage = () => {
                   whileTap={{ scale: 0.95 }}
                 >
                   <FiPlay className="mr-2 group-hover:scale-110 transition-transform" />
-                  Lihat Demo
+                  Selengkapnya
                 </motion.button>
               </motion.div>
 
@@ -353,63 +360,129 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Features Section - MODERN REDESIGN */}
+      <section id="features" className="py-32 bg-gradient-to-b from-white via-gray-50 to-white relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/20 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-cyan-200/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Section Header */}
           <motion.div 
-            className="text-center mb-16"
+            className="text-center mb-20"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              Teknologi <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Blockchain</span> untuk Konservasi
+            <motion.div
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-100 to-teal-100 px-4 py-2 rounded-full mb-6"
+              initial={{ scale: 0.9, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-semibold text-emerald-700">Teknologi Terdepan</span>
+            </motion.div>
+
+            <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-6 leading-tight">
+              Teknologi{" "}
+              <span className="relative inline-block">
+                <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                  Blockchain
+                </span>
+                <motion.div
+                  className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full"
+                  initial={{ scaleX: 0 }}
+                  whileInView={{ scaleX: 1 }}
+                  transition={{ delay: 0.5, duration: 0.8 }}
+                />
+              </span>
+              <br />untuk Konservasi
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Sistem pencatatan data konservasi yang transparan, aman, dan tidak dapat diubah menggunakan teknologi blockchain terdepan
+            
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              Sistem pencatatan data konservasi yang <span className="font-semibold text-emerald-600">transparan</span>, <span className="font-semibold text-teal-600">aman</span>, dan <span className="font-semibold text-cyan-600">tidak dapat diubah</span> menggunakan teknologi blockchain terdepan
             </p>
           </motion.div>
 
+          {/* Features Grid */}
           <div className="grid md:grid-cols-2 gap-8">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all border border-gray-200 group"
-                initial={{ opacity: 0, y: 20 }}
+                className="group relative"
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: index * 0.1 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -5 }}
               >
-                <div className="flex items-start space-x-4">
-                  <motion.div 
-                    className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center text-2xl shadow-lg group-hover:scale-110 transition-transform`}
-                  >
-                    {feature.icon}
-                  </motion.div>
-                  
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                    <p className="text-gray-600 mb-4 leading-relaxed">{feature.description}</p>
-                    
-                    <ul className="space-y-2">
-                      {feature.benefits.map((benefit, i) => (
-                        <li key={i} className="flex items-center text-sm text-gray-700">
-                          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-3"></div>
-                          {benefit}
-                        </li>
-                      ))}
-                    </ul>
-                    
-                    <motion.button
-                      className="mt-4 text-emerald-600 font-medium flex items-center group-hover:text-emerald-700 transition-colors"
-                      whileHover={{ x: 5 }}
+                {/* Card Background with Gradient Border */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50 rounded-3xl"></div>
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 rounded-3xl transition-all duration-500`}></div>
+                
+                {/* Glow Effect on Hover */}
+                <motion.div
+                  className="absolute -inset-1 rounded-3xl opacity-0 group-hover:opacity-100 blur-xl transition-all duration-500"
+                  style={{ background: `radial-gradient(circle at center, ${feature.glowColor}, transparent)` }}
+                />
+
+                {/* Card Content */}
+                <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 border border-gray-200/50 group-hover:border-gray-300/50 transition-all duration-500 shadow-lg group-hover:shadow-2xl">
+                  {/* Icon with Animated Background */}
+                  <div className="flex items-start gap-6 mb-6">
+                    <motion.div 
+                      className="relative flex-shrink-0"
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      transition={{ type: "spring", stiffness: 300 }}
                     >
-                      Pelajari lebih lanjut
-                      <FiArrowRight className="ml-1 w-4 h-4" />
-                    </motion.button>
+                      <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-2xl blur-md opacity-50 group-hover:opacity-70 transition-opacity`}></div>
+                      <div className={`relative w-20 h-20 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center text-3xl shadow-xl`}>
+                        {feature.icon}
+                      </div>
+                    </motion.div>
+                    
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-emerald-600 group-hover:to-teal-600 group-hover:bg-clip-text transition-all duration-300">
+                        {feature.title}
+                      </h3>
+                      <p className="text-gray-600 leading-relaxed">
+                        {feature.description}
+                      </p>
+                    </div>
                   </div>
+                  
+                  {/* Benefits List */}
+                  <div className="space-y-3 mb-6">
+                    {feature.benefits.map((benefit, i) => (
+                      <motion.div
+                        key={i}
+                        className="flex items-center gap-3"
+                        initial={{ opacity: 0, x: -10 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 * i }}
+                        viewport={{ once: true }}
+                      >
+                        <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${feature.gradient} flex items-center justify-center flex-shrink-0 shadow-md`}>
+                          <FiCheck className="w-3 h-3 text-white" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-700">{benefit}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                  
+                  {/* CTA Button */}
+                  <motion.button
+                    className={`w-full py-3 px-6 rounded-xl font-semibold text-white bg-gradient-to-r ${feature.gradient} shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 group/btn`}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <span>Pelajari Lebih Lanjut</span>
+                    <FiArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                  </motion.button>
                 </div>
               </motion.div>
             ))}
@@ -417,61 +490,138 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Testimonials Section - MODERN REDESIGN */}
+      <section id="testimonials" className="py-32 bg-gradient-to-b from-white via-emerald-50/30 to-white relative overflow-hidden">
+        {/* Decorative Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-emerald-200/20 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Section Header */}
           <motion.div 
-            className="text-center mb-16"
+            className="text-center mb-20"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              Apa Kata <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Pengguna Kami</span>
+            <motion.div
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-100 to-orange-100 px-4 py-2 rounded-full mb-6"
+              initial={{ scale: 0.9, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <FiStar className="w-4 h-4 text-amber-600" />
+              <span className="text-sm font-semibold text-amber-700">Testimoni Pengguna</span>
+            </motion.div>
+
+            <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-6 leading-tight">
+              Apa Kata{" "}
+              <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                Pengguna Kami
+              </span>
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Bergabunglah dengan ribuan profesional yang telah merasakan manfaat platform kami
+              Bergabunglah dengan <span className="font-bold text-emerald-600">10,000+</span> profesional yang telah merasakan transformasi digital dalam konservasi
             </p>
           </motion.div>
 
-          <div className="relative">
+          {/* Testimonial Carousel */}
+          <div className="relative max-w-5xl mx-auto">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTestimonial}
-                className="bg-gray-50 rounded-2xl p-8 md:p-12 max-w-4xl mx-auto"
-                initial={{ opacity: 0, x: 50 }}
+                className="relative"
+                initial={{ opacity: 0, x: 100 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
+                exit={{ opacity: 0, x: -100 }}
                 transition={{ duration: 0.5 }}
               >
-                <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
-                  <div className="flex-shrink-0">
-                    <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-3xl shadow-lg">
-                      {testimonials[activeTestimonial].avatar}
-                    </div>
-                  </div>
+                {/* Card */}
+                <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5"></div>
                   
-                  <div className="flex-1 text-center md:text-left">
-                    <div className="flex justify-center md:justify-start mb-4">
-                      {[...Array(testimonials[activeTestimonial].rating)].map((_, i) => (
-                        <FiStar key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                      ))}
+                  <div className="relative grid md:grid-cols-2 gap-8 p-8 md:p-12">
+                    {/* Left Side - Image */}
+                    <div className="relative">
+                      <div className="aspect-square rounded-2xl overflow-hidden shadow-xl">
+                        <motion.img
+                          src={testimonials[activeTestimonial].image}
+                          alt={testimonials[activeTestimonial].name}
+                          className="w-full h-full object-cover"
+                          initial={{ scale: 1.2 }}
+                          animate={{ scale: 1 }}
+                          transition={{ duration: 0.8 }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+                      </div>
+
+                      {/* Floating Stats */}
+                      <motion.div
+                        className="absolute -bottom-4 -right-4 bg-white rounded-2xl shadow-xl p-4 border border-gray-100"
+                        initial={{ scale: 0, rotate: -10 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.3, type: "spring" }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <FiStar key={i} className="w-4 h-4 text-amber-400 fill-current" />
+                            ))}
+                          </div>
+                          <span className="text-sm font-bold text-gray-900">5.0</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Perfect Rating</p>
+                      </motion.div>
                     </div>
-                    
-                    <blockquote className="text-xl md:text-2xl text-gray-700 mb-6 leading-relaxed">
-                      "{testimonials[activeTestimonial].content}"
-                    </blockquote>
-                    
-                    <div>
-                      <div className="font-bold text-gray-900 text-lg">
-                        {testimonials[activeTestimonial].name}
+
+                    {/* Right Side - Content */}
+                    <div className="flex flex-col justify-center">
+                      {/* Quote Icon */}
+                      <div className="mb-6">
+                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg">
+                          <span className="text-3xl text-white">"</span>
+                        </div>
                       </div>
-                      <div className="text-emerald-600 font-medium">
-                        {testimonials[activeTestimonial].role}
+
+                      {/* Rating */}
+                      <div className="flex mb-4">
+                        {[...Array(testimonials[activeTestimonial].rating)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ delay: i * 0.1, type: "spring" }}
+                          >
+                            <FiStar className="w-6 h-6 text-amber-400 fill-current" />
+                          </motion.div>
+                        ))}
                       </div>
-                      <div className="text-gray-500">
-                        {testimonials[activeTestimonial].company}
+                      
+                      {/* Content */}
+                      <blockquote className="text-xl md:text-2xl font-medium text-gray-800 mb-8 leading-relaxed">
+                        "{testimonials[activeTestimonial].content}"
+                      </blockquote>
+                      
+                      {/* Author Info */}
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center text-2xl shadow-lg">
+                          {testimonials[activeTestimonial].avatar}
+                        </div>
+                        <div>
+                          <div className="font-bold text-lg text-gray-900">
+                            {testimonials[activeTestimonial].name}
+                          </div>
+                          <div className="text-emerald-600 font-semibold text-sm">
+                            {testimonials[activeTestimonial].role}
+                          </div>
+                          <div className="text-gray-500 text-sm">
+                            {testimonials[activeTestimonial].company}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -479,19 +629,49 @@ const LandingPage = () => {
               </motion.div>
             </AnimatePresence>
 
-            {/* Testimonial Indicators */}
-            <div className="flex justify-center mt-8 space-x-2">
+            {/* Navigation Dots */}
+            <div className="flex justify-center gap-3 mt-10">
               {testimonials.map((_, index) => (
-                <button
+                <motion.button
                   key={index}
                   onClick={() => setActiveTestimonial(index)}
-                  className={`w-3 h-3 rounded-full transition-all ${
+                  className="relative group"
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
                     index === activeTestimonial
-                      ? "bg-emerald-500 w-8"
+                      ? "bg-gradient-to-r from-emerald-500 to-teal-500 w-10"
                       : "bg-gray-300 hover:bg-gray-400"
-                  }`}
-                />
+                  }`}></div>
+                  {index === activeTestimonial && (
+                    <motion.div
+                      className="absolute inset-0 bg-emerald-400 rounded-full blur-md opacity-50"
+                      layoutId="activeDot"
+                    />
+                  )}
+                </motion.button>
               ))}
+            </div>
+
+            {/* Arrow Navigation */}
+            <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 flex justify-between px-4 pointer-events-none">
+              <motion.button
+                onClick={() => setActiveTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length)}
+                className="w-12 h-12 rounded-full bg-white shadow-xl border border-gray-200 flex items-center justify-center pointer-events-auto hover:bg-gray-50 transition-all"
+                whileHover={{ scale: 1.1, x: -5 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <FiArrowRight className="w-5 h-5 rotate-180 text-gray-700" />
+              </motion.button>
+              <motion.button
+                onClick={() => setActiveTestimonial((prev) => (prev + 1) % testimonials.length)}
+                className="w-12 h-12 rounded-full bg-white shadow-xl border border-gray-200 flex items-center justify-center pointer-events-auto hover:bg-gray-50 transition-all"
+                whileHover={{ scale: 1.1, x: 5 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <FiArrowRight className="w-5 h-5 text-gray-700" />
+              </motion.button>
             </div>
           </div>
         </div>

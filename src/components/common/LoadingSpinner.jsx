@@ -1,137 +1,185 @@
 import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const LoadingSpinner = ({ show = true, message = "Memuat data, mohon tunggu...", size = "normal" }) => {
   const sizeClasses = {
-    small: "h-12 w-12",
-    normal: "h-20 w-20",
-    large: "h-32 w-32"
+    small: "w-8 h-8",
+    normal: "w-16 h-16",
+    large: "w-24 h-24"
   };
 
-  const textSizeClasses = {
-    small: "text-sm",
-    normal: "text-lg",
-    large: "text-xl"
+  const dotSizes = {
+    small: "w-2 h-2",
+    normal: "w-3 h-3",
+    large: "w-4 h-4"
   };
-
-  if (!show) return null;
 
   return (
-    <div
-      className="fixed inset-0 flex flex-col items-center justify-center bg-white/95 dark:bg-gray-900/95 backdrop-blur-md transition-all duration-300 ease-in-out z-[9999]"
-    >
-      {/* Animated leaf container */}
-      <div className="relative">
-        {/* Main rotating leaf */}
-        <svg
-          className={`leaf-spin-slow ${sizeClasses[size]}`}
-          viewBox="0 0 64 64"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-md"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
         >
-          <path
-            d="M32 2C28 10 20 14 16 24C10 38 18 52 32 62C46 52 54 38 48 24C44 14 36 10 32 2Z"
-            fill="url(#leafGradient)"
-            stroke="#047857"
-            strokeWidth="2"
-          />
-          <path
-            d="M32 8C30 16 24 20 20 28C14 40 20 50 32 58"
-            stroke="#064e3b"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <defs>
-            <linearGradient id="leafGradient" x1="32" y1="2" x2="32" y2="62" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#10b981"/>
-              <stop offset="1" stopColor="#059669"/>
-            </linearGradient>
-          </defs>
-        </svg>
-
-        {/* Floating mini leaves */}
-        {[1, 2, 3].map((i) => (
-          <svg
-            key={i}
-            className={`absolute h-6 w-6 leaf-float-${i}`}
-            style={{
-              top: `${Math.random() * 30 + 5}px`,
-              left: `${Math.random() * 30 + 5}px`,
+          <motion.div
+            className="flex flex-col items-center gap-6 p-8 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            transition={{ 
+              type: "spring", 
+              stiffness: 260, 
+              damping: 20 
             }}
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
           >
-            <path
-              d="M12 2C10 6 6 8 4 12C2 16 4 20 8 22C12 20 16 16 14 12C12 8 10 6 12 2Z"
-              fill="#86efac"
-            />
-          </svg>
-        ))}
-      </div>
+            {/* Animated Logo/Icon with Pulse */}
+            <div className="relative">
+              {/* Outer Glow Ring */}
+              <motion.div
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 opacity-20 blur-2xl"
+                animate={{
+                  scale: [1, 1.5, 1],
+                  opacity: [0.2, 0.4, 0.2],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
 
-      {/* Loading text with progress dots */}
-      <div className="mt-6 text-center max-w-md px-4">
-        <p className={`text-green-800 dark:text-green-200 font-medium tracking-wide mb-2 ${textSizeClasses[size]}`}>
-          {message}
-        </p>
-        <div className="flex justify-center space-x-2">
-          {[1, 2, 3].map((dot) => (
-            <div
-              key={dot}
-              className="h-2 w-2 rounded-full bg-green-600 dot-bounce"
-              style={{ animationDelay: `${dot * 0.2}s` }}
-            />
-          ))}
-        </div>
-      </div>
+              {/* Middle Ring */}
+              <motion.div
+                className={`relative ${sizeClasses[size]} rounded-full border-4 border-transparent bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-padding`}
+                animate={{ rotate: 360 }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "linear",
+                }}
+              >
+                <div className="absolute inset-1 rounded-full bg-white dark:bg-gray-900" />
+              </motion.div>
 
-      {/* CSS styles */}
-      <style>{`
-        .leaf-spin-slow {
-          animation: leafSpinSlow 2.5s linear infinite;
-        }
-        
-        .leaf-float-1 {
-          animation: leafFloat1 3s ease-in-out infinite;
-        }
-        
-        .leaf-float-2 {
-          animation: leafFloat2 3.5s ease-in-out infinite;
-        }
-        
-        .leaf-float-3 {
-          animation: leafFloat3 4s ease-in-out infinite;
-        }
-        
-        .dot-bounce {
-          animation: dotBounce 0.6s infinite alternate;
-        }
-        
-        @keyframes leafSpinSlow {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        
-        @keyframes leafFloat1 {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50% { transform: translateY(-15px) rotate(10deg); }
-        }
-        
-        @keyframes leafFloat2 {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(-5deg); }
-        }
-        
-        @keyframes leafFloat3 {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50% { transform: translateY(-10px) rotate(15deg); }
-        }
-        
-        @keyframes dotBounce {
-          to { transform: translateY(-6px); }
-        }
-      `}</style>
-    </div>
+              {/* Inner Spinning Circle */}
+              <motion.div
+                className="absolute inset-0 flex items-center justify-center"
+                animate={{ rotate: -360 }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "linear",
+                }}
+              >
+                <div className={`${sizeClasses[size]} rounded-full border-t-4 border-emerald-500`} />
+              </motion.div>
+
+              {/* Center Icon */}
+              <motion.div
+                className="absolute inset-0 flex items-center justify-center"
+                animate={{
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                <svg
+                  className={`${size === 'small' ? 'w-4 h-4' : size === 'large' ? 'w-12 h-12' : 'w-8 h-8'} text-emerald-600`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+                  />
+                </svg>
+              </motion.div>
+            </div>
+
+            {/* Loading Text with Typing Animation */}
+            <div className="text-center space-y-2">
+              <motion.p
+                className="text-lg font-semibold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                {message}
+              </motion.p>
+
+              {/* Animated Dots */}
+              <div className="flex justify-center items-center gap-2">
+                {[0, 1, 2].map((index) => (
+                  <motion.div
+                    key={index}
+                    className={`${dotSizes[size]} rounded-full bg-gradient-to-r from-emerald-500 to-teal-500`}
+                    animate={{
+                      scale: [1, 1.5, 1],
+                      opacity: [0.5, 1, 0.5],
+                    }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      delay: index * 0.2,
+                      ease: "easeInOut",
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-48 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-full"
+                animate={{
+                  x: ["-100%", "100%"],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            </div>
+
+            {/* Floating Particles */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
+              {[...Array(6)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-2 h-2 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full opacity-40"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                  }}
+                  animate={{
+                    y: [0, -30, 0],
+                    opacity: [0.2, 0.6, 0.2],
+                    scale: [1, 1.5, 1],
+                  }}
+                  transition={{
+                    duration: 2 + Math.random() * 2,
+                    repeat: Infinity,
+                    delay: Math.random() * 2,
+                    ease: "easeInOut",
+                  }}
+                />
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
