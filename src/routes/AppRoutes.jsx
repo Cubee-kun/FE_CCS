@@ -83,12 +83,10 @@ export default function AppRoutes() {
       >
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="users" element={<UserPage />} />
-        <Route path="laporan" element={<LaporanPage />} />
-        <Route path="activity" element={<ActivityPage />} />
         <Route path="perencanaan" element={<PerencanaanForm />} />
         <Route path="implementasi" element={<ImplementasiForm />} />
+        <Route path="laporan" element={<LaporanPage />} />
         <Route path="monitoring" element={<MonitoringForm />} />
-        {/* ✅ Verifikasi route untuk admin */}
         <Route path="verifikasi" element={<Verifikasi />} />
         <Route path="settings" element={<Settings />} />
         <Route index element={<Navigate to="dashboard" replace />} />
@@ -105,7 +103,6 @@ export default function AppRoutes() {
       >
         <Route path="dashboard" element={<DashboardUser />} />
         <Route path="perencanaan" element={<PerencanaanForm />} />
-        {/* ✅ Verifikasi route untuk user */}
         <Route path="verifikasi" element={<Verifikasi />} />
         <Route path="settings" element={<Settings />} />
         <Route index element={<Navigate to="dashboard" replace />} />

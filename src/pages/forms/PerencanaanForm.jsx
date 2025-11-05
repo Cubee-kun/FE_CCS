@@ -2,14 +2,16 @@ import { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import api from "../../api/axios";
-import { FiMapPin } from "react-icons/fi";
+import { FiMapPin, FiCalendar, FiUser, FiPhone, FiBriefcase, FiCheckCircle } from "react-icons/fi";
 import { toast } from "react-toastify";
+import { motion, AnimatePresence } from "framer-motion";
 import "react-toastify/dist/ReactToastify.css";
 
 const PerencanaanForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [loadingLokasi, setLoadingLokasi] = useState(false);
   const [errorLokasi, setErrorLokasi] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const validationSchema = Yup.object({
     nama_perusahaan: Yup.string().required("Wajib diisi"),
@@ -38,8 +40,12 @@ const PerencanaanForm = () => {
       setSubmitting(true);
       try {
         await api.post("/forms/perencanaan", values);
+        setSuccess(true);
         toast.success("✅ Data berhasil disimpan!", { autoClose: 3000 });
-        resetForm();
+        setTimeout(() => {
+          resetForm();
+          setSuccess(false);
+        }, 2000);
       } catch (error) {
         console.error("Error submitting form:", error);
         toast.error("❌ Gagal menyimpan data!", { autoClose: 4000 });
@@ -61,108 +67,143 @@ const PerencanaanForm = () => {
         const coords = `${pos.coords.latitude},${pos.coords.longitude}`;
         formik.setFieldValue("lokasi", coords);
         setLoadingLokasi(false);
+        toast.success("📍 Lokasi berhasil didapatkan!");
       },
       (err) => {
         setErrorLokasi("Gagal mengambil lokasi: " + err.message);
         setLoadingLokasi(false);
+        toast.error("❌ Gagal mendapatkan lokasi!");
       }
     );
   };
 
+  const inputFields = [
+    { name: "nama_perusahaan", label: "Nama Perusahaan", icon: FiBriefcase, placeholder: "PT. Contoh Indonesia" },
+    { name: "nama_pic", label: "Nama PIC", icon: FiUser, placeholder: "John Doe" },
+    { name: "narahubung", label: "Narahubung", icon: FiPhone, placeholder: "+62 812-3456-7890" },
+    { name: "jumlah_bibit", label: "Jumlah Bibit", icon: FiCheckCircle, type: "number", placeholder: "100" },
+    { name: "jenis_bibit", label: "Jenis Bibit", icon: FiCheckCircle, placeholder: "Mangrove, Bakau, dll" },
+    { name: "tanggal_pelaksanaan", label: "Tanggal Pelaksanaan", icon: FiCalendar, type: "date" },
+  ];
+
   return (
-    <div className="flex justify-center items-center min-h-screen px-4 py-8 bg-gradient-to-br from-green-50 to-green-100 dark:from-gray-900 dark:to-gray-950">
-      <div className="w-full max-w-3xl">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-800 transition">
-          <h1 className="text-3xl font-extrabold mb-8 text-green-800 dark:text-green-400 text-center tracking-wide">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 py-12 px-4">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <motion.div
+          className="text-center mb-12"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <motion.div
+            className="inline-flex items-center gap-2 bg-emerald-100 dark:bg-emerald-900/20 px-4 py-2 rounded-full mb-4"
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <FiCheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Formulir Perencanaan</span>
+          </motion.div>
+          <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-4">
             Form Perencanaan Kegiatan
           </h1>
+          <p className="text-gray-600 dark:text-gray-400 text-lg">
+            Isi data dengan lengkap untuk merencanakan kegiatan konservasi
+          </p>
+        </motion.div>
 
-          <form onSubmit={formik.handleSubmit} className="space-y-6">
-            {/* Input generator */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {[
-                { name: "nama_perusahaan", label: "Nama Perusahaan", type: "text" },
-                { name: "nama_pic", label: "Nama PIC", type: "text" },
-                { name: "narahubung", label: "Narahubung", type: "text" },
-                { name: "jumlah_bibit", label: "Jumlah Bibit yang Ditanam", type: "number" },
-                { name: "jenis_bibit", label: "Jenis Bibit Tanaman", type: "text" },
-                { name: "tanggal_pelaksanaan", label: "Tanggal Pelaksanaan", type: "date" },
-              ].map((field) => (
-                <div key={field.name} className="flex flex-col">
-                  <label className="block text-gray-700 dark:text-gray-200 font-medium mb-1">
+        {/* Success Animation */}
+        <AnimatePresence>
+          {success && (
+            <motion.div
+              className="mb-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 text-white text-center"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200 }}
+              >
+                <FiCheckCircle className="w-16 h-16 mx-auto mb-4" />
+              </motion.div>
+              <h3 className="text-2xl font-bold mb-2">Berhasil Disimpan!</h3>
+              <p>Data perencanaan Anda telah tersimpan dengan baik</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Form Card */}
+        <motion.div
+          className="glass bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 dark:border-gray-700/50 overflow-hidden"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <form onSubmit={formik.handleSubmit} className="p-8 md:p-12">
+            {/* Input Fields Grid */}
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              {inputFields.map((field, index) => (
+                <motion.div
+                  key={field.name}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 * index }}
+                  className="group"
+                >
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    <field.icon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     {field.label}
                   </label>
-                  <input
-                    type={field.type}
-                    name={field.name}
-                    value={formik.values[field.name]}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    className={`w-full border rounded-xl px-4 py-3 bg-gray-50 dark:bg-gray-800 dark:text-gray-100 transition focus:outline-none focus:ring-2 ${
-                      formik.touched[field.name] && formik.errors[field.name]
-                        ? "border-red-500 focus:ring-red-400"
-                        : "border-gray-300 dark:border-gray-700 focus:ring-green-500"
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      type={field.type || "text"}
+                      name={field.name}
+                      placeholder={field.placeholder}
+                      value={formik.values[field.name]}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      className={`w-full px-4 py-3.5 rounded-xl border-2 bg-white dark:bg-gray-700 dark:text-gray-100 transition-all duration-300 ${
+                        formik.touched[field.name] && formik.errors[field.name]
+                          ? "border-red-400 focus:ring-4 focus:ring-red-200"
+                          : "border-gray-200 dark:border-gray-600 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 dark:focus:ring-emerald-900/50"
+                      }`}
+                    />
+                  </div>
                   {formik.touched[field.name] && formik.errors[field.name] && (
-                    <p className="text-red-500 text-sm mt-1">
+                    <motion.p
+                      className="text-red-500 text-sm mt-2 flex items-center gap-1"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <span>⚠️</span>
                       {formik.errors[field.name]}
-                    </p>
+                    </motion.p>
                   )}
-                </div>
+                </motion.div>
               ))}
             </div>
 
-            {/* Lokasi dengan Geotagging */}
-            <div>
-              <label className="block text-gray-700 dark:text-gray-200 font-medium mb-2">
-                Lokasi (Geotagging)
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  name="lokasi"
-                  value={formik.values.lokasi}
-                  readOnly
-                  className="flex-grow border rounded-xl px-4 py-3 bg-gray-50 dark:bg-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-700 focus:outline-none"
-                  placeholder="Klik Ambil Lokasi"
-                />
-                <button
-                  type="button"
-                  onClick={ambilLokasi}
-                  disabled={loadingLokasi}
-                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 disabled:opacity-50 transition"
-                >
-                  <FiMapPin />
-                  {loadingLokasi ? "Mencari..." : "Ambil"}
-                </button>
-              </div>
-              {errorLokasi && (
-                <p className="text-red-500 text-sm mt-1">{errorLokasi}</p>
-              )}
-              {formik.values.lokasi && (
-                <iframe
-                  title="Map Preview"
-                  className="mt-4 w-full h-64 rounded-xl border border-gray-300 dark:border-gray-700"
-                  src={`https://maps.google.com/maps?q=${formik.values.lokasi}&z=15&output=embed`}
-                ></iframe>
-              )}
-            </div>
-
-            {/* Radio group */}
-            <div>
-              <label className="block text-gray-700 dark:text-gray-200 font-medium mb-2">
+            {/* Jenis Kegiatan */}
+            <motion.div
+              className="mb-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                <FiCheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 Jenis Kegiatan
               </label>
-              <div className="flex flex-wrap gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {["Planting Mangrove", "Coral Transplanting"].map((option) => (
-                  <label
+                  <motion.label
                     key={option}
-                    className={`flex items-center gap-2 px-5 py-3 rounded-xl border cursor-pointer transition font-medium ${
-                      formik.values.jenis_kegiatan === option
-                        ? "border-green-600 bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-300"
-                        : "border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-                    }`}
+                    className={`relative cursor-pointer group`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     <input
                       type="radio"
@@ -170,33 +211,140 @@ const PerencanaanForm = () => {
                       value={option}
                       checked={formik.values.jenis_kegiatan === option}
                       onChange={formik.handleChange}
-                      className="accent-green-600"
+                      className="peer sr-only"
                     />
-                    {option}
-                  </label>
+                    <div className={`flex items-center gap-4 p-6 rounded-2xl border-2 transition-all duration-300 ${
+                      formik.values.jenis_kegiatan === option
+                        ? "border-emerald-500 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 shadow-lg"
+                        : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700"
+                    }`}>
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                        formik.values.jenis_kegiatan === option
+                          ? "border-emerald-500 bg-emerald-500"
+                          : "border-gray-300 dark:border-gray-500"
+                      }`}>
+                        {formik.values.jenis_kegiatan === option && (
+                          <motion.div
+                            className="w-3 h-3 rounded-full bg-white"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 300 }}
+                          />
+                        )}
+                      </div>
+                      <span className={`font-semibold text-lg ${
+                        formik.values.jenis_kegiatan === option
+                          ? "text-emerald-700 dark:text-emerald-300"
+                          : "text-gray-700 dark:text-gray-300"
+                      }`}>
+                        {option}
+                      </span>
+                    </div>
+                  </motion.label>
                 ))}
               </div>
               {formik.touched.jenis_kegiatan && formik.errors.jenis_kegiatan && (
-                <p className="text-red-500 text-sm mt-1">
+                <motion.p
+                  className="text-red-500 text-sm mt-3 flex items-center gap-1"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <span>⚠️</span>
                   {formik.errors.jenis_kegiatan}
+                </motion.p>
+              )}
+            </motion.div>
+
+            {/* Lokasi dengan Geotagging */}
+            <motion.div
+              className="mb-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                <FiMapPin className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                Lokasi (Geotagging)
+              </label>
+              <div className="flex flex-col md:flex-row gap-3 mb-4">
+                <input
+                  type="text"
+                  name="lokasi"
+                  value={formik.values.lokasi}
+                  readOnly
+                  className="flex-1 px-4 py-3.5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 font-mono text-sm"
+                  placeholder="Klik tombol untuk mendapatkan lokasi"
+                />
+                <motion.button
+                  type="button"
+                  onClick={ambilLokasi}
+                  disabled={loadingLokasi}
+                  className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-lg disabled:opacity-50 transition-all"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <FiMapPin className="w-5 h-5" />
+                  {loadingLokasi ? "Mencari..." : "Ambil Lokasi"}
+                </motion.button>
+              </div>
+              {errorLokasi && (
+                <p className="text-red-500 text-sm mb-4 flex items-center gap-1">
+                  <span>⚠️</span>
+                  {errorLokasi}
                 </p>
               )}
-            </div>
+              {formik.values.lokasi && (
+                <motion.div
+                  className="rounded-2xl overflow-hidden border-2 border-emerald-200 dark:border-emerald-700 shadow-lg"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <iframe
+                    title="Map Preview"
+                    className="w-full h-80"
+                    src={`https://maps.google.com/maps?q=${formik.values.lokasi}&z=15&output=embed`}
+                  />
+                </motion.div>
+              )}
+            </motion.div>
 
-            {/* Submit button */}
-            <button
-              type="submit"
-              disabled={submitting}
-              className={`w-full py-4 rounded-xl font-semibold text-lg shadow-md transition ${
-                submitting
-                  ? "bg-green-400 text-white cursor-not-allowed"
-                  : "bg-green-700 hover:bg-green-800 text-white"
-              }`}
+            {/* Submit Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
             >
-              {submitting ? "Menyimpan..." : "Simpan"}
-            </button>
+              <motion.button
+                type="submit"
+                disabled={submitting}
+                className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-all ${
+                  submitting
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 text-white"
+                }`}
+                whileHover={!submitting ? { scale: 1.02, boxShadow: "0 20px 60px -10px rgba(16, 185, 129, 0.5)" } : {}}
+                whileTap={!submitting ? { scale: 0.98 } : {}}
+              >
+                {submitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <motion.div
+                      className="w-5 h-5 border-3 border-white border-t-transparent rounded-full"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    />
+                    Menyimpan...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <FiCheckCircle className="w-6 h-6" />
+                    Simpan Data Perencanaan
+                  </span>
+                )}
+              </motion.button>
+            </motion.div>
           </form>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

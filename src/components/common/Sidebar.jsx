@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { FiHome, FiUsers, FiFileText, FiActivity, FiClipboard, FiX, FiCheckCircle, FiSettings, FiLogOut, FiSun, FiMoon } from "react-icons/fi";
+import { FiHome, FiUsers, FiFileText, FiActivity, FiClipboard, FiX, FiCheckCircle, FiSettings, FiLogOut, FiSun, FiMoon, FiMonitor } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -17,8 +17,8 @@ export default function Sidebar({ isUser = false, onClose }) {
     { label: "Dashboard", path: "/admin/dashboard", icon: <FiHome /> },
     { label: "Users", path: "/admin/users", icon: <FiUsers /> },
     { label: "Perencanaan", path: "/admin/perencanaan", icon: <FiClipboard /> },
-    { label: "Laporan", path: "/admin/laporan", icon: <FiFileText /> },
-    { label: "Activity", path: "/admin/activity", icon: <FiActivity /> },
+    { label: "Implementasi", path: "/admin/implementasi", icon: <FiCheckCircle /> },
+    { label: "Monitoring", path: "/admin/monitoring", icon: <FiActivity /> },
   ];
 
   const userMenuItems = [
@@ -59,7 +59,7 @@ export default function Sidebar({ isUser = false, onClose }) {
       <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center space-x-3">
           <motion.img
-            src="/images/sebumi.png"
+            src="/images/icon.png"
             alt="Logo"
             className="h-10 w-10 object-contain"
             whileHover={{ rotate: 360 }}
@@ -107,7 +107,7 @@ export default function Sidebar({ isUser = false, onClose }) {
           );
         })}
 
-        {/* ✅ Verifikasi Button - Updated path based on role */}
+        {/* Verifikasi Button */}
         <motion.button
           onClick={() => handleNavigation(isUser ? "/user/verifikasi" : "/admin/verifikasi")}
           className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all border ${
@@ -125,25 +125,25 @@ export default function Sidebar({ isUser = false, onClose }) {
           )}
         </motion.button>
 
-        {/* Theme Toggle */}
-        <motion.button
-          onClick={toggleTheme}
-          className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
-          whileHover={{ x: 5 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          {theme === "dark" ? (
-            <>
-              <FiSun className="text-yellow-500" />
-              <span className="font-medium">Mode Terang</span>
-            </>
-          ) : (
-            <>
-              <FiMoon className="text-gray-600" />
-              <span className="font-medium">Mode Gelap</span>
-            </>
-          )}
-        </motion.button>
+        {/* ✅ Laporan Button - Dipindah di bawah Verifikasi (hanya untuk admin) */}
+        {!isUser && (
+          <motion.button
+            onClick={() => handleNavigation("/admin/laporan")}
+            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
+              location.pathname === "/admin/laporan"
+                ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md"
+                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+            }`}
+            whileHover={{ x: 5 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <FiFileText className={location.pathname === "/admin/laporan" ? "text-white" : "text-emerald-600 dark:text-emerald-400"} />
+            <span className="font-medium">Laporan</span>
+            {location.pathname === "/admin/laporan" && (
+              <span className="ml-auto h-2 w-2 rounded-full bg-white/80 animate-pulse" />
+            )}
+          </motion.button>
+        )}
       </nav>
 
       {/* User Profile Section */}
@@ -214,6 +214,27 @@ export default function Sidebar({ isUser = false, onClose }) {
                 
                 {/* Menu Items */}
                 <div className="p-2">
+                  {/* ✅ Theme Toggle - Moved to Dropdown */}
+                  <motion.button
+                    onClick={() => {
+                      toggleTheme();
+                    }}
+                    className="flex items-center gap-3 w-full px-3 py-2 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-all text-sm"
+                    whileHover={{ x: 4 }}
+                  >
+                    {theme === "dark" ? (
+                      <>
+                        <FiSun className="w-4 h-4 text-yellow-500" />
+                        <span className="font-medium">Mode Terang</span>
+                      </>
+                    ) : (
+                      <>
+                        <FiMoon className="w-4 h-4 text-gray-600" />
+                        <span className="font-medium">Mode Gelap</span>
+                      </>
+                    )}
+                  </motion.button>
+
                   {/* Settings */}
                   <motion.button
                     onClick={() => {

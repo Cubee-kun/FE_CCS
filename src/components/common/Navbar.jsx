@@ -350,67 +350,59 @@ export default function Navbar({ isUser = false }) {
         </div>
       </motion.header>
 
-      {/* ✅ ENHANCED MOBILE MENU - MODERN & PROFESSIONAL */}
+      {/* ✅ LIGHTER MOBILE MENU ANIMATIONS */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
-            {/* Backdrop dengan Blur */}
+            {/* Backdrop - Lighter animation */}
             <motion.div
-              className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-md"
+              className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
               onClick={() => setMobileMenuOpen(false)}
             />
             
-            {/* Modern Slide-in Menu Panel */}
+            {/* Slide-in Menu Panel - Simplified animation */}
             <motion.div
               className="lg:hidden fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-gradient-to-b from-white via-white to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-950 shadow-2xl overflow-hidden"
-              initial={{ x: "100%", opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: "100%", opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
             >
-              {/* Header dengan Gradient */}
+              {/* Header - Removed complex animations */}
               <div className="relative bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-8">
-                {/* Background Pattern */}
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
-                  <div className="absolute bottom-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
-                </div>
-
                 <div className="relative z-10 flex items-center justify-between">
                   <div>
                     <h2 className="text-2xl font-bold text-white mb-1">Menu</h2>
                     <p className="text-emerald-100 text-sm">Navigasi Cepat</p>
                   </div>
-                  <motion.button
+                  <button
                     onClick={() => setMobileMenuOpen(false)}
-                    className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all backdrop-blur-sm"
-                    whileHover={{ scale: 1.1, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
+                    className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-sm"
                   >
                     <FiX className="w-6 h-6 text-white" />
-                  </motion.button>
+                  </button>
                 </div>
 
-                {/* User Info untuk Authenticated User */}
+                {/* User Info - Simplified animation */}
                 {isAuthenticated && (
                   <motion.div 
                     className="relative z-10 mt-6 p-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20"
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1, duration: 0.2 }}
                   >
                     <div className="flex items-center space-x-3">
                       <div className="relative">
                         <div className="w-14 h-14 rounded-full bg-gradient-to-br from-white to-emerald-100 flex items-center justify-center text-emerald-600 text-xl font-bold shadow-lg">
                           {(user?.username || user?.name || "U")[0].toUpperCase()}
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <p className="font-bold text-white text-lg truncate">
                           {user?.username || user?.name || "User"}
                         </p>
@@ -428,26 +420,24 @@ export default function Navbar({ isUser = false }) {
                 )}
               </div>
 
-              {/* Scrollable Menu Content */}
+              {/* Scrollable Menu Content - Simplified animations */}
               <div className="overflow-y-auto h-[calc(100vh-200px)] px-6 py-6 space-y-3">
                 {!isAuthenticated ? (
                   <>
-                    {/* Navigation Items untuk Guest */}
+                    {/* Navigation Items - Staggered but lighter */}
                     <div className="space-y-2">
                       {navItems.map((item, index) => (
                         <motion.button
                           key={item.name}
                           onClick={() => handleNavigation(item.path)}
-                          className={`flex items-center justify-between w-full p-4 rounded-xl transition-all group ${
+                          className={`flex items-center justify-between w-full p-4 rounded-xl transition-colors ${
                             location.pathname === item.path
                               ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-200 dark:border-emerald-800'
                               : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                           }`}
-                          initial={{ opacity: 0, x: -20 }}
+                          initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          whileHover={{ scale: 1.02, x: 5 }}
-                          whileTap={{ scale: 0.98 }}
+                          transition={{ delay: index * 0.05, duration: 0.2 }}
                         >
                           <div className="flex items-center space-x-3">
                             <div className={`p-2 rounded-lg ${
@@ -469,7 +459,7 @@ export default function Navbar({ isUser = false }) {
                               {item.name}
                             </span>
                           </div>
-                          <FiChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${
+                          <FiChevronRight className={`w-5 h-5 ${
                             location.pathname === item.path
                               ? 'text-emerald-600 dark:text-emerald-400'
                               : 'text-gray-400'
@@ -478,46 +468,40 @@ export default function Navbar({ isUser = false }) {
                       ))}
                     </div>
 
-                    {/* Action Buttons */}
+                    {/* Action Buttons - Simplified */}
                     <div className="pt-4 space-y-3">
-                      <motion.button
+                      <button
                         onClick={() => handleNavigation("/verifikasi")}
-                        className="w-full p-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
+                        className="w-full p-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl font-semibold shadow-lg transition-all flex items-center justify-center gap-2"
                       >
                         <FiCheckCircle className="w-5 h-5" />
                         <span>Verifikasi QR Code</span>
-                      </motion.button>
+                      </button>
                       
-                      <motion.button
+                      <button
                         onClick={() => handleNavigation("/login")}
-                        className="w-full p-4 bg-white dark:bg-gray-800 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 rounded-xl font-semibold hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        className="w-full p-4 bg-white dark:bg-gray-800 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 rounded-xl font-semibold hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
                       >
                         Masuk ke Akun
-                      </motion.button>
+                      </button>
                     </div>
                   </>
                 ) : (
                   <>
-                    {/* Navigation untuk Authenticated User */}
+                    {/* Navigation untuk Authenticated User - Lighter */}
                     <div className="space-y-2">
                       {navItems.map((item, index) => (
                         <motion.button
                           key={item.name}
                           onClick={() => handleNavigation(item.path)}
-                          className={`flex items-center justify-between w-full p-4 rounded-xl transition-all group ${
+                          className={`flex items-center justify-between w-full p-4 rounded-xl transition-colors ${
                             location.pathname === item.path
                               ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-200 dark:border-emerald-800'
                               : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
                           }`}
-                          initial={{ opacity: 0, x: -20 }}
+                          initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          whileHover={{ scale: 1.02, x: 5 }}
-                          whileTap={{ scale: 0.98 }}
+                          transition={{ delay: index * 0.05, duration: 0.2 }}
                         >
                           <div className="flex items-center space-x-3">
                             <div className={`p-2 rounded-lg ${
@@ -539,7 +523,7 @@ export default function Navbar({ isUser = false }) {
                               {item.name}
                             </span>
                           </div>
-                          <FiChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${
+                          <FiChevronRight className={`w-5 h-5 ${
                             location.pathname === item.path
                               ? 'text-emerald-600 dark:text-emerald-400'
                               : 'text-gray-400'
@@ -548,11 +532,9 @@ export default function Navbar({ isUser = false }) {
                       ))}
 
                       {/* Verifikasi Button */}
-                      <motion.button
+                      <button
                         onClick={() => handleNavigation("/verifikasi")}
-                        className="flex items-center justify-between w-full p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-200 dark:border-emerald-800 hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/50 dark:hover:to-teal-900/50 transition-all group"
-                        whileHover={{ scale: 1.02, x: 5 }}
-                        whileTap={{ scale: 0.98 }}
+                        className="flex items-center justify-between w-full p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-200 dark:border-emerald-800 hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/50 dark:hover:to-teal-900/50 transition-colors"
                       >
                         <div className="flex items-center space-x-3">
                           <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50">
@@ -560,17 +542,15 @@ export default function Navbar({ isUser = false }) {
                           </div>
                           <span className="font-semibold text-emerald-700 dark:text-emerald-300">Verifikasi</span>
                         </div>
-                        <FiChevronRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400 transition-transform group-hover:translate-x-1" />
-                      </motion.button>
+                        <FiChevronRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      </button>
                     </div>
 
-                    {/* Settings & Theme */}
+                    {/* Settings & Theme - Simplified */}
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                      <motion.button
+                      <button
                         onClick={toggleTheme}
-                        className="flex items-center justify-between w-full p-4 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-all group"
-                        whileHover={{ scale: 1.02, x: 5 }}
-                        whileTap={{ scale: 0.98 }}
+                        className="flex items-center justify-between w-full p-4 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-colors"
                       >
                         <div className="flex items-center space-x-3">
                           <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700">
@@ -584,17 +564,15 @@ export default function Navbar({ isUser = false }) {
                             {theme === "dark" ? "Mode Terang" : "Mode Gelap"}
                           </span>
                         </div>
-                        <FiChevronRight className="w-5 h-5 text-gray-400 transition-transform group-hover:translate-x-1" />
-                      </motion.button>
+                        <FiChevronRight className="w-5 h-5 text-gray-400" />
+                      </button>
 
-                      <motion.button
+                      <button
                         onClick={() => {
                           navigate(user?.role === "admin" ? "/admin/settings" : "/user/settings");
                           setMobileMenuOpen(false);
                         }}
-                        className="flex items-center justify-between w-full p-4 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-all group"
-                        whileHover={{ scale: 1.02, x: 5 }}
-                        whileTap={{ scale: 0.98 }}
+                        className="flex items-center justify-between w-full p-4 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-colors"
                       >
                         <div className="flex items-center space-x-3">
                           <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700">
@@ -602,27 +580,25 @@ export default function Navbar({ isUser = false }) {
                           </div>
                           <span className="font-semibold text-gray-700 dark:text-gray-200">Pengaturan</span>
                         </div>
-                        <FiChevronRight className="w-5 h-5 text-gray-400 transition-transform group-hover:translate-x-1" />
-                      </motion.button>
+                        <FiChevronRight className="w-5 h-5 text-gray-400" />
+                      </button>
                     </div>
 
-                    {/* Logout Button */}
+                    {/* Logout Button - Simplified */}
                     <div className="pt-4">
-                      <motion.button
+                      <button
                         onClick={handleLogout}
-                        className="flex items-center justify-center w-full p-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
+                        className="flex items-center justify-center w-full p-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-semibold shadow-lg transition-colors"
                       >
                         <FiLogOut className="w-5 h-5 mr-2" />
                         <span>Keluar dari Akun</span>
-                      </motion.button>
+                      </button>
                     </div>
                   </>
                 )}
               </div>
 
-              {/* Footer dengan Branding */}
+              {/* Footer - Static */}
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-gray-100 via-white to-transparent dark:from-gray-900 dark:via-gray-900 dark:to-transparent border-t border-gray-200 dark:border-gray-800">
                 <div className="text-center">
                   <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
