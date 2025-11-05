@@ -352,64 +352,6 @@ export default function Dashboard() {
             </div>
           </motion.div>
         </div>
-
-        {/* Quick Actions - Natural Color Palette */}
-        <motion.div
-          className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        >
-          {[
-            { 
-              title: "Lihat Laporan", 
-              icon: <FiEye className="w-6 h-6" />, 
-              color: "from-emerald-500 to-teal-600", 
-              path: "/admin/laporan",
-              emoji: "📊"
-            },
-            { 
-              title: "Buat Perencanaan", 
-              icon: <FiCalendar className="w-6 h-6" />, 
-              color: "from-teal-500 to-green-600", 
-              path: "/admin/perencanaan",
-              emoji: "📝"
-            },
-            { 
-              title: "Monitor Aktivitas", 
-              icon: <FiActivity className="w-6 h-6" />, 
-              color: "from-green-500 to-lime-600", 
-              path: "/admin/monitoring",
-              emoji: "📈"
-            },
-          ].map((action, index) => (
-            <motion.button
-              key={index}
-              onClick={() => navigate(action.path)}
-              className="glass bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl p-6 border border-white/50 dark:border-gray-700/50 shadow-lg hover:shadow-2xl transition-all group relative overflow-hidden"
-              whileHover={{ y: -8, scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              {/* Gradient Background on Hover */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${action.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
-              
-              <div className="relative flex items-center gap-4">
-                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-emerald-500/30 transition-all duration-300`}>
-                  {action.icon}
-                </div>
-                <div className="text-left flex-1">
-                  <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                    {action.title}
-                    <span className="text-xl">{action.emoji}</span>
-                  </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Akses cepat
-                  </p>
-                </div>
-              </div>
-            </motion.button>
-          ))}
-        </motion.div>
       </div>
     </div>
   );
