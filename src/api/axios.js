@@ -35,15 +35,25 @@ api.interceptors.response.use(
       const { status, data, config } = error.response;
       console.error(`[API Error ${status}] ${config.method?.toUpperCase()} ${config.url}`, data);
       
+      // ✅ Handle device conflict (409)
+      if (status === 409 && data?.code === 'DEVICE_CONFLICT') {
+        console.warn('[API] Device conflict detected - account already logged in elsewhere');
+        // Don't auto-redirect, let the login page handle it
+        return Promise.reject(error);
+      }
+      
       if (status === 405) {
         console.error('Method Not Allowed. Check if backend endpoint supports this HTTP method.');
       }
       
       if (status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
+        // ✅ Only clear auth if not device conflict
+        if (data?.code !== 'DEVICE_CONFLICT') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
         }
       }
     } else if (error.request) {

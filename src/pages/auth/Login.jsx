@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { EyeIcon, EyeSlashIcon, HomeIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import { FiAlertTriangle, FiLogOut } from "react-icons/fi";
+import api from "../../api/axios";
 
 export default function Login() {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
@@ -11,12 +13,19 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [deviceConflict, setDeviceConflict] = useState(false); // ✅ State untuk konflik device
+  const [sessionInfo, setSessionInfo] = useState(null); // ✅ Info session yang aktif
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // ✅ Get the intended destination from location state
+  const from = location.state?.from?.pathname || null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setDeviceConflict(false);
     setLoading(true);
 
     const result = await login(credentials);
@@ -24,17 +33,68 @@ export default function Login() {
     setLoading(false);
 
     if (!result.success) {
-      setError(result.message || "Login gagal");
+      // ✅ Cek apakah error karena device conflict
+      if (result.code === 'DEVICE_CONFLICT' || result.message?.includes('sudah login') || result.message?.includes('perangkat lain')) {
+        setDeviceConflict(true);
+        setSessionInfo(result.sessionInfo || {
+          lastDevice: 'Perangkat lain',
+          lastLogin: 'Baru saja',
+          ipAddress: 'Unknown'
+        });
+        setError(result.message || "Akun ini sudah login di perangkat lain");
+      } else {
+        setError(result.message || "Login gagal");
+      }
     } else {
       localStorage.setItem("user", JSON.stringify(result.data.user));
 
-      if (result.data.user.role === "admin") {
-        navigate("/admin/dashboard");
+      // ✅ Redirect to intended page or default dashboard
+      if (from && from !== '/login') {
+        console.log('[Login] Redirecting to intended page:', from);
+        navigate(from, { replace: true });
+      } else if (result.data.user.role === "admin") {
+        navigate("/admin/dashboard", { replace: true });
       } else if (result.data.user.role === "user") {
-        navigate("/user");
+        navigate("/user/dashboard", { replace: true });
       } else {
-        navigate("/");
+        navigate("/", { replace: true });
       }
+    }
+  };
+
+  // ✅ Fungsi untuk logout perangkat lain (force login)
+  const handleForceLogout = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      // Call API untuk logout semua device dan login ulang
+      const result = await login({ 
+        ...credentials, 
+        forceLogout: true // Flag untuk force logout device lain
+      });
+
+      setLoading(false);
+
+      if (result.success) {
+        localStorage.setItem("user", JSON.stringify(result.data.user));
+        
+        // ✅ Redirect to intended page or default dashboard
+        if (from && from !== '/login') {
+          navigate(from, { replace: true });
+        } else if (result.data.user.role === "admin") {
+          navigate("/admin/dashboard", { replace: true });
+        } else if (result.data.user.role === "user") {
+          navigate("/user/dashboard", { replace: true });
+        } else {
+          navigate("/", { replace: true });
+        }
+      } else {
+        setError(result.message || "Gagal logout perangkat lain");
+      }
+    } catch (err) {
+      setLoading(false);
+      setError("Terjadi kesalahan saat logout perangkat lain");
     }
   };
 
@@ -139,7 +199,7 @@ export default function Login() {
 
       {/* Right Side Form */}
       <div className="flex flex-1 items-center justify-center p-6 md:p-12 relative">
-        {/* ✅ Home Button - Better positioned */}
+        {/* Home Button */}
         <Link
           to="/"
           className="absolute top-6 right-6 md:top-8 md:right-8 z-10 group"
@@ -168,9 +228,6 @@ export default function Login() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.5 }}
         >
-          {/* Home Button - Top Right */}
-          
-
           {/* Form Header */}
           <motion.div 
             className="bg-gradient-to-r from-emerald-600 to-teal-500 p-6 text-center"
@@ -203,8 +260,90 @@ export default function Login() {
 
           {/* Form Content */}
           <div className="p-6 md:p-8">
+            {/* ✅ Device Conflict Warning */}
             <AnimatePresence>
-              {error && (
+              {deviceConflict && (
+                <motion.div
+                  className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-xl p-5"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                      <FiAlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-amber-900 dark:text-amber-200 mb-2">
+                        ⚠️ Akun Sudah Login di Perangkat Lain
+                      </h3>
+                      <p className="text-sm text-amber-800 dark:text-amber-300 mb-3">
+                        Akun Anda sudah login di perangkat lain. Untuk keamanan, hanya 1 perangkat yang bisa aktif.
+                      </p>
+                      
+                      {/* Session Info */}
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 mb-4 border border-amber-200 dark:border-amber-800">
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Perangkat:</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                              {sessionInfo?.lastDevice || 'Perangkat lain'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Terakhir aktif:</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                              {sessionInfo?.lastLogin || 'Baru saja'}
+                            </span>
+                          </div>
+                          {sessionInfo?.ipAddress && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">IP Address:</span>
+                              <span className="font-mono text-xs text-gray-900 dark:text-gray-100">
+                                {sessionInfo.ipAddress}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-amber-700 dark:text-amber-400 mb-4">
+                        Apakah Anda ingin logout dari perangkat tersebut dan login di perangkat ini?
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <motion.button
+                      onClick={() => {
+                        setDeviceConflict(false);
+                        setError("");
+                      }}
+                      className="flex-1 px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium transition-all text-sm"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Batal
+                    </motion.button>
+                    <motion.button
+                      onClick={handleForceLogout}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium transition-all text-sm shadow-md"
+                      whileHover={{ scale: 1.02, boxShadow: "0 8px 30px -10px rgba(239, 68, 68, 0.5)" }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <FiLogOut className="w-4 h-4" />
+                      <span>Logout Perangkat Lain</span>
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ✅ Normal Error Message */}
+            <AnimatePresence>
+              {error && !deviceConflict && (
                 <motion.div 
                   className="mb-6 bg-red-50/80 text-red-700 px-4 py-3 rounded-lg text-sm flex items-start space-x-2 border border-red-100"
                   initial={{ opacity: 0, height: 0 }}

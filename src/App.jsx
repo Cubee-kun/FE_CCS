@@ -13,26 +13,28 @@ function AppContent() {
   const location = useLocation();
   const { isAuthenticated, loading } = useAuth();
 
-  // Daftar path yang TIDAK menampilkan Navbar
   const noNavbarRoutes = ["/login", "/register", "/admin", "/user"];
+  const alwaysShowNavbarRoutes = ["/", "/about", "/contact", "/verifikasi"];
   
-  // Cek apakah di route yang tidak perlu navbar
   const isNoNavbarRoute = noNavbarRoutes.some(route => location.pathname.startsWith(route));
+  const isAlwaysShowNavbar = alwaysShowNavbarRoutes.some(route => {
+    if (route === "/") {
+      return location.pathname === "/";
+    }
+    return location.pathname.startsWith(route);
+  });
 
-  // Tampilkan Navbar jika: Bukan di route yang tidak perlu navbar DAN user belum login
-  const showNavbar = !isNoNavbarRoute && !isAuthenticated;
+  const showNavbar = isAlwaysShowNavbar || (!isNoNavbarRoute && !isAuthenticated);
 
-  // ✅ Debug logs
   console.log('[App] Render state:', {
     path: location.pathname,
     isAuthenticated,
     loading,
-    isNoNavbarRoute,
     showNavbar,
     timestamp: new Date().toISOString()
   });
 
-  // ✅ Show loading spinner while checking auth
+  // ✅ Show loading only on initial mount, not on refresh
   if (loading) {
     return <LoadingSpinner show={true} message="Memuat aplikasi..." />;
   }

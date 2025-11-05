@@ -7,8 +7,13 @@ export default function ScrollToTop() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Tampilkan loading spinner
-    setIsLoading(true);
+    // ✅ Only show loading and scroll for actual navigation, not refresh
+    const isNavigationEvent = window.performance?.navigation?.type === 1 || 
+                              performance.getEntriesByType?.('navigation')?.[0]?.type === 'navigate';
+    
+    if (isNavigationEvent) {
+      setIsLoading(true);
+    }
 
     // Smooth scroll to top
     window.scrollTo({
@@ -17,13 +22,14 @@ export default function ScrollToTop() {
       behavior: 'smooth'
     });
 
-    // Sembunyikan loading setelah delay
+    // Hide loading after delay
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 300); // Reduced from 500ms to 300ms
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [pathname]);
 
-  return <LoadingSpinner show={isLoading} message="Memuat halaman..." size="normal" />;
+  // ✅ Don't show loading spinner on page refresh
+  return isLoading ? <LoadingSpinner show={true} message="Memuat halaman..." size="normal" /> : null;
 }

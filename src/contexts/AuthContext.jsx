@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const refreshTimer = useRef(null);
-  const initRef = useRef(false); // ✅ Prevent double initialization
+  const initRef = useRef(false);
 
   // Fungsi untuk menyetel timer refresh token
   const setRefreshTimer = (token) => {
@@ -53,21 +53,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ✅ Cek token saat pertama kali load - with proper initialization
+  // ✅ Enhanced initial check with proper auth persistence
   useEffect(() => {
-    // Prevent double initialization in React.StrictMode
     if (initRef.current) return;
     initRef.current = true;
 
     const checkAuth = () => {
       const token = localStorage.getItem("token");
+      const savedUser = localStorage.getItem("user");
       
-      console.log('[AuthContext] Initial check - token:', token ? 'exists' : 'null');
+      console.log('[AuthContext] Initial check:', { 
+        hasToken: !!token, 
+        hasSavedUser: !!savedUser 
+      });
       
       if (token) {
         try {
           const decoded = jwtDecode(token);
-          console.log('[AuthContext] Token decoded:', decoded);
           
           // Check if token is expired
           if (decoded.exp && Date.now() >= decoded.exp * 1000) {
@@ -77,8 +79,13 @@ export const AuthProvider = ({ children }) => {
             setUser(null);
             setIsAuthenticated(false);
           } else {
-            console.log('[AuthContext] Token valid, user authenticated');
-            setUser(decoded);
+            // ✅ Merge decoded token with saved user data
+            const mergedUser = savedUser 
+              ? { ...decoded, ...JSON.parse(savedUser) }
+              : decoded;
+            
+            console.log('[AuthContext] Token valid, restoring session:', mergedUser);
+            setUser(mergedUser);
             setIsAuthenticated(true);
             setRefreshTimer(token);
           }
@@ -95,7 +102,6 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
       }
       
-      // ✅ Set loading false after all checks
       setLoading(false);
     };
     
@@ -106,31 +112,62 @@ export const AuthProvider = ({ children }) => {
         clearTimeout(refreshTimer.current);
       }
     };
-  }, []); // Empty dependency array
+  }, []);
 
   // Fungsi login
   const login = async (credentials) => {
     try {
-      const response = await api.post("/login", credentials);
+      const deviceInfo = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      };
+
+      const response = await api.post("/login", {
+        ...credentials,
+        deviceInfo,
+        forceLogout: credentials.forceLogout || false,
+      });
+
       const token = response.data?.access_token;
       const userData = response.data?.user;
 
       if (!token) throw new Error("Token tidak ditemukan di response.");
 
+      // ✅ Save both token and user data
       localStorage.setItem("token", token);
       const decoded = jwtDecode(token);
       const mergedUser = { ...decoded, ...(userData || {}) };
       
-      // ✅ Update state in correct order
+      // ✅ Persist user data for page refresh
+      localStorage.setItem("user", JSON.stringify(mergedUser));
+      
       setUser(mergedUser);
       setIsAuthenticated(true);
       setRefreshTimer(token);
 
-      console.log('[AuthContext] Login successful:', mergedUser);
+      console.log('[AuthContext] Login successful, session saved:', mergedUser);
 
       return { success: true, data: response.data };
     } catch (error) {
       console.error('[AuthContext] Login error:', error);
+      
+      // ✅ Handle device conflict error
+      if (error.response?.status === 409 || error.response?.data?.code === 'DEVICE_CONFLICT') {
+        return {
+          success: false,
+          code: 'DEVICE_CONFLICT',
+          message: error.response?.data?.message || "Akun sudah login di perangkat lain",
+          sessionInfo: error.response?.data?.sessionInfo || {
+            lastDevice: error.response?.data?.lastDevice || 'Perangkat lain',
+            lastLogin: error.response?.data?.lastLogin || 'Baru saja',
+            ipAddress: error.response?.data?.ipAddress || 'Unknown',
+          }
+        };
+      }
+
       return {
         success: false,
         message:

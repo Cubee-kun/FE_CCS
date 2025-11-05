@@ -1,4 +1,4 @@
-import { FiUser, FiSettings, FiLogOut, FiSun, FiMoon, FiCheckCircle, FiMenu, FiX, FiHome, FiInfo, FiChevronRight } from "react-icons/fi";
+import { FiUser, FiSettings, FiLogOut, FiSun, FiMoon, FiCheckCircle, FiMenu, FiX, FiHome, FiInfo, FiChevronRight, FiGrid } from "react-icons/fi";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -175,22 +175,28 @@ export default function Navbar({ isUser = false }) {
                 <span>Verifikasi</span>
               </motion.button>
 
-              {!isAuthenticated && (
+              {/* ✅ Dashboard Button - Hanya untuk user yang sudah login */}
+              {isAuthenticated && (
                 <motion.button
-                  onClick={() => handleNavigation("/login")}
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
-                  whileHover={{ scale: 1.05 }}
+                  onClick={() => handleNavigation(user?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg"
+                  whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
                 >
-                  Masuk
+                  <FiGrid className="w-4 h-4" />
+                  <span>Dashboard</span>
                 </motion.button>
               )}
             </div>
 
-            {/* Right Section */}
+            {/* ✅ Right Section - Login/Profile Button */}
             <div className="flex items-center space-x-3">
               {isAuthenticated ? (
                 <>
+                  {/* Theme Toggle - Hidden on mobile, shown on desktop */}
                   <motion.button
                     onClick={toggleTheme}
                     className="hidden lg:block p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
@@ -204,17 +210,17 @@ export default function Navbar({ isUser = false }) {
                     )}
                   </motion.button>
 
-                  {/* Desktop User Dropdown */}
+                  {/* ✅ Profile Button - Desktop */}
                   <div className="hidden lg:block relative" ref={dropdownRef}>
                     <motion.button
                       onClick={() => setDropdownOpen(!dropdownOpen)}
-                      className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+                      className="flex items-center space-x-3 px-3 py-2 rounded-xl border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
                       <div className="relative">
                         <motion.div 
-                          className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold shadow-lg"
+                          className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold shadow-lg"
                           whileHover={{ scale: 1.1 }}
                           animate={{ 
                             boxShadow: dropdownOpen 
@@ -224,10 +230,10 @@ export default function Navbar({ isUser = false }) {
                         >
                           {(user?.username || user?.name || "U")[0].toUpperCase()}
                         </motion.div>
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"></div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
                       </div>
-                      <div className="hidden sm:block text-left">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate max-w-[120px]">
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate max-w-[100px]">
                           {user?.username || user?.name || "User"}
                         </p>
                         <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
@@ -300,18 +306,34 @@ export default function Navbar({ isUser = false }) {
                   </div>
                 </>
               ) : (
-                <motion.button
-                  onClick={toggleTheme}
-                  className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all lg:hidden"
-                  whileHover={{ scale: 1.1, rotate: 180 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  {theme === "dark" ? (
-                    <FiSun className="w-4 h-4 text-yellow-500" />
-                  ) : (
-                    <FiMoon className="w-4 h-4 text-gray-600" />
-                  )}
-                </motion.button>
+                <>
+                  {/* ✅ Login Button - With green border */}
+                  <motion.button
+                    onClick={() => handleNavigation("/login")}
+                    className="hidden lg:flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-emerald-600 dark:text-emerald-400 bg-white dark:bg-gray-900 border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                  >
+                    <FiUser className="w-4 h-4" />
+                    <span>Masuk</span>
+                  </motion.button>
+
+                  {/* Theme Toggle - Mobile only */}
+                  <motion.button
+                    onClick={toggleTheme}
+                    className="lg:hidden p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                    whileHover={{ scale: 1.1, rotate: 180 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    {theme === "dark" ? (
+                      <FiSun className="w-4 h-4 text-yellow-500" />
+                    ) : (
+                      <FiMoon className="w-4 h-4 text-gray-600" />
+                    )}
+                  </motion.button>
+                </>
               )}
 
               {/* Mobile Menu Button */}
@@ -350,11 +372,11 @@ export default function Navbar({ isUser = false }) {
         </div>
       </motion.header>
 
-      {/* ✅ LIGHTER MOBILE MENU ANIMATIONS */}
+      {/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
-            {/* Backdrop - Lighter animation */}
+            {/* Backdrop */}
             <motion.div
               className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
               initial={{ opacity: 0 }}
@@ -364,7 +386,7 @@ export default function Navbar({ isUser = false }) {
               onClick={() => setMobileMenuOpen(false)}
             />
             
-            {/* Slide-in Menu Panel - Simplified animation */}
+            {/* Slide-in Menu Panel */}
             <motion.div
               className="lg:hidden fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-gradient-to-b from-white via-white to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-950 shadow-2xl overflow-hidden"
               initial={{ x: "100%" }}
@@ -372,7 +394,7 @@ export default function Navbar({ isUser = false }) {
               exit={{ x: "100%" }}
               transition={{ duration: 0.25, ease: "easeOut" }}
             >
-              {/* Header - Removed complex animations */}
+              {/* Header */}
               <div className="relative bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-8">
                 <div className="relative z-10 flex items-center justify-between">
                   <div>
@@ -420,11 +442,11 @@ export default function Navbar({ isUser = false }) {
                 )}
               </div>
 
-              {/* Scrollable Menu Content - Simplified animations */}
+              {/* Scrollable Menu Content */}
               <div className="overflow-y-auto h-[calc(100vh-200px)] px-6 py-6 space-y-3">
                 {!isAuthenticated ? (
                   <>
-                    {/* Navigation Items - Staggered but lighter */}
+                    {/* Navigation Items untuk Guest */}
                     <div className="space-y-2">
                       {navItems.map((item, index) => (
                         <motion.button
@@ -468,7 +490,7 @@ export default function Navbar({ isUser = false }) {
                       ))}
                     </div>
 
-                    {/* Action Buttons - Simplified */}
+                    {/* Action Buttons */}
                     <div className="pt-4 space-y-3">
                       <button
                         onClick={() => handleNavigation("/verifikasi")}
@@ -488,8 +510,25 @@ export default function Navbar({ isUser = false }) {
                   </>
                 ) : (
                   <>
-                    {/* Navigation untuk Authenticated User - Lighter */}
+                    {/* Navigation untuk Authenticated User */}
                     <div className="space-y-2">
+                      {/* ✅ Dashboard Button - Top Priority untuk Authenticated User */}
+                      <motion.button
+                        onClick={() => handleNavigation(user?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')}
+                        className="flex items-center justify-between w-full p-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg transition-all"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.05 }}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 rounded-lg bg-white/20">
+                            <FiGrid className="w-5 h-5 text-white" />
+                          </div>
+                          <span className="font-semibold text-white">Dashboard</span>
+                        </div>
+                        <FiChevronRight className="w-5 h-5 text-white/80" />
+                      </motion.button>
+
                       {navItems.map((item, index) => (
                         <motion.button
                           key={item.name}
@@ -546,7 +585,7 @@ export default function Navbar({ isUser = false }) {
                       </button>
                     </div>
 
-                    {/* Settings & Theme - Simplified */}
+                    {/* Settings & Theme */}
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
                       <button
                         onClick={toggleTheme}
@@ -584,7 +623,7 @@ export default function Navbar({ isUser = false }) {
                       </button>
                     </div>
 
-                    {/* Logout Button - Simplified */}
+                    {/* Logout Button */}
                     <div className="pt-4">
                       <button
                         onClick={handleLogout}
@@ -598,7 +637,7 @@ export default function Navbar({ isUser = false }) {
                 )}
               </div>
 
-              {/* Footer - Static */}
+              {/* Footer */}
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-gray-100 via-white to-transparent dark:from-gray-900 dark:via-gray-900 dark:to-transparent border-t border-gray-200 dark:border-gray-800">
                 <div className="text-center">
                   <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
