@@ -14,7 +14,7 @@ export default function Verifikasi() {
   const devices = useDevices();
   const [deviceId, setDeviceId] = useState();
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   const handleScan = (detected) => {
     if (detected?.length > 0 && detected[0].rawValue) {
@@ -25,7 +25,7 @@ export default function Verifikasi() {
       
       setTimeout(() => {
         if (isAuthenticated) {
-          // ✅ Redirect ke dashboard yang sesuai
+          const user = JSON.parse(localStorage.getItem("user") || "{}");
           if (user?.role === "admin") {
             navigate("/admin/dashboard");
           } else if (user?.role === "user") {
@@ -50,7 +50,7 @@ export default function Verifikasi() {
     setError(null);
   };
 
-  // ✅ Conditional wrapper - untuk styling yang berbeda saat sudah login
+  // Conditional wrapper - jika sudah login, tidak perlu full page wrapper
   const contentClass = isAuthenticated 
     ? "" // Akan menggunakan layout dari DashboardLayout/UserLayout
     : "min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-6 px-3 sm:px-6 lg:px-8 transition-colors";
