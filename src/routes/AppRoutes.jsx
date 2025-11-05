@@ -33,6 +33,31 @@ import Settings from "../pages/settings/Settings";
 
 // Protected Route
 import ProtectedRoute from "./ProtectedRoute";
+import { useAuth } from "../contexts/AuthContext";
+
+function VerifikasiWrapper() {
+  const { isAuthenticated, user } = useAuth();
+
+  if (!isAuthenticated) {
+    // Public verifikasi page (tanpa layout)
+    return <Verifikasi />;
+  }
+
+  // Authenticated verifikasi dengan layout sesuai role
+  if (user?.role === "admin") {
+    return (
+      <DashboardLayout>
+        <Verifikasi />
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <UserLayout>
+      <Verifikasi />
+    </UserLayout>
+  );
+}
 
 export default function AppRoutes() {
   return (
@@ -43,7 +68,9 @@ export default function AppRoutes() {
       <Route path="/register" element={<Register />} />
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
-      <Route path="/verifikasi" element={<Verifikasi />} />
+      
+      {/* Verifikasi - Public (untuk user yang belum login) */}
+      <Route path="/verifikasi" element={<VerifikasiWrapper />} />
 
       {/* Admin */}
       <Route
@@ -61,6 +88,8 @@ export default function AppRoutes() {
         <Route path="perencanaan" element={<PerencanaanForm />} />
         <Route path="implementasi" element={<ImplementasiForm />} />
         <Route path="monitoring" element={<MonitoringForm />} />
+        {/* ✅ Verifikasi route untuk admin */}
+        <Route path="verifikasi" element={<Verifikasi />} />
         <Route path="settings" element={<Settings />} />
         <Route index element={<Navigate to="dashboard" replace />} />
       </Route>
@@ -76,6 +105,8 @@ export default function AppRoutes() {
       >
         <Route path="dashboard" element={<DashboardUser />} />
         <Route path="perencanaan" element={<PerencanaanForm />} />
+        {/* ✅ Verifikasi route untuk user */}
+        <Route path="verifikasi" element={<Verifikasi />} />
         <Route path="settings" element={<Settings />} />
         <Route index element={<Navigate to="dashboard" replace />} />
       </Route>

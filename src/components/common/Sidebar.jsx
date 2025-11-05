@@ -107,15 +107,22 @@ export default function Sidebar({ isUser = false, onClose }) {
           );
         })}
 
-        {/* Verifikasi Button */}
+        {/* ✅ Verifikasi Button - Updated path based on role */}
         <motion.button
-          onClick={() => handleNavigation("/verifikasi")}
-          className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all border border-emerald-200 dark:border-emerald-800"
+          onClick={() => handleNavigation(isUser ? "/user/verifikasi" : "/admin/verifikasi")}
+          className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all border ${
+            location.pathname.endsWith('/verifikasi')
+              ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md border-emerald-500"
+              : "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border-emerald-200 dark:border-emerald-800"
+          }`}
           whileHover={{ x: 5 }}
           whileTap={{ scale: 0.98 }}
         >
-          <FiCheckCircle />
+          <FiCheckCircle className={location.pathname.endsWith('/verifikasi') ? "text-white" : ""} />
           <span className="font-medium">Verifikasi</span>
+          {location.pathname.endsWith('/verifikasi') && (
+            <span className="ml-auto h-2 w-2 rounded-full bg-white/80 animate-pulse" />
+          )}
         </motion.button>
 
         {/* Theme Toggle */}
