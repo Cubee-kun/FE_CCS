@@ -9,8 +9,9 @@ const CONTRACT_ABI = [
   "event DocumentStored(uint256 indexed docId, string docType, string docHash, address indexed uploader, uint256 timestamp)"
 ];
 
-// ✅ Contract Address (Deploy your smart contract and paste address here)
-const CONTRACT_ADDRESS = "0x..."; // TODO: Replace with your deployed contract address
+// ⚠️ PENTING: Ganti dengan contract address yang sudah di-deploy!
+// Jika belum deploy contract, ikuti langkah di bawah
+const CONTRACT_ADDRESS = "0xC311d3981c4654FF1662fdA4027d9A383f34E2B3"; // ⚠️ REPLACE THIS!
 
 class BlockchainService {
   constructor() {
@@ -25,7 +26,7 @@ class BlockchainService {
     return typeof window.ethereum !== 'undefined';
   }
 
-  // ✅ Connect to MetaMask
+  // ✅ Connect to MetaMask dengan error handling lebih detail
   async connectWallet() {
     if (!this.isMetaMaskInstalled()) {
       toast.error('❌ MetaMask tidak terinstall! Silakan install MetaMask terlebih dahulu.');
@@ -34,6 +35,13 @@ class BlockchainService {
     }
 
     try {
+      // ✅ Check if contract address is set
+      if (CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000") {
+        toast.error('❌ Contract address belum dikonfigurasi! Deploy contract terlebih dahulu.');
+        console.error('[Blockchain] Contract address not configured');
+        return null;
+      }
+
       // Request account access
       await window.ethereum.request({ method: 'eth_requestAccounts' });
       
@@ -48,22 +56,63 @@ class BlockchainService {
       // Get network info
       const network = await this.provider.getNetwork();
       
+      // ✅ Verify correct network (Sepolia)
+      const chainId = Number(network.chainId);
+      if (chainId !== 11155111) {
+        toast.error(`❌ Wrong network! Please switch to Sepolia Testnet. Current: ${network.name}`);
+        console.error('[Blockchain] Wrong network:', { chainId, expected: 11155111 });
+        
+        // ✅ Auto-switch to Sepolia
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0xaa36a7' }], // Sepolia chainId in hex
+          });
+          toast.success('✅ Network switched to Sepolia');
+          // Retry connection
+          return await this.connectWallet();
+        } catch (switchError) {
+          console.error('[Blockchain] Failed to switch network:', switchError);
+          return null;
+        }
+      }
+
+      // ✅ Check balance
+      const balance = await this.provider.getBalance(this.account);
+      const balanceInEth = ethers.formatEther(balance);
+      
       console.log('[Blockchain] Connected:', {
         account: this.account,
         network: network.name,
-        chainId: network.chainId
+        chainId: chainId,
+        balance: `${balanceInEth} ETH`
       });
+
+      if (parseFloat(balanceInEth) < 0.01) {
+        toast.warning(`⚠️ Low balance: ${balanceInEth} ETH. You may need more for gas fees.`);
+      }
       
       toast.success(`✅ Wallet terhubung: ${this.account.slice(0, 6)}...${this.account.slice(-4)}`);
+      toast.info(`💰 Balance: ${parseFloat(balanceInEth).toFixed(4)} ETH`);
       
       return {
         account: this.account,
         network: network.name,
-        chainId: network.chainId
+        chainId: chainId,
+        balance: balanceInEth
       };
     } catch (error) {
       console.error('[Blockchain] Connection error:', error);
-      toast.error('❌ Gagal terhubung ke MetaMask!');
+      
+      // ✅ Detailed error messages
+      if (error.code === 4001) {
+        toast.error('❌ User rejected connection request');
+      } else if (error.code === -32002) {
+        toast.warning('⚠️ Connection request already pending. Check MetaMask.');
+      } else {
+        toast.error(`❌ Gagal terhubung: ${error.message}`);
+      }
+      
       return null;
     }
   }
@@ -96,6 +145,13 @@ class BlockchainService {
       return null;
     }
 
+    // ✅ Verify contract address again
+    if (CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000") {
+      toast.error('❌ Contract address tidak valid!');
+      console.error('[Blockchain] Invalid contract address');
+      return null;
+    }
+
     try {
       // Calculate document hash
       const docHash = this.calculateDocumentHash(formData);
@@ -110,15 +166,52 @@ class BlockchainService {
       console.log('[Blockchain] Storing document:', {
         docType,
         docHash,
-        metadata: metadataString
+        metadata: metadataString,
+        contractAddress: CONTRACT_ADDRESS
       });
 
-      // Send transaction
-      toast.info('📤 Mengirim transaksi ke blockchain...', { autoClose: false });
-      const tx = await this.contract.storeDocument(docType, docHash, metadataString);
+      // ✅ Estimate gas first
+      toast.info('⏳ Estimating gas...', { autoClose: 2000 });
       
-      toast.info('⏳ Menunggu konfirmasi transaksi...', { autoClose: false });
+      let gasEstimate;
+      try {
+        gasEstimate = await this.contract.storeDocument.estimateGas(
+          docType, 
+          docHash, 
+          metadataString
+        );
+        console.log('[Blockchain] Gas estimate:', gasEstimate.toString());
+      } catch (gasError) {
+        console.error('[Blockchain] Gas estimation failed:', gasError);
+        toast.error(`❌ Gas estimation failed: ${gasError.message}`);
+        
+        // ✅ Check if it's a contract deployment issue
+        if (gasError.message.includes('ENS name not configured')) {
+          toast.error('❌ Contract address invalid or not deployed!');
+        }
+        
+        return null;
+      }
+
+      // ✅ Add 20% buffer to gas estimate
+      const gasLimit = (gasEstimate * 120n) / 100n;
+
+      // Send transaction with gas limit
+      toast.info('📤 Mengirim transaksi ke blockchain...', { autoClose: false });
+      
+      const tx = await this.contract.storeDocument(
+        docType, 
+        docHash, 
+        metadataString,
+        { gasLimit }
+      );
+      
+      console.log('[Blockchain] Transaction sent:', tx.hash);
+      toast.info(`⏳ Menunggu konfirmasi... TX: ${tx.hash.slice(0, 10)}...`, { autoClose: false });
+      
       const receipt = await tx.wait();
+      
+      console.log('[Blockchain] Transaction confirmed:', receipt);
       
       // Get document ID from event
       const event = receipt.logs.find(log => {
@@ -145,16 +238,28 @@ class BlockchainService {
         docHash,
         txHash: receipt.hash,
         blockNumber: receipt.blockNumber,
-        gasUsed: receipt.gasUsed.toString()
+        gasUsed: receipt.gasUsed.toString(),
+        effectiveGasPrice: receipt.gasPrice ? ethers.formatUnits(receipt.gasPrice, 'gwei') : 'N/A'
       };
     } catch (error) {
       toast.dismiss();
       console.error('[Blockchain] Store error:', error);
       
-      if (error.code === 'ACTION_REJECTED') {
+      // ✅ Detailed error handling
+      if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
         toast.error('❌ Transaksi ditolak oleh user');
+      } else if (error.code === 'INSUFFICIENT_FUNDS' || error.code === -32000) {
+        toast.error('❌ Saldo tidak cukup untuk gas fee!');
+      } else if (error.code === 'UNPREDICTABLE_GAS_LIMIT') {
+        toast.error('❌ Contract error atau address tidak valid!');
+        console.error('[Blockchain] Possible issues:', {
+          contractAddress: CONTRACT_ADDRESS,
+          message: 'Contract may not be deployed or ABI mismatch'
+        });
+      } else if (error.message?.includes('ENS')) {
+        toast.error('❌ Contract address tidak valid!');
       } else {
-        toast.error('❌ Gagal menyimpan ke blockchain: ' + error.message);
+        toast.error(`❌ Gagal menyimpan ke blockchain: ${error.message}`);
       }
       
       return null;

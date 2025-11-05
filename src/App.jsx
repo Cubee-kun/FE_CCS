@@ -9,6 +9,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./assets/styles/index.css";
 import { BlockchainProvider } from "./contexts/BlockchainContext";
+import BlockchainDebug from "./components/BlockchainDebug";
 
 function AppContent() {
   const location = useLocation();
@@ -45,6 +46,10 @@ function AppContent() {
       <ScrollToTop />
       {showNavbar && <Navbar />}
       <AppRoutes />
+      
+      {/* ✅ Blockchain Debug Component (only in development) */}
+      {import.meta.env.DEV && <BlockchainDebug />}
+      
       <ToastContainer 
         position="top-right" 
         autoClose={3000} 
