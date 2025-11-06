@@ -1,0 +1,29 @@
+{
+  "name": "Sebumi CCS - Sistem Konservasi Berbasis Blockchain",
+  "short_name": "Sebumi CCS",
+  "description": "Platform manajemen kegiatan konservasi lingkungan dengan verifikasi blockchain",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["environment", "conservation", "blockchain"],
+  "lang": "id-ID",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false
+}

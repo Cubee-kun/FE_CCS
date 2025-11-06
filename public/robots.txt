@@ -1,0 +1,12 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://sebumi-ccs.netlify.app/sitemap.xml
+
+# Disallow admin pages
+Disallow: /admin/
+Disallow: /user/
+Disallow: /login
+Disallow: /register
