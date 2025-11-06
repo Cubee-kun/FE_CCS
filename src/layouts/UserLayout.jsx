@@ -45,9 +45,11 @@ export default function UserLayout() {
           </h1>
         </div>
 
-        {/* Content */}
-        <main className="p-4 sm:p-6">
-          <Outlet />
+        {/* Content with proper padding */}
+        <main className="p-4 sm:p-6 lg:p-8">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 md:p-6 transition-colors duration-300">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

@@ -21,9 +21,11 @@ export default function Sidebar({ isUser = false, onClose }) {
     { label: "Monitoring", path: "/admin/monitoring", icon: <FiActivity /> },
   ];
 
+  // ✅ User menu items - Lengkap dengan semua menu
   const userMenuItems = [
     { label: "Dashboard", path: "/user/dashboard", icon: <FiHome /> },
-    { label: "Perencanaan", path: "/user/perencanaan", icon: <FiClipboard /> },
+    { label: "Implementasi", path: "/user/implementasi", icon: <FiCheckCircle /> },
+    { label: "Monitoring", path: "/user/monitoring", icon: <FiActivity /> },
   ];
 
   const menuItems = isUser ? userMenuItems : adminMenuItems;

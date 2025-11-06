@@ -72,7 +72,7 @@ export default function AppRoutes() {
       {/* Verifikasi - Public (untuk user yang belum login) */}
       <Route path="/verifikasi" element={<VerifikasiWrapper />} />
 
-      {/* Admin */}
+      {/* Admin - Full Access */}
       <Route
         path="/admin/*"
         element={
@@ -92,7 +92,7 @@ export default function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
       </Route>
 
-      {/* User */}
+      {/* ✅ User Routes - Fixed */}
       <Route
         path="/user/*"
         element={
@@ -103,6 +103,8 @@ export default function AppRoutes() {
       >
         <Route path="dashboard" element={<DashboardUser />} />
         <Route path="perencanaan" element={<PerencanaanForm />} />
+        <Route path="implementasi" element={<ImplementasiForm />} />
+        <Route path="monitoring" element={<MonitoringForm />} />
         <Route path="verifikasi" element={<Verifikasi />} />
         <Route path="settings" element={<Settings />} />
         <Route index element={<Navigate to="dashboard" replace />} />

@@ -50,47 +50,46 @@ export default function Dashboard() {
     fetchStats();
   }, []);
 
+  // ✅ Stat cards untuk user dashboard
   const statCards = [
     {
       title: "Total Perencanaan",
-      value: stats.total_perencanaan,
+      value: stats.total_perencanaan || 0,
       icon: <FiCalendar className="text-3xl" />,
-      color: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200",
-      trend: "12% increase",
-      trendColor: "text-green-600 dark:text-green-400",
-    },
-    {
-      title: "Implementasi",
-      value: stats.total_implementasi,
-      icon: <FiCheckCircle className="text-3xl" />,
       color:
         "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200",
-      trend: "8% increase",
+      trend: "5 new",
       trendColor: "text-emerald-600 dark:text-emerald-400",
     },
     {
-      title: "Monitoring",
-      value: stats.total_monitoring,
-      icon: <FiMonitor className="text-3xl" />,
-      color:
-        "bg-lime-100 text-lime-700 dark:bg-lime-900 dark:text-lime-200",
-      trend: "5% increase",
-      trendColor: "text-lime-600 dark:text-lime-400",
+      title: "Total Implementasi",
+      value: stats.total_implementasi || 0,
+      icon: <FiCheckCircle className="text-3xl" />,
+      color: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-200",
+      trend: "12% increase",
+      trendColor: "text-teal-600 dark:text-teal-400",
     },
     {
-      title: "User Aktif",
-      value: "3",
-      icon: <FiUser className="text-3xl" />,
-      color: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-200",
-      trend: "3 new users",
-      trendColor: "text-teal-600 dark:text-teal-400",
+      title: "Monitoring Aktif",
+      value: stats.total_monitoring || 0,
+      icon: <FiMonitor className="text-3xl" />,
+      color: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200",
+      trend: "8% increase",
+      trendColor: "text-green-600 dark:text-green-400",
+    },
+    {
+      title: "Kegiatan Selesai",
+      value: stats.completed_activities || 0,
+      icon: <FiCheckCircle className="text-3xl" />,
+      color: "bg-lime-100 text-lime-700 dark:bg-lime-900 dark:text-lime-200",
+      trend: "3 new",
+      trendColor: "text-lime-600 dark:text-lime-400",
     },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-100 to-teal-50 
       dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex font-sans relative transition-colors">
-
       <main className="flex-grow p-3 md:p-6 relative">
         {/* Loading Overlay */}
         {loading && (
@@ -121,26 +120,6 @@ export default function Dashboard() {
             })}
           </div>
         </header>
-
-        {/* Tabs
-        <nav className="mb-8 border-b border-green-300 dark:border-green-700 overflow-x-auto">
-          <ul className="flex space-x-6 text-sm md:text-lg">
-            {["overview", "users", "reports", "activity"].map((tab) => (
-              <li key={tab}>
-                <button
-                  onClick={() => setActiveTab(tab)}
-                  className={`pb-3 font-semibold border-b-4 transition-colors capitalize ${
-                    activeTab === tab
-                      ? "border-green-600 text-green-700 dark:text-green-300"
-                      : "border-transparent text-green-400 hover:text-green-600 dark:text-green-500 dark:hover:text-green-300"
-                  }`}
-                >
-                  {tab}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav> */}
 
         {/* Stat Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
