@@ -33,15 +33,20 @@ export default function UserPage() {
     setLoading(true);
     try {
       const response = await api.get("/users");
-      setUsers(response.data?.data || response.data || []);
+      const userData = response.data?.data || response.data || [];
+      console.log('[UserPage] Users fetched:', userData);
+      setUsers(userData);
       setError(null);
     } catch (err) {
       console.error("Fetch users error:", err);
-      if (err.response?.status === 405) {
+      if (err.response?.status === 403) {
+        setError("Anda tidak memiliki izin untuk melihat data users.");
+      } else if (err.response?.status === 405) {
         setError("Backend endpoint /users tidak mendukung method GET.");
       } else {
-        setError("Failed to fetch user data.");
+        setError("Gagal memuat data user. Silakan coba lagi.");
       }
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -84,18 +89,51 @@ export default function UserPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      // ✅ Clean form data - don't send empty password
+      const submittedData = { ...form };
+      
       if (editUser) {
-        await api.put(`/users/${editUser.id}`, form);
+        // ✅ For edit: don't send empty password
+        if (!submittedData.password || submittedData.password.trim() === '') {
+          delete submittedData.password;
+        }
+        console.log('[UserPage] Updating user:', editUser.id, submittedData);
+        await api.put(`/users/${editUser.id}`, submittedData);
         toast.success("✅ User berhasil diupdate!");
       } else {
-        await api.post("/users", form);
+        // ✅ For create: password is required
+        if (!submittedData.password || submittedData.password.trim() === '') {
+          toast.error("❌ Password harus diisi!");
+          setSubmitting(false);
+          return;
+        }
+        console.log('[UserPage] Creating new user:', submittedData);
+        await api.post("/users", submittedData);
         toast.success("✅ User berhasil ditambahkan!");
       }
       setModalOpen(false);
       fetchUsers();
     } catch (err) {
-      console.error("Save user error:", err);
-      toast.error("❌ Gagal menyimpan user!");
+      console.error("Save user error:", err.response || err);
+      
+      if (err.response?.status === 403) {
+        toast.error("❌ Anda tidak memiliki izin untuk melakukan aksi ini!");
+      } else if (err.response?.status === 422) {
+        const messages = err.response?.data?.messages;
+        if (messages) {
+          Object.values(messages).forEach(msg => {
+            toast.error(`❌ ${Array.isArray(msg) ? msg[0] : msg}`);
+          });
+        } else {
+          toast.error("❌ Validasi gagal!");
+        }
+      } else if (err.response?.status === 500) {
+        const errorMsg = err.response?.data?.message || 'Terjadi kesalahan server';
+        console.error('[UserPage] Server error:', errorMsg);
+        toast.error(`❌ Error: ${errorMsg}`);
+      } else {
+        toast.error(`❌ ${err.response?.data?.message || err.response?.data?.error || 'Gagal menyimpan user!'}`);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -104,14 +142,24 @@ export default function UserPage() {
   const handleDelete = async () => {
     if (!userToDelete) return;
     try {
+      console.log('[UserPage] Deleting user:', userToDelete.id);
       await api.delete(`/users/${userToDelete.id}`);
       toast.success("✅ User berhasil dihapus!");
       setDeleteModalOpen(false);
       setUserToDelete(null);
       fetchUsers();
     } catch (err) {
-      console.error("Delete user error:", err);
-      toast.error("❌ Gagal menghapus user!");
+      console.error("Delete user error:", err.response || err);
+      
+      if (err.response?.status === 403) {
+        toast.error("❌ Anda tidak memiliki izin untuk menghapus user ini!");
+      } else if (err.response?.status === 500) {
+        const errorMsg = err.response?.data?.message || 'Terjadi kesalahan server';
+        console.error('[UserPage] Server error:', errorMsg);
+        toast.error(`❌ Error: ${errorMsg}`);
+      } else {
+        toast.error(`❌ ${err.response?.data?.message || err.response?.data?.error || 'Gagal menghapus user!'}`);
+      }
     }
   };
 
@@ -482,7 +530,7 @@ export default function UserPage() {
                   {!editUser && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Password
+                        Password <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="password"
@@ -491,6 +539,21 @@ export default function UserPage() {
                         value={form.password}
                         onChange={(e) => setForm({ ...form, password: e.target.value })}
                         required
+                      />
+                    </div>
+                  )}
+
+                  {editUser && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Password <span className="text-xs text-gray-500">(Kosongkan jika tidak ingin mengubah)</span>
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        value={form.password}
+                        onChange={(e) => setForm({ ...form, password: e.target.value })}
                       />
                     </div>
                   )}

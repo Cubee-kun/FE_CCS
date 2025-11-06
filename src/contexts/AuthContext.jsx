@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
     if (initRef.current) return;
     initRef.current = true;
 
-    const checkAuth = () => {
+    const checkAuth = async () => {
       const token = localStorage.getItem("token");
       const savedUser = localStorage.getItem("user");
       
@@ -73,11 +73,32 @@ export const AuthProvider = ({ children }) => {
           
           // Check if token is expired
           if (decoded.exp && Date.now() >= decoded.exp * 1000) {
-            console.log('[AuthContext] Token expired, logging out');
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            setUser(null);
-            setIsAuthenticated(false);
+            console.log('[AuthContext] Token expired, attempting refresh...');
+            try {
+              const res = await api.post("/refresh");
+              const newToken = res.data?.access_token;
+              
+              if (newToken) {
+                localStorage.setItem("token", newToken);
+                const newDecoded = jwtDecode(newToken);
+                const mergedUser = savedUser 
+                  ? { ...newDecoded, ...JSON.parse(savedUser) }
+                  : newDecoded;
+                
+                console.log('[AuthContext] Token refreshed successfully, restoring session');
+                setUser(mergedUser);
+                setIsAuthenticated(true);
+                setRefreshTimer(newToken);
+              } else {
+                throw new Error('No access token in refresh response');
+              }
+            } catch (refreshError) {
+              console.log('[AuthContext] Refresh failed, logging out:', refreshError.message);
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
+              setUser(null);
+              setIsAuthenticated(false);
+            }
           } else {
             // ✅ Merge decoded token with saved user data
             const mergedUser = savedUser 

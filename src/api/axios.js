@@ -49,10 +49,19 @@ api.interceptors.response.use(
       if (status === 401) {
         // ✅ Only clear auth if not device conflict
         if (data?.code !== 'DEVICE_CONFLICT') {
+          console.warn('[API] Unauthorized (401) - clearing token and user data');
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
+          
+          // ✅ Prevent redirect loop - only redirect if not already on login page
+          const isLoginPage = window.location.pathname === '/login' || 
+                             window.location.pathname === '/register' ||
+                             window.location.pathname === '/';
+          
+          if (!isLoginPage) {
+            console.log('[API] Redirecting to login page...');
+            // Use replace to prevent back button issues
+            window.location.replace('/login');
           }
         }
       }

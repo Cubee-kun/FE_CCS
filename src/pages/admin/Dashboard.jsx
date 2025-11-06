@@ -25,6 +25,9 @@ const defaultStats = {
   total_perencanaan: 0,
   total_implementasi: 0,
   total_monitoring: 0,
+  total_evaluasi: 0,
+  avg_survival_monitoring: 0,
+  avg_survival_evaluasi: 0,
   kegiatan_stats: [],
   monthly_stats: [],
 };
@@ -44,14 +47,50 @@ export default function Dashboard() {
 
     const fetchStats = async () => {
       try {
+        // ✅ Verify token exists before making request
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('[Dashboard] No token found, user not authenticated');
+          setError('Sesi anda telah berakhir, silakan login kembali');
+          setLoading(false);
+          navigate('/login', { replace: true });
+          return;
+        }
+
         const { data } = await api.get("/dashboard/stats");
         if (isMounted) {
-          setStats({ ...defaultStats, ...data });
+          // ✅ Extract stats from nested response structure
+          const statsData = data?.stats || {};
+          const chartsData = data?.charts || {};
+          const breakdownsData = data?.breakdowns || {};
+          const recentActivities = data?.recent_activities || [];
+          
+          console.log('[Dashboard] API Response:', { statsData, chartsData, breakdownsData, recentActivities });
+          
+          // ✅ Properly merge nested data
+          setStats({
+            ...defaultStats,
+            ...statsData,
+            kegiatan_stats: breakdownsData?.jenis_kegiatan || [],
+            monthly_stats: chartsData?.perencanaan_per_hari || [],
+            charts: chartsData,
+            recent_activities: recentActivities,
+          });
           setError(null);
         }
       } catch (error) {
         if (isMounted) {
           console.error("Error fetching dashboard stats:", error);
+          
+          // ✅ Handle different error types
+          if (error.response?.status === 401) {
+            console.log('[Dashboard] Unauthorized - redirecting to login');
+            setError('Sesi anda telah berakhir, silakan login kembali');
+            setLoading(false);
+            navigate('/login', { replace: true });
+            return;
+          }
+          
           setError("Gagal memuat data dashboard.");
           setStats(defaultStats);
         }
@@ -70,11 +109,51 @@ export default function Dashboard() {
       isMounted = false;
       clearInterval(pollingRef.current);
     };
-  }, []);
+  }, [navigate]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Trigger refresh
+    setError(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Sesi anda telah berakhir, silakan login kembali');
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      const { data } = await api.get("/dashboard/stats");
+      
+      // ✅ Extract stats from nested response structure
+      const statsData = data?.stats || {};
+      const chartsData = data?.charts || {};
+      const breakdownsData = data?.breakdowns || {};
+      const recentActivities = data?.recent_activities || [];
+      
+      console.log('[Dashboard] Refresh - API Response:', { statsData, chartsData, breakdownsData });
+      
+      setStats({
+        ...defaultStats,
+        ...statsData,
+        kegiatan_stats: breakdownsData?.jenis_kegiatan || [],
+        monthly_stats: chartsData?.perencanaan_per_hari || [],
+        charts: chartsData,
+        recent_activities: recentActivities,
+      });
+      console.log('[Dashboard] Stats refreshed successfully');
+    } catch (error) {
+      console.error('[Dashboard] Refresh failed:', error);
+      
+      if (error.response?.status === 401) {
+        setError('Sesi anda telah berakhir, silakan login kembali');
+        navigate('/login', { replace: true });
+      } else {
+        setError('Gagal merefresh data. Silakan coba lagi.');
+      }
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const statCards = [
@@ -112,15 +191,15 @@ export default function Dashboard() {
       subtitle: "active monitoring"
     },
     {
-      title: "User Aktif",
-      value: stats.total_user || "3",
-      icon: <FiUser className="w-7 h-7" />,
+      title: "Evaluasi",
+      value: stats.total_evaluasi || "0",
+      icon: <FiCheckCircle className="w-7 h-7" />,
       gradient: "from-lime-400 via-lime-500 to-lime-600",
       bgGradient: "from-lime-50/50 to-lime-100/30 dark:from-lime-900/10 dark:to-lime-800/5",
       iconBg: "bg-lime-500",
       trend: "+3",
       trendUp: true,
-      subtitle: "new users"
+      subtitle: "evaluasi aktif"
     },
   ];
 
