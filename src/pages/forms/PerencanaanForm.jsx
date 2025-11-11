@@ -61,6 +61,7 @@ const PerencanaanForm = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [mapCenter, setMapCenter] = useState([-2.5489, 118.0149]); // Indonesia center
   const { isConnected, connectWallet, storeDocument } = useBlockchain();
+  const { isReady, walletAddress } = useBlockchain();
   const [blockchainData, setBlockchainData] = useState(null);
   const [savingToBlockchain, setSavingToBlockchain] = useState(false);
 
@@ -235,76 +236,29 @@ const PerencanaanForm = () => {
           )}
         </AnimatePresence>
 
-        {/* ✅ Blockchain Connection Card */}
-        {!isConnected && (
+        {/* ✅ Blockchain Info Card - Sekarang menampilkan wallet yang digunakan */}
+        {isReady && (
           <motion.div
-            className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-4"
+            className="mb-6 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-xl p-4"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="flex items-start gap-3">
-              <FiLink className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse flex-shrink-0 mt-2"></div>
               <div className="flex-1">
-                <h4 className="font-bold text-blue-900 dark:text-blue-200 mb-2">
-                  💎 Simpan Hash ke Blockchain
+                <h4 className="font-bold text-purple-900 dark:text-purple-200 mb-2">
+                  💎 Blockchain Ready
                 </h4>
-                <p className="text-sm text-blue-800 dark:text-blue-300 mb-3">
-                  Hubungkan wallet MetaMask untuk menyimpan hash dokumen ke blockchain Ethereum. 
-                  Ini memberikan bukti kriptografis yang tidak dapat diubah.
+                <p className="text-sm text-purple-800 dark:text-purple-300 mb-3">
+                  Dokumen akan otomatis disimpan ke blockchain dengan wallet ini:
                 </p>
-                <motion.button
-                  onClick={connectWallet}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-medium shadow-lg transition-all"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" className="w-5 h-5" />
-                  <span>Hubungkan MetaMask</span>
-                </motion.button>
+                <div className="bg-white dark:bg-gray-800 px-3 py-2 rounded-lg font-mono text-xs text-purple-700 dark:text-purple-300 break-all">
+                  {walletAddress}
+                </div>
               </div>
             </div>
           </motion.div>
         )}
-
-        {/* ✅ Blockchain Success Info */}
-        <AnimatePresence>
-          {blockchainData && (
-            <motion.div
-              className="mb-6 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-xl p-6"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-            >
-              <h4 className="font-bold text-purple-900 dark:text-purple-200 mb-3 flex items-center gap-2">
-                <FiCheckCircle className="w-5 h-5" />
-                ✅ Hash Tersimpan di Blockchain
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-start gap-2">
-                  <span className="font-semibold text-gray-700 dark:text-gray-300 w-32">Document Hash:</span>
-                  <code className="flex-1 bg-white dark:bg-gray-800 px-2 py-1 rounded text-xs font-mono break-all">
-                    {blockchainData.docHash}
-                  </code>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="font-semibold text-gray-700 dark:text-gray-300 w-32">Transaction:</span>
-                  <a
-                    href={`https://sepolia.etherscan.io/tx/${blockchainData.txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 text-blue-600 hover:text-blue-800 underline break-all text-xs"
-                  >
-                    {blockchainData.txHash}
-                  </a>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="font-semibold text-gray-700 dark:text-gray-300 w-32">Block Number:</span>
-                  <span className="text-gray-900 dark:text-gray-100">{blockchainData.blockNumber}</span>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Form Card */}
         <motion.div

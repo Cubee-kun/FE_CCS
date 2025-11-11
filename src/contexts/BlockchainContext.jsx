@@ -5,69 +5,49 @@ import { toast } from 'react-toastify';
 const BlockchainContext = createContext();
 
 export function BlockchainProvider({ children }) {
-  const [account, setAccount] = useState(null);
-  const [network, setNetwork] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [walletAddress, setWalletAddress] = useState(null);
+  const [walletStatus, setWalletStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Check if already connected on mount
+  // Initialize blockchain service on mount
   useEffect(() => {
-    if (blockchainService.isMetaMaskInstalled()) {
-      // Listen for account changes
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
+    const initBlockchain = async () => {
+      try {
+        const result = await blockchainService.initialize();
+        
+        if (result) {
+          const address = blockchainService.getWalletAddress();
+          const status = await blockchainService.getWalletStatus();
+          
+          setWalletAddress(address);
+          setWalletStatus(status);
+          setIsReady(true);
+          
+          console.log('[BlockchainContext] Initialized:', {
+            address,
+            status
+          });
+          
+          toast.success(`💎 Blockchain siap! Wallet: ${address.slice(0, 6)}...${address.slice(-4)}`);
+        } else {
+          setIsReady(false);
+          toast.warning('⚠️ Blockchain service tidak tersedia');
+        }
+      } catch (error) {
+        console.error('[BlockchainContext] Init error:', error);
+        setIsReady(false);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      // Check if already connected
-      window.ethereum.request({ method: 'eth_accounts' })
-        .then(accounts => {
-          if (accounts.length > 0) {
-            connectWallet();
-          }
-        });
-
-      return () => {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
-      };
-    }
+    initBlockchain();
   }, []);
 
-  const handleAccountsChanged = (accounts) => {
-    if (accounts.length === 0) {
-      disconnect();
-    } else {
-      setAccount(accounts[0]);
-    }
-  };
-
-  const handleChainChanged = () => {
-    window.location.reload();
-  };
-
-  const connectWallet = async () => {
-    setIsConnecting(true);
-    const result = await blockchainService.connectWallet();
-    
-    if (result) {
-      setAccount(result.account);
-      setNetwork(result.network);
-      setIsConnected(true);
-    }
-    
-    setIsConnecting(false);
-    return result;
-  };
-
-  const disconnect = () => {
-    blockchainService.disconnectWallet();
-    setAccount(null);
-    setNetwork(null);
-    setIsConnected(false);
-  };
-
   const storeDocument = async (docType, formData, metadata) => {
-    if (!isConnected) {
-      toast.warning('⚠️ Silakan hubungkan wallet terlebih dahulu');
+    if (!isReady) {
+      toast.error('❌ Blockchain service tidak tersedia!');
       return null;
     }
 
@@ -85,12 +65,10 @@ export function BlockchainProvider({ children }) {
   return (
     <BlockchainContext.Provider
       value={{
-        account,
-        network,
-        isConnected,
-        isConnecting,
-        connectWallet,
-        disconnect,
+        isReady,
+        walletAddress,
+        walletStatus,
+        loading,
         storeDocument,
         getDocument,
         verifyDocument,

@@ -5,6 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../../contexts/ThemeContext";
 import LoadingSpinner from "./LoadingSpinner";
+import BlockchainStatus from '../BlockchainStatus';
 
 export default function Navbar({ isUser = false }) {
   const { user, isAuthenticated, logout } = useAuth();

@@ -9,126 +9,100 @@ const CONTRACT_ABI = [
   "event DocumentStored(uint256 indexed docId, string docType, string docHash, address indexed uploader, uint256 timestamp)"
 ];
 
-// ⚠️ PENTING: Ganti dengan contract address yang sudah di-deploy!
-// Jika belum deploy contract, ikuti langkah di bawah
-const CONTRACT_ADDRESS = "0xC311d3981c4654FF1662fdA4027d9A383f34E2B3"; // ⚠️ REPLACE THIS!
+// ✅ Contract Address (Deploy your smart contract and paste address here)
+const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000";
+
+// ✅ Wallet privat key dan RPC URL dari environment
+const PRIVATE_KEY = import.meta.env.VITE_PRIVATE_KEY || "";
+const RPC_URL = import.meta.env.VITE_SEPOLIA_URL || "https://ethereum-sepolia-rpc.publicnode.com";
 
 class BlockchainService {
   constructor() {
     this.provider = null;
     this.signer = null;
     this.contract = null;
-    this.account = null;
+    this.walletAddress = null;
+    this.isReady = false;
   }
 
-  // ✅ Check if MetaMask is installed
-  isMetaMaskInstalled() {
-    return typeof window.ethereum !== 'undefined';
-  }
-
-  // ✅ Connect to MetaMask dengan error handling lebih detail
-  async connectWallet() {
-    if (!this.isMetaMaskInstalled()) {
-      toast.error('❌ MetaMask tidak terinstall! Silakan install MetaMask terlebih dahulu.');
-      window.open('https://metamask.io/download/', '_blank');
-      return null;
-    }
-
+  // ✅ Initialize blockchain service (dipanggil sekali saat app start)
+  async initialize() {
     try {
-      // ✅ Check if contract address is set
-      if (CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000") {
-        toast.error('❌ Contract address belum dikonfigurasi! Deploy contract terlebih dahulu.');
-        console.error('[Blockchain] Contract address not configured');
-        return null;
+      if (this.isReady) {
+        console.log('[Blockchain] Service already initialized');
+        return true;
       }
 
-      // Request account access
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      
-      // Create provider and signer
-      this.provider = new ethers.BrowserProvider(window.ethereum);
-      this.signer = await this.provider.getSigner();
-      this.account = await this.signer.getAddress();
-      
+      // Check contract address
+      if (CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000") {
+        console.error('[Blockchain] Contract address not configured');
+        return false;
+      }
+
+      // Check private key
+      if (!PRIVATE_KEY) {
+        console.error('[Blockchain] Private key not configured');
+        return false;
+      }
+
+      // Create provider
+      this.provider = new ethers.JsonRpcProvider(RPC_URL);
+
+      // Create wallet dari private key
+      const wallet = new ethers.Wallet(PRIVATE_KEY, this.provider);
+      this.signer = wallet;
+      this.walletAddress = wallet.address;
+
       // Connect to contract
       this.contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
-      
-      // Get network info
-      const network = await this.provider.getNetwork();
-      
-      // ✅ Verify correct network (Sepolia)
-      const chainId = Number(network.chainId);
-      if (chainId !== 11155111) {
-        toast.error(`❌ Wrong network! Please switch to Sepolia Testnet. Current: ${network.name}`);
-        console.error('[Blockchain] Wrong network:', { chainId, expected: 11155111 });
-        
-        // ✅ Auto-switch to Sepolia
-        try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0xaa36a7' }], // Sepolia chainId in hex
-          });
-          toast.success('✅ Network switched to Sepolia');
-          // Retry connection
-          return await this.connectWallet();
-        } catch (switchError) {
-          console.error('[Blockchain] Failed to switch network:', switchError);
-          return null;
-        }
-      }
 
-      // ✅ Check balance
-      const balance = await this.provider.getBalance(this.account);
-      const balanceInEth = ethers.formatEther(balance);
-      
-      console.log('[Blockchain] Connected:', {
-        account: this.account,
+      // Test connection
+      const network = await this.provider.getNetwork();
+      const balance = await this.provider.getBalance(this.walletAddress);
+
+      console.log('[Blockchain] Service initialized:', {
+        address: this.walletAddress,
         network: network.name,
-        chainId: chainId,
-        balance: `${balanceInEth} ETH`
+        chainId: network.chainId,
+        balance: ethers.formatEther(balance),
+        contractAddress: CONTRACT_ADDRESS
       });
 
-      if (parseFloat(balanceInEth) < 0.01) {
-        toast.warning(`⚠️ Low balance: ${balanceInEth} ETH. You may need more for gas fees.`);
-      }
-      
-      toast.success(`✅ Wallet terhubung: ${this.account.slice(0, 6)}...${this.account.slice(-4)}`);
-      toast.info(`💰 Balance: ${parseFloat(balanceInEth).toFixed(4)} ETH`);
-      
-      return {
-        account: this.account,
-        network: network.name,
-        chainId: chainId,
-        balance: balanceInEth
-      };
+      this.isReady = true;
+      return true;
     } catch (error) {
-      console.error('[Blockchain] Connection error:', error);
-      
-      // ✅ Detailed error messages
-      if (error.code === 4001) {
-        toast.error('❌ User rejected connection request');
-      } else if (error.code === -32002) {
-        toast.warning('⚠️ Connection request already pending. Check MetaMask.');
-      } else {
-        toast.error(`❌ Gagal terhubung: ${error.message}`);
-      }
-      
-      return null;
+      console.error('[Blockchain] Initialization error:', error);
+      this.isReady = false;
+      return false;
     }
   }
 
-  // ✅ Disconnect wallet
-  disconnectWallet() {
-    this.provider = null;
-    this.signer = null;
-    this.contract = null;
-    this.account = null;
-    toast.info('Wallet terputus');
+  // ✅ Get wallet address (untuk ditampilkan di UI)
+  getWalletAddress() {
+    return this.walletAddress;
   }
 
-  // ✅ Get current account
-  getCurrentAccount() {
-    return this.account;
+  // ✅ Get wallet status
+  async getWalletStatus() {
+    try {
+      if (!this.isReady || !this.provider) {
+        return { ready: false, message: 'Service not initialized' };
+      }
+
+      const balance = await this.provider.getBalance(this.walletAddress);
+      const network = await this.provider.getNetwork();
+
+      return {
+        ready: true,
+        address: this.walletAddress,
+        balance: ethers.formatEther(balance),
+        network: network.name,
+        chainId: network.chainId
+      };
+    } catch (error) {
+      console.error('[Blockchain] Status check error:', error);
+      return { ready: false, error: error.message };
+    }
   }
 
   // ✅ Calculate hash from form data
@@ -140,79 +114,33 @@ class BlockchainService {
 
   // ✅ Store document hash to blockchain
   async storeDocumentHash(docType, formData, metadata = {}) {
-    if (!this.contract) {
-      toast.error('❌ Wallet belum terhubung!');
-      return null;
-    }
-
-    // ✅ Verify contract address again
-    if (CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000") {
-      toast.error('❌ Contract address tidak valid!');
-      console.error('[Blockchain] Invalid contract address');
-      return null;
-    }
-
     try {
+      if (!this.isReady) {
+        throw new Error('Blockchain service not initialized');
+      }
+
       // Calculate document hash
       const docHash = this.calculateDocumentHash(formData);
-      
+
       // Prepare metadata
       const metadataString = JSON.stringify({
         ...metadata,
         timestamp: new Date().toISOString(),
-        uploader: this.account
       });
 
       console.log('[Blockchain] Storing document:', {
         docType,
         docHash,
-        metadata: metadataString,
-        contractAddress: CONTRACT_ADDRESS
+        metadata: metadataString
       });
 
-      // ✅ Estimate gas first
-      toast.info('⏳ Estimating gas...', { autoClose: 2000 });
-      
-      let gasEstimate;
-      try {
-        gasEstimate = await this.contract.storeDocument.estimateGas(
-          docType, 
-          docHash, 
-          metadataString
-        );
-        console.log('[Blockchain] Gas estimate:', gasEstimate.toString());
-      } catch (gasError) {
-        console.error('[Blockchain] Gas estimation failed:', gasError);
-        toast.error(`❌ Gas estimation failed: ${gasError.message}`);
-        
-        // ✅ Check if it's a contract deployment issue
-        if (gasError.message.includes('ENS name not configured')) {
-          toast.error('❌ Contract address invalid or not deployed!');
-        }
-        
-        return null;
-      }
-
-      // ✅ Add 20% buffer to gas estimate
-      const gasLimit = (gasEstimate * 120n) / 100n;
-
-      // Send transaction with gas limit
+      // Send transaction
       toast.info('📤 Mengirim transaksi ke blockchain...', { autoClose: false });
-      
-      const tx = await this.contract.storeDocument(
-        docType, 
-        docHash, 
-        metadataString,
-        { gasLimit }
-      );
-      
-      console.log('[Blockchain] Transaction sent:', tx.hash);
-      toast.info(`⏳ Menunggu konfirmasi... TX: ${tx.hash.slice(0, 10)}...`, { autoClose: false });
-      
+      const tx = await this.contract.storeDocument(docType, docHash, metadataString);
+
+      toast.info('⏳ Menunggu konfirmasi transaksi...', { autoClose: false });
       const receipt = await tx.wait();
-      
-      console.log('[Blockchain] Transaction confirmed:', receipt);
-      
+
       // Get document ID from event
       const event = receipt.logs.find(log => {
         try {
@@ -239,43 +167,31 @@ class BlockchainService {
         txHash: receipt.hash,
         blockNumber: receipt.blockNumber,
         gasUsed: receipt.gasUsed.toString(),
-        effectiveGasPrice: receipt.gasPrice ? ethers.formatUnits(receipt.gasPrice, 'gwei') : 'N/A'
+        walletAddress: this.walletAddress
       };
     } catch (error) {
       toast.dismiss();
       console.error('[Blockchain] Store error:', error);
-      
-      // ✅ Detailed error handling
-      if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
-        toast.error('❌ Transaksi ditolak oleh user');
-      } else if (error.code === 'INSUFFICIENT_FUNDS' || error.code === -32000) {
-        toast.error('❌ Saldo tidak cukup untuk gas fee!');
-      } else if (error.code === 'UNPREDICTABLE_GAS_LIMIT') {
-        toast.error('❌ Contract error atau address tidak valid!');
-        console.error('[Blockchain] Possible issues:', {
-          contractAddress: CONTRACT_ADDRESS,
-          message: 'Contract may not be deployed or ABI mismatch'
-        });
-      } else if (error.message?.includes('ENS')) {
-        toast.error('❌ Contract address tidak valid!');
+
+      if (error.message.includes('insufficient funds')) {
+        toast.error('❌ Saldo wallet tidak cukup untuk gas fee!');
       } else {
-        toast.error(`❌ Gagal menyimpan ke blockchain: ${error.message}`);
+        toast.error('❌ Gagal menyimpan ke blockchain: ' + error.message);
       }
-      
+
       return null;
     }
   }
 
   // ✅ Get document from blockchain
   async getDocument(docId) {
-    if (!this.contract) {
-      toast.error('❌ Wallet belum terhubung!');
-      return null;
-    }
-
     try {
+      if (!this.isReady) {
+        throw new Error('Blockchain service not initialized');
+      }
+
       const doc = await this.contract.getDocument(docId);
-      
+
       return {
         docType: doc[0],
         docHash: doc[1],
@@ -292,8 +208,8 @@ class BlockchainService {
 
   // ✅ Get total document count
   async getDocumentCount() {
-    if (!this.contract) return 0;
-    
+    if (!this.isReady) return 0;
+
     try {
       const count = await this.contract.getDocumentCount();
       return Number(count);
@@ -314,7 +230,6 @@ class BlockchainService {
 
   // ✅ Get blockchain explorer URL
   getExplorerUrl(txHash) {
-    // Adjust based on network (mainnet, sepolia, polygon, etc.)
     return `https://sepolia.etherscan.io/tx/${txHash}`;
   }
 }
