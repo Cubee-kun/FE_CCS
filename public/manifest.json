@@ -9,21 +9,40 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/cite.png",
+      "src": "/vite.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/cite.png",
+      "src": "/vite.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/vite.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/vite.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["environment", "conservation", "blockchain"],
   "lang": "id-ID",
   "dir": "ltr",
   "scope": "/",
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "/vite.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    }
+  ]
 }
