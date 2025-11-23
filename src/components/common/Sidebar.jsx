@@ -71,7 +71,7 @@ export default function Sidebar({ isUser = false, onClose }) {
             <h2 className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
               {isUser ? "User Panel" : "Admin Panel"}
             </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">CCS-System</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">3TREESIFY-System</p>
           </div>
         </div>
         <button
@@ -269,7 +269,7 @@ export default function Sidebar({ isUser = false, onClose }) {
       {/* Footer */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-800 text-center">
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          CCS-System v1.0
+          3TREESIFY v1.0
         </p>
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
           {isUser ? "User Access" : "Admin Access"}

@@ -1,6 +1,6 @@
 {
-  "name": "Sebumi CCS - Sistem Konservasi Berbasis Blockchain",
-  "short_name": "Sebumi CCS",
+  "name": "3TREESIFY CCS - Sistem Konservasi Berbasis Blockchain",
+  "short_name": "3TREESIFY CCS",
   "description": "Platform manajemen kegiatan konservasi lingkungan dengan verifikasi blockchain",
   "start_url": "/",
   "display": "standalone",
@@ -9,13 +9,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/images/icon.png",
+      "src": "/cite.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon.png",
+      "src": "/cite.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

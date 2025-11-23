@@ -82,7 +82,7 @@ export default function BlockchainDebug() {
                   <FiCode className="w-5 h-5 text-white" />
                 </motion.div>
                 <h3 className="font-bold text-white text-sm">
-                  Blockchain Debug
+                  3TREESIFY Blockchain Debug
                 </h3>
               </div>
 
