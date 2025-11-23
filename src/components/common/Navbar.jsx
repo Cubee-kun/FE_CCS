@@ -132,7 +132,8 @@ export default function Navbar({ isUser = false }) {
                     3TREESIFY
                   </motion.h1>
                   <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium leading-tight">
-                    CCS - System
+                    Traceability, Transparancy & Trust
+
                   </p>
                 </div>
               </div>
