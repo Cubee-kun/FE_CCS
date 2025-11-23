@@ -63,9 +63,9 @@ export default function Footer() {
               />
               <div>
                 <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent">
-                  CCS-System
+                  NexCube
                 </h3>
-                <p className="text-xs text-gray-500">Conservation System</p>
+                <p className="text-xs text-gray-500">CCS-System</p>
               </div>
             </div>
 

@@ -41,7 +41,7 @@ export default function DashboardLayout({ isUser = false }) {
             <FiMenu size={24} />
           </button>
           <h1 className="ml-4 text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-            CCS-System
+            3TREESIFY Admin
           </h1>
         </div>
 

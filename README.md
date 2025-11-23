@@ -1,4 +1,8 @@
-# 🚀 CCS System - Deployment Guide
+# 🌱 3TREESIFY CCS - Deployment Guide
+
+## 3TREESIFY Platform
+
+3TREESIFY adalah platform manajemen konservasi lingkungan berbasis blockchain untuk monitoring kegiatan penanaman mangrove dan transplantasi karang.
 
 ## Netlify Deployment
 
@@ -49,7 +53,7 @@ git push -u origin main
    - Go to Site settings > Environment variables
    - Add:
      - `VITE_API_URL`: Your API URL
-     - `VITE_APP_NAME`: CCS System
+     - `VITE_APP_NAME`: 3TREESIFY CCS
      - `VITE_APP_VERSION`: 1.0.0
 
 4. **Deploy!**

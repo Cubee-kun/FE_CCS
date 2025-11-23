@@ -1,4 +1,4 @@
-# 🔗 Blockchain Integration Setup
+# 🔗 3TREESIFY Blockchain Integration Setup
 
 ## Prerequisites
 
@@ -54,12 +54,7 @@
 - Immutable blockchain proof
 - Timestamped records
 
-✅ **Verification**
-- Verify document integrity
-- Check uploader address
-- Audit trail
-
-✅ **Security**
+✅ **3TREESIFY Security**
 - Cryptographic proof
 - Tamper-proof
 - Transparent

@@ -10,7 +10,9 @@ import "react-toastify/dist/ReactToastify.css";
 import "./assets/styles/index.css";
 import { BlockchainProvider } from "./contexts/BlockchainContext";
 import BlockchainDebug from "./components/BlockchainDebug";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
+// ✅ Komponen terpisah yang menggunakan useAuth - harus di dalam AuthProvider
 function AppContent() {
   const location = useLocation();
   const { isAuthenticated, loading } = useAuth();
@@ -64,13 +66,16 @@ function AppContent() {
   );
 }
 
+// ✅ Main App dengan proper provider nesting
 function App() {
   return (
-    <AuthProvider>
-      <BlockchainProvider>
-        <AppContent />
-      </BlockchainProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BlockchainProvider>
+          <AppContent />
+        </BlockchainProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

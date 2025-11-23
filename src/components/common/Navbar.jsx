@@ -5,7 +5,6 @@ import { useAuth } from "../../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../../contexts/ThemeContext";
 import LoadingSpinner from "./LoadingSpinner";
-import BlockchainStatus from '../BlockchainStatus';
 
 export default function Navbar({ isUser = false }) {
   const { user, isAuthenticated, logout } = useAuth();
@@ -87,7 +86,7 @@ export default function Navbar({ isUser = false }) {
       {/* Loading Spinner */}
       <LoadingSpinner show={navigating} message="Memuat halaman..." size="normal" />
 
-      {/* Main Header */}
+      {/* ✅ MAIN HEADER - ENLARGED */}
       <motion.header 
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           scrolled 
@@ -99,10 +98,11 @@ export default function Navbar({ isUser = false }) {
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo Section */}
+          {/* ✅ ENLARGED HEIGHT - dari h-16 menjadi h-20 */}
+          <div className="flex items-center justify-between h-20 md:h-24">
+            {/* Logo Section - LARGER */}
             <motion.div 
-              className="flex items-center space-x-3 group cursor-pointer"
+              className="flex items-center space-x-3 group cursor-pointer flex-shrink-0"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => handleNavigation("/")}
@@ -114,35 +114,37 @@ export default function Navbar({ isUser = false }) {
                     animate={{ scale: [1, 1.1, 1] }}
                     transition={{ duration: 3, repeat: Infinity }}
                   />
+                  {/* ✅ Logo size: dari h-12/w-12 menjadi h-16/w-16 */}
                   <motion.img
                     src="/images/icon.png"
                     alt="CCS-System Logo"
-                    className="h-12 w-12 md:h-14 md:w-14 relative z-10 object-contain drop-shadow-2xl"
+                    className="h-14 w-14 md:h-16 md:w-16 relative z-10 object-contain drop-shadow-2xl"
                     whileHover={{ rotate: [0, -10, 10, 0] }}
                     transition={{ duration: 0.5 }}
                   />
                 </div>
                 <div className="flex flex-col">
+                  {/* ✅ Text size: text-lg/md:text-xl menjadi text-xl/md:text-2xl */}
                   <motion.h1 
-                    className="text-lg md:text-xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent leading-tight"
+                    className="text-xl md:text-2xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent leading-tight"
                     whileHover={{ scale: 1.05 }}
                   >
-                    Sebumi
+                    3TREESIFY
                   </motion.h1>
-                  <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium leading-tight">
+                  <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium leading-tight">
                     CCS - System
                   </p>
                 </div>
               </div>
             </motion.div>
 
-            {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-2">
+            {/* Desktop Navigation - LARGER BUTTONS */}
+            <div className="hidden lg:flex items-center space-x-3">
               {navItems.map((item, index) => (
                 <motion.button
                   key={item.name}
                   onClick={() => handleNavigation(item.path)}
-                  className={`relative px-4 py-2 rounded-xl text-sm font-medium transition-all group ${
+                  className={`relative px-5 py-3 rounded-xl text-base font-semibold transition-all group ${
                     location.pathname === item.path
                       ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
                       : "text-gray-700 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400"
@@ -154,74 +156,75 @@ export default function Navbar({ isUser = false }) {
                   transition={{ delay: index * 0.1 }}
                 >
                   <div className="flex items-center space-x-2">
-                    <item.icon className="w-4 h-4" />
+                    <item.icon className="w-5 h-5" />
                     <span>{item.name}</span>
                   </div>
                   {location.pathname === item.path && (
                     <motion.div
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                      className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
                       layoutId="activeNav"
                     />
                   )}
                 </motion.button>
               ))}
 
+              {/* ✅ Verifikasi Button - LARGER */}
               <motion.button
                 onClick={() => handleNavigation("/verifikasi")}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all border border-emerald-200 dark:border-emerald-800"
+                className="flex items-center space-x-2 px-5 py-3 rounded-xl text-base font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all border-2 border-emerald-200 dark:border-emerald-800"
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <FiCheckCircle className="w-4 h-4" />
+                <FiCheckCircle className="w-5 h-5" />
                 <span>Verifikasi</span>
               </motion.button>
 
-              {/* ✅ Dashboard Button - Hanya untuk user yang sudah login */}
+              {/* Dashboard Button - LARGER */}
               {isAuthenticated && (
                 <motion.button
                   onClick={() => handleNavigation(user?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')}
-                  className="flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg"
+                  className="flex items-center space-x-2 px-6 py-3 rounded-xl text-base font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg"
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.2 }}
                 >
-                  <FiGrid className="w-4 h-4" />
+                  <FiGrid className="w-5 h-5" />
                   <span>Dashboard</span>
                 </motion.button>
               )}
             </div>
 
-            {/* ✅ Right Section - Login/Profile Button */}
+            {/* Right Section - LARGER BUTTONS */}
             <div className="flex items-center space-x-3">
               {isAuthenticated ? (
                 <>
                   {/* Theme Toggle - Hidden on mobile, shown on desktop */}
                   <motion.button
                     onClick={toggleTheme}
-                    className="hidden lg:block p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                    className="hidden lg:block p-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
                     whileHover={{ scale: 1.1, rotate: 180 }}
                     whileTap={{ scale: 0.9 }}
                   >
                     {theme === "dark" ? (
-                      <FiSun className="w-4 h-4 text-yellow-500" />
+                      <FiSun className="w-5 h-5 text-yellow-500" />
                     ) : (
-                      <FiMoon className="w-4 h-4 text-gray-600" />
+                      <FiMoon className="w-5 h-5 text-gray-600" />
                     )}
                   </motion.button>
 
-                  {/* ✅ Profile Button - Desktop */}
+                  {/* ✅ Profile Button - Desktop - LARGER */}
                   <div className="hidden lg:block relative" ref={dropdownRef}>
                     <motion.button
                       onClick={() => setDropdownOpen(!dropdownOpen)}
-                      className="flex items-center space-x-3 px-3 py-2 rounded-xl border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
+                      className="flex items-center space-x-3 px-4 py-2.5 rounded-xl border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
                       <div className="relative">
                         <motion.div 
-                          className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold shadow-lg"
+                          className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold shadow-lg text-base"
                           whileHover={{ scale: 1.1 }}
                           animate={{ 
                             boxShadow: dropdownOpen 
@@ -233,17 +236,17 @@ export default function Navbar({ isUser = false }) {
                         </motion.div>
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
                       </div>
-                      <div className="text-left">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate max-w-[100px]">
+                      <div className="text-left hidden sm:block">
+                        <p className="text-base font-bold text-gray-900 dark:text-gray-100 truncate max-w-[120px]">
                           {user?.username || user?.name || "User"}
                         </p>
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
                           {user?.role || "User"}
                         </p>
                       </div>
                     </motion.button>
                     
-                    {/* Enhanced Dropdown */}
+                    {/* Dropdown Menu */}
                     <AnimatePresence>
                       {dropdownOpen && (
                         <motion.div
@@ -251,7 +254,7 @@ export default function Navbar({ isUser = false }) {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -10, scale: 0.95 }}
                           transition={{ duration: 0.2, ease: "easeOut" }}
-                          className="absolute right-0 top-full mt-3 w-72 bg-white dark:bg-gray-900 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden"
+                          className="absolute right-0 top-full mt-3 w-80 bg-white dark:bg-gray-900 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden"
                         >
                           {/* Header */}
                           <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-b border-gray-200/50 dark:border-gray-700/50">
@@ -308,38 +311,38 @@ export default function Navbar({ isUser = false }) {
                 </>
               ) : (
                 <>
-                  {/* ✅ Login Button - With green border */}
+                  {/* Login Button - LARGER */}
                   <motion.button
                     onClick={() => handleNavigation("/login")}
-                    className="hidden lg:flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-emerald-600 dark:text-emerald-400 bg-white dark:bg-gray-900 border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
+                    className="hidden lg:flex items-center space-x-2 px-6 py-3 rounded-xl text-base font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-gray-900 border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                   >
-                    <FiUser className="w-4 h-4" />
+                    <FiUser className="w-5 h-5" />
                     <span>Masuk</span>
                   </motion.button>
 
                   {/* Theme Toggle - Mobile only */}
                   <motion.button
                     onClick={toggleTheme}
-                    className="lg:hidden p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                    className="lg:hidden p-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
                     whileHover={{ scale: 1.1, rotate: 180 }}
                     whileTap={{ scale: 0.9 }}
                   >
                     {theme === "dark" ? (
-                      <FiSun className="w-4 h-4 text-yellow-500" />
+                      <FiSun className="w-5 h-5 text-yellow-500" />
                     ) : (
-                      <FiMoon className="w-4 h-4 text-gray-600" />
+                      <FiMoon className="w-5 h-5 text-gray-600" />
                     )}
                   </motion.button>
                 </>
               )}
 
-              {/* Mobile Menu Button */}
+              {/* ✅ Mobile Menu Button - LARGER */}
               <motion.button 
-                className="lg:hidden p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all border border-emerald-200 dark:border-emerald-800"
+                className="lg:hidden p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all border-2 border-emerald-200 dark:border-emerald-800"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
@@ -353,7 +356,7 @@ export default function Navbar({ isUser = false }) {
                       exit={{ rotate: 90, opacity: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <FiX className="w-5 h-5 text-emerald-600" />
+                      <FiX className="w-6 h-6 text-emerald-600" />
                     </motion.div>
                   ) : (
                     <motion.div
@@ -363,7 +366,7 @@ export default function Navbar({ isUser = false }) {
                       exit={{ rotate: -90, opacity: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <FiMenu className="w-5 h-5 text-emerald-600" />
+                      <FiMenu className="w-6 h-6 text-emerald-600" />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -373,7 +376,7 @@ export default function Navbar({ isUser = false }) {
         </div>
       </motion.header>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - LARGER BUTTONS */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
@@ -387,7 +390,7 @@ export default function Navbar({ isUser = false }) {
               onClick={() => setMobileMenuOpen(false)}
             />
             
-            {/* Slide-in Menu Panel */}
+            {/* ✅ Slide-in Menu Panel - LARGER */}
             <motion.div
               className="lg:hidden fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-gradient-to-b from-white via-white to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-950 shadow-2xl overflow-hidden"
               initial={{ x: "100%" }}
@@ -395,22 +398,22 @@ export default function Navbar({ isUser = false }) {
               exit={{ x: "100%" }}
               transition={{ duration: 0.25, ease: "easeOut" }}
             >
-              {/* Header */}
-              <div className="relative bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-8">
+              {/* Header - LARGER */}
+              <div className="relative bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-6 py-10">
                 <div className="relative z-10 flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold text-white mb-1">Menu</h2>
-                    <p className="text-emerald-100 text-sm">Navigasi Cepat</p>
+                    <h2 className="text-3xl font-bold text-white mb-1">Menu</h2>
+                    <p className="text-emerald-100 text-base">Navigasi Cepat</p>
                   </div>
                   <button
                     onClick={() => setMobileMenuOpen(false)}
-                    className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-sm"
+                    className="p-3 rounded-xl bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-sm"
                   >
-                    <FiX className="w-6 h-6 text-white" />
+                    <FiX className="w-7 h-7 text-white" />
                   </button>
                 </div>
 
-                {/* User Info - Simplified animation */}
+                {/* User Info - LARGER */}
                 {isAuthenticated && (
                   <motion.div 
                     className="relative z-10 mt-6 p-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20"
@@ -418,22 +421,22 @@ export default function Navbar({ isUser = false }) {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.1, duration: 0.2 }}
                   >
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-4">
                       <div className="relative">
-                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-white to-emerald-100 flex items-center justify-center text-emerald-600 text-xl font-bold shadow-lg">
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-white to-emerald-100 flex items-center justify-center text-emerald-600 text-2xl font-bold shadow-lg">
                           {(user?.username || user?.name || "U")[0].toUpperCase()}
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white"></div>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-white text-lg truncate">
                           {user?.username || user?.name || "User"}
                         </p>
-                        <p className="text-emerald-100 text-xs truncate">
+                        <p className="text-emerald-100 text-sm truncate">
                           {user?.email || "user@example.com"}
                         </p>
-                        <div className="flex items-center mt-1">
-                          <span className="px-2 py-0.5 bg-emerald-400/30 text-emerald-100 text-xs font-semibold rounded-full">
+                        <div className="flex items-center mt-2">
+                          <span className="px-3 py-1 bg-emerald-400/30 text-emerald-100 text-xs font-bold rounded-full">
                             {user?.role || "User"}
                           </span>
                         </div>
@@ -443,38 +446,38 @@ export default function Navbar({ isUser = false }) {
                 )}
               </div>
 
-              {/* Scrollable Menu Content */}
-              <div className="overflow-y-auto h-[calc(100vh-200px)] px-6 py-6 space-y-3">
+              {/* Scrollable Menu Content - LARGER BUTTONS */}
+              <div className="overflow-y-auto h-[calc(100vh-280px)] px-6 py-6 space-y-4">
                 {!isAuthenticated ? (
                   <>
-                    {/* Navigation Items untuk Guest */}
-                    <div className="space-y-2">
+                    {/* Navigation Items */}
+                    <div className="space-y-3">
                       {navItems.map((item, index) => (
                         <motion.button
                           key={item.name}
                           onClick={() => handleNavigation(item.path)}
-                          className={`flex items-center justify-between w-full p-4 rounded-xl transition-colors ${
+                          className={`flex items-center justify-between w-full p-4 rounded-xl text-base font-bold transition-colors ${
                             location.pathname === item.path
-                              ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-200 dark:border-emerald-800'
-                              : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                              ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border-2 border-emerald-200 dark:border-emerald-800'
+                              : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-2 border-gray-200 dark:border-gray-700'
                           }`}
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.05, duration: 0.2 }}
                         >
                           <div className="flex items-center space-x-3">
-                            <div className={`p-2 rounded-lg ${
+                            <div className={`p-3 rounded-lg ${
                               location.pathname === item.path
                                 ? 'bg-emerald-100 dark:bg-emerald-900/50'
                                 : 'bg-gray-100 dark:bg-gray-700'
                             }`}>
-                              <item.icon className={`w-5 h-5 ${
+                              <item.icon className={`w-6 h-6 ${
                                 location.pathname === item.path
                                   ? 'text-emerald-600 dark:text-emerald-400'
                                   : 'text-gray-600 dark:text-gray-400'
                               }`} />
                             </div>
-                            <span className={`font-semibold ${
+                            <span className={`font-bold ${
                               location.pathname === item.path
                                 ? 'text-emerald-700 dark:text-emerald-300'
                                 : 'text-gray-700 dark:text-gray-200'
@@ -482,7 +485,7 @@ export default function Navbar({ isUser = false }) {
                               {item.name}
                             </span>
                           </div>
-                          <FiChevronRight className={`w-5 h-5 ${
+                          <FiChevronRight className={`w-6 h-6 ${
                             location.pathname === item.path
                               ? 'text-emerald-600 dark:text-emerald-400'
                               : 'text-gray-400'
@@ -491,19 +494,19 @@ export default function Navbar({ isUser = false }) {
                       ))}
                     </div>
 
-                    {/* Action Buttons */}
+                    {/* Action Buttons - LARGER */}
                     <div className="pt-4 space-y-3">
                       <button
                         onClick={() => handleNavigation("/verifikasi")}
-                        className="w-full p-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl font-semibold shadow-lg transition-all flex items-center justify-center gap-2"
+                        className="w-full p-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl font-bold text-base shadow-lg transition-all flex items-center justify-center gap-3"
                       >
-                        <FiCheckCircle className="w-5 h-5" />
+                        <FiCheckCircle className="w-6 h-6" />
                         <span>Verifikasi QR Code</span>
                       </button>
                       
                       <button
                         onClick={() => handleNavigation("/login")}
-                        className="w-full p-4 bg-white dark:bg-gray-800 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 rounded-xl font-semibold hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+                        className="w-full p-4 bg-white dark:bg-gray-800 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 rounded-xl font-bold text-base hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
                       >
                         Masuk ke Akun
                       </button>
@@ -511,51 +514,51 @@ export default function Navbar({ isUser = false }) {
                   </>
                 ) : (
                   <>
-                    {/* Navigation untuk Authenticated User */}
-                    <div className="space-y-2">
-                      {/* ✅ Dashboard Button - Top Priority untuk Authenticated User */}
+                    {/* Navigation untuk Authenticated - LARGER */}
+                    <div className="space-y-3">
+                      {/* Dashboard Button */}
                       <motion.button
                         onClick={() => handleNavigation(user?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')}
-                        className="flex items-center justify-between w-full p-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg transition-all"
+                        className="flex items-center justify-between w-full p-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg transition-all text-base font-bold"
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.05 }}
                       >
                         <div className="flex items-center space-x-3">
-                          <div className="p-2 rounded-lg bg-white/20">
-                            <FiGrid className="w-5 h-5 text-white" />
+                          <div className="p-3 rounded-lg bg-white/20">
+                            <FiGrid className="w-6 h-6 text-white" />
                           </div>
-                          <span className="font-semibold text-white">Dashboard</span>
+                          <span className="font-bold text-base">Dashboard</span>
                         </div>
-                        <FiChevronRight className="w-5 h-5 text-white/80" />
+                        <FiChevronRight className="w-6 h-6 text-white/80" />
                       </motion.button>
 
                       {navItems.map((item, index) => (
                         <motion.button
                           key={item.name}
                           onClick={() => handleNavigation(item.path)}
-                          className={`flex items-center justify-between w-full p-4 rounded-xl transition-colors ${
+                          className={`flex items-center justify-between w-full p-4 rounded-xl text-base font-bold transition-colors ${
                             location.pathname === item.path
-                              ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-200 dark:border-emerald-800'
-                              : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                              ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border-2 border-emerald-200 dark:border-emerald-800'
+                              : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-2 border-gray-200 dark:border-gray-700'
                           }`}
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.05, duration: 0.2 }}
                         >
                           <div className="flex items-center space-x-3">
-                            <div className={`p-2 rounded-lg ${
+                            <div className={`p-3 rounded-lg ${
                               location.pathname === item.path
                                 ? 'bg-emerald-100 dark:bg-emerald-900/50'
                                 : 'bg-gray-100 dark:bg-gray-700'
                             }`}>
-                              <item.icon className={`w-5 h-5 ${
+                              <item.icon className={`w-6 h-6 ${
                                 location.pathname === item.path
                                   ? 'text-emerald-600 dark:text-emerald-400'
                                   : 'text-gray-600 dark:text-gray-400'
                               }`} />
                             </div>
-                            <span className={`font-semibold ${
+                            <span className={`font-bold ${
                               location.pathname === item.path
                                 ? 'text-emerald-700 dark:text-emerald-300'
                                 : 'text-gray-700 dark:text-gray-200'
@@ -563,7 +566,7 @@ export default function Navbar({ isUser = false }) {
                               {item.name}
                             </span>
                           </div>
-                          <FiChevronRight className={`w-5 h-5 ${
+                          <FiChevronRight className={`w-6 h-6 ${
                             location.pathname === item.path
                               ? 'text-emerald-600 dark:text-emerald-400'
                               : 'text-gray-400'
@@ -574,37 +577,37 @@ export default function Navbar({ isUser = false }) {
                       {/* Verifikasi Button */}
                       <button
                         onClick={() => handleNavigation("/verifikasi")}
-                        className="flex items-center justify-between w-full p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-200 dark:border-emerald-800 hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/50 dark:hover:to-teal-900/50 transition-colors"
+                        className="flex items-center justify-between w-full p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border-2 border-emerald-200 dark:border-emerald-800 hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/50 dark:hover:to-teal-900/50 transition-colors text-base font-bold"
                       >
                         <div className="flex items-center space-x-3">
-                          <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50">
-                            <FiCheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                          <div className="p-3 rounded-lg bg-emerald-100 dark:bg-emerald-900/50">
+                            <FiCheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                           </div>
-                          <span className="font-semibold text-emerald-700 dark:text-emerald-300">Verifikasi</span>
+                          <span className="text-emerald-700 dark:text-emerald-300">Verifikasi</span>
                         </div>
-                        <FiChevronRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        <FiChevronRight className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                       </button>
                     </div>
 
-                    {/* Settings & Theme */}
-                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                    {/* Settings & Theme - LARGER */}
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
                       <button
                         onClick={toggleTheme}
-                        className="flex items-center justify-between w-full p-4 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-colors"
+                        className="flex items-center justify-between w-full p-4 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-2 border-gray-200 dark:border-gray-700 transition-colors text-base font-bold"
                       >
                         <div className="flex items-center space-x-3">
-                          <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700">
+                          <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700">
                             {theme === "dark" ? (
-                              <FiSun className="w-5 h-5 text-yellow-500" />
+                              <FiSun className="w-6 h-6 text-yellow-500" />
                             ) : (
-                              <FiMoon className="w-5 h-5 text-gray-600" />
+                              <FiMoon className="w-6 h-6 text-gray-600" />
                             )}
                           </div>
-                          <span className="font-semibold text-gray-700 dark:text-gray-200">
+                          <span className="text-gray-700 dark:text-gray-200">
                             {theme === "dark" ? "Mode Terang" : "Mode Gelap"}
                           </span>
                         </div>
-                        <FiChevronRight className="w-5 h-5 text-gray-400" />
+                        <FiChevronRight className="w-6 h-6 text-gray-400" />
                       </button>
 
                       <button
@@ -612,25 +615,25 @@ export default function Navbar({ isUser = false }) {
                           navigate(user?.role === "admin" ? "/admin/settings" : "/user/settings");
                           setMobileMenuOpen(false);
                         }}
-                        className="flex items-center justify-between w-full p-4 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-colors"
+                        className="flex items-center justify-between w-full p-4 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-2 border-gray-200 dark:border-gray-700 transition-colors text-base font-bold"
                       >
                         <div className="flex items-center space-x-3">
-                          <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700">
-                            <FiSettings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                          <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700">
+                            <FiSettings className="w-6 h-6 text-gray-600 dark:text-gray-400" />
                           </div>
-                          <span className="font-semibold text-gray-700 dark:text-gray-200">Pengaturan</span>
+                          <span className="text-gray-700 dark:text-gray-200">Pengaturan</span>
                         </div>
-                        <FiChevronRight className="w-5 h-5 text-gray-400" />
+                        <FiChevronRight className="w-6 h-6 text-gray-400" />
                       </button>
                     </div>
 
-                    {/* Logout Button */}
+                    {/* Logout Button - LARGER */}
                     <div className="pt-4">
                       <button
                         onClick={handleLogout}
-                        className="flex items-center justify-center w-full p-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-semibold shadow-lg transition-colors"
+                        className="flex items-center justify-center w-full p-4 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-bold text-base shadow-lg transition-colors"
                       >
-                        <FiLogOut className="w-5 h-5 mr-2" />
+                        <FiLogOut className="w-6 h-6 mr-3" />
                         <span>Keluar dari Akun</span>
                       </button>
                     </div>
@@ -638,12 +641,12 @@ export default function Navbar({ isUser = false }) {
                 )}
               </div>
 
-              {/* Footer */}
+              {/* Footer - LARGER */}
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-gray-100 via-white to-transparent dark:from-gray-900 dark:via-gray-900 dark:to-transparent border-t border-gray-200 dark:border-gray-800">
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
                     <span>Powered by</span>
-                    <span className="font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Sebumi</span>
+                    <span className="font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">3TREESIFY</span>
                   </p>
                 </div>
               </div>

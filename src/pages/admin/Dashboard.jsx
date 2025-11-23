@@ -226,7 +226,7 @@ export default function Dashboard() {
               {/* Welcome Section */}
               <div className="flex items-center gap-4">
                 <motion.div
-                  className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-xl shadow-emerald-500/20 p-2"
+                  className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-gray-200 to-white-600 flex items-center justify-center shadow-xl shadow-emerald-500/20 p-2"
                   whileHover={{ scale: 1.05, rotate: 5 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >

@@ -17,8 +17,15 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // Log request untuk debugging
-    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, config.data);
+    
+    // ✅ Enhanced logging untuk debug login
+    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, {
+      url: `${config.baseURL}${config.url}`,
+      method: config.method?.toUpperCase(),
+      headers: config.headers,
+      data: config.data ? JSON.parse(JSON.stringify(config.data)) : null,
+    });
+    
     return config;
   },
   (error) => Promise.reject(error)
@@ -27,46 +34,49 @@ api.interceptors.request.use(
 // Interceptor untuk menangani error response
 api.interceptors.response.use(
   (response) => {
-    console.log(`[API Response] ${response.config.url}`, response.data);
+    console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, {
+      status: response.status,
+      data: response.data
+    });
     return response;
   },
   (error) => {
     if (error.response) {
-      const { status, data, config } = error.response;
-      console.error(`[API Error ${status}] ${config.method?.toUpperCase()} ${config.url}`, data);
+      const { status, data, config, statusText } = error.response;
       
-      // ✅ Handle device conflict (409)
-      if (status === 409 && data?.code === 'DEVICE_CONFLICT') {
-        console.warn('[API] Device conflict detected - account already logged in elsewhere');
-        // Don't auto-redirect, let the login page handle it
-        return Promise.reject(error);
+      // ✅ Enhanced 401 debugging
+      console.error(`[API Error ${status}] ${config.method?.toUpperCase()} ${config.url}`, {
+        status,
+        statusText,
+        response: data,
+        requestData: config.data ? JSON.parse(config.data) : null,
+        errorMessage: data?.error || data?.message || statusText,
+      });
+
+      // Handle 401 Unauthorized
+      if (status === 401) {
+        const isLoginPage = window.location.pathname === '/login' || 
+                           window.location.pathname === '/register' ||
+                           window.location.pathname === '/';
+        
+        // ✅ Hanya logout jika bukan login page dan ada token
+        if (!isLoginPage && localStorage.getItem('token')) {
+          console.warn('[API] Token invalid (401) - clearing auth');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.replace('/login');
+        }
       }
       
       if (status === 405) {
-        console.error('Method Not Allowed. Check if backend endpoint supports this HTTP method.');
-      }
-      
-      if (status === 401) {
-        // ✅ Only clear auth if not device conflict
-        if (data?.code !== 'DEVICE_CONFLICT') {
-          console.warn('[API] Unauthorized (401) - clearing token and user data');
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          
-          // ✅ Prevent redirect loop - only redirect if not already on login page
-          const isLoginPage = window.location.pathname === '/login' || 
-                             window.location.pathname === '/register' ||
-                             window.location.pathname === '/';
-          
-          if (!isLoginPage) {
-            console.log('[API] Redirecting to login page...');
-            // Use replace to prevent back button issues
-            window.location.replace('/login');
-          }
-        }
+        console.error('[API] Method Not Allowed (405) - endpoint may not exist');
       }
     } else if (error.request) {
-      console.error('[API Error] No response received', error.request);
+      console.error('[API Error] No response:', {
+        request: error.request,
+        message: error.message,
+        url: error.config?.url,
+      });
     } else {
       console.error('[API Error]', error.message);
     }

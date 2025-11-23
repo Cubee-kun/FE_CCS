@@ -28,36 +28,40 @@ export default function Login() {
     setDeviceConflict(false);
     setLoading(true);
 
+    console.log('[Login] Attempting login with email:', credentials.email);
+
     const result = await login(credentials);
 
     setLoading(false);
 
     if (!result.success) {
-      // ✅ Cek apakah error karena device conflict
-      if (result.code === 'DEVICE_CONFLICT' || result.message?.includes('sudah login') || result.message?.includes('perangkat lain')) {
+      // ✅ Device conflict
+      if (result.code === 'DEVICE_CONFLICT') {
         setDeviceConflict(true);
-        setSessionInfo(result.sessionInfo || {
-          lastDevice: 'Perangkat lain',
-          lastLogin: 'Baru saja',
-          ipAddress: 'Unknown'
-        });
-        setError(result.message || "Akun ini sudah login di perangkat lain");
-      } else {
-        setError(result.message || "Login gagal");
+        setSessionInfo(result.sessionInfo || {});
+        setError(result.message);
+      }
+      // ✅ Invalid credentials
+      else if (result.code === 'INVALID_CREDENTIALS') {
+        setError(result.message);
+        console.warn('[Login] Invalid credentials - please check email and password');
+      }
+      // ✅ Other errors
+      else {
+        setError(result.message);
+        console.error('[Login] Login error:', result.message);
       }
     } else {
+      // ✅ Login berhasil
       localStorage.setItem("user", JSON.stringify(result.data.user));
+      console.log('[Login] ✅ Login successful');
 
-      // ✅ Redirect to intended page or default dashboard
       if (from && from !== '/login') {
-        console.log('[Login] Redirecting to intended page:', from);
         navigate(from, { replace: true });
       } else if (result.data.user.role === "admin") {
         navigate("/admin/dashboard", { replace: true });
       } else if (result.data.user.role === "user") {
         navigate("/user/dashboard", { replace: true });
-      } else {
-        navigate("/", { replace: true });
       }
     }
   };
