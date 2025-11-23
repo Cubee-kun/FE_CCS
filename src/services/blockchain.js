@@ -9,11 +9,13 @@ const CONTRACT_ABI = [
   "event DocumentStored(uint256 indexed docId, string docType, string docHash, address indexed uploader, uint256 timestamp)"
 ];
 
-// ✅ Contract Address (Deploy your smart contract and paste address here)
-const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000";
+// ✅ Contract Address dari environment
+const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || "";
 
-// ✅ Wallet privat key dan RPC URL dari environment
+// ✅ Private Key dari environment - PENTING: Harus ada!
 const PRIVATE_KEY = import.meta.env.VITE_PRIVATE_KEY || "";
+
+// ✅ RPC URL dari environment
 const RPC_URL = import.meta.env.VITE_SEPOLIA_URL || "https://ethereum-sepolia-rpc.publicnode.com";
 
 class BlockchainService {
@@ -25,7 +27,7 @@ class BlockchainService {
     this.isReady = false;
   }
 
-  // ✅ Initialize blockchain service (dipanggil sekali saat app start)
+  // ✅ Initialize blockchain service
   async initialize() {
     try {
       if (this.isReady) {
@@ -33,34 +35,69 @@ class BlockchainService {
         return true;
       }
 
-      // Check contract address
-      if (CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000") {
-        console.error('[Blockchain] Contract address not configured');
+      // ✅ STEP 1: Validasi Contract Address
+      if (!CONTRACT_ADDRESS || CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000") {
+        console.error('[Blockchain] ❌ CONFIGURATION ERROR:', {
+          issue: 'Contract address not configured',
+          VITE_CONTRACT_ADDRESS: import.meta.env.VITE_CONTRACT_ADDRESS,
+          solution: 'Paste deployed contract address di .env VITE_CONTRACT_ADDRESS',
+          steps: [
+            '1. Deploy contract ke Remix (https://remix.ethereum.org)',
+            '2. Copy contract address setelah deploy',
+            '3. Paste ke .env file sebagai VITE_CONTRACT_ADDRESS',
+            '4. Restart dev server (Ctrl+C then npm run dev)'
+          ]
+        });
         return false;
       }
 
-      // Check private key
-      if (!PRIVATE_KEY) {
-        console.error('[Blockchain] Private key not configured');
+      // ✅ STEP 2: Validasi Private Key - INI YANG ERROR ANDA
+      if (!PRIVATE_KEY || PRIVATE_KEY.trim() === "") {
+        console.error('[Blockchain] ❌ CONFIGURATION ERROR:', {
+          issue: 'Private key not configured',
+          VITE_PRIVATE_KEY: import.meta.env.VITE_PRIVATE_KEY || '(not set)',
+          solution: 'Tambahkan private key Anda ke .env VITE_PRIVATE_KEY',
+          steps: [
+            '1. Buka MetaMask di browser',
+            '2. Klik Account menu (3 titik di kanan atas)',
+            '3. Pilih "Account details"',
+            '4. Klik "Show private key"',
+            '5. Masukkan password MetaMask Anda',
+            '6. Copy private key (tanpa 0x di depan)',
+            '7. Paste ke .env sebagai VITE_PRIVATE_KEY=...',
+            '8. Restart dev server'
+          ],
+          warning: '⚠️ JANGAN pernah share private key ke siapapun!',
+          security: 'Private key memberikan akses penuh ke wallet Anda'
+        });
         return false;
       }
 
-      // Create provider
+      // ✅ STEP 3: Validasi RPC URL
+      if (!RPC_URL) {
+        console.error('[Blockchain] ❌ RPC URL not configured');
+        return false;
+      }
+
+      // ✅ Create provider dengan RPC URL
       this.provider = new ethers.JsonRpcProvider(RPC_URL);
+      console.log('[Blockchain] ✅ Provider created');
 
-      // Create wallet dari private key
+      // ✅ Create wallet dari private key
       const wallet = new ethers.Wallet(PRIVATE_KEY, this.provider);
       this.signer = wallet;
       this.walletAddress = wallet.address;
+      console.log('[Blockchain] ✅ Wallet created from private key');
 
-      // Connect to contract
+      // ✅ Connect to contract
       this.contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+      console.log('[Blockchain] ✅ Contract connected');
 
-      // Test connection
+      // ✅ Test connection
       const network = await this.provider.getNetwork();
       const balance = await this.provider.getBalance(this.walletAddress);
 
-      console.log('[Blockchain] Service initialized:', {
+      console.log('[Blockchain] ✅ Service initialized successfully:', {
         address: this.walletAddress,
         network: network.name,
         chainId: network.chainId,
@@ -71,7 +108,8 @@ class BlockchainService {
       this.isReady = true;
       return true;
     } catch (error) {
-      console.error('[Blockchain] Initialization error:', error);
+      console.error('[Blockchain] ❌ Initialization error:', error.message);
+      console.error('[Blockchain] Full error:', error);
       this.isReady = false;
       return false;
     }

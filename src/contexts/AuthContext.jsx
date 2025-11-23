@@ -138,6 +138,15 @@ export const AuthProvider = ({ children }) => {
   // Fungsi login
   const login = async (credentials) => {
     try {
+      // ✅ Validate input
+      if (!credentials.email || !credentials.password) {
+        console.warn('[AuthContext] Missing email or password');
+        return {
+          success: false,
+          message: "Email dan password harus diisi"
+        };
+      }
+
       const deviceInfo = {
         userAgent: navigator.userAgent,
         platform: navigator.platform,
@@ -146,56 +155,78 @@ export const AuthProvider = ({ children }) => {
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       };
 
-      const response = await api.post("/login", {
-        ...credentials,
+      const requestPayload = {
+        email: credentials.email.trim(),
+        password: credentials.password,
         deviceInfo,
         forceLogout: credentials.forceLogout || false,
+      };
+
+      console.log('[AuthContext] Attempting login with:', {
+        email: requestPayload.email,
+        apiUrl: import.meta.env.VITE_API_URL,
+        endpoint: '/login'
       });
+
+      const response = await api.post("/login", requestPayload);
 
       const token = response.data?.access_token;
       const userData = response.data?.user;
 
-      if (!token) throw new Error("Token tidak ditemukan di response.");
+      if (!token) {
+        throw new Error("Token tidak ditemukan di response.");
+      }
 
-      // ✅ Save both token and user data
+      // ✅ Save token and user
       localStorage.setItem("token", token);
       const decoded = jwtDecode(token);
       const mergedUser = { ...decoded, ...(userData || {}) };
       
-      // ✅ Persist user data for page refresh
       localStorage.setItem("user", JSON.stringify(mergedUser));
       
       setUser(mergedUser);
       setIsAuthenticated(true);
       setRefreshTimer(token);
 
-      console.log('[AuthContext] Login successful, session saved:', mergedUser);
+      console.log('[AuthContext] ✅ Login successful:', {
+        username: mergedUser.username || mergedUser.email,
+        role: mergedUser.role
+      });
 
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('[AuthContext] Login error:', error);
-      
-      // ✅ Handle device conflict error
+      console.error('[AuthContext] ❌ Login failed:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        message: error.response?.data?.message || error.response?.data?.error || error.message,
+        endpoint: error.config?.url,
+        method: error.config?.method,
+      });
+
+      // ✅ Handle device conflict
       if (error.response?.status === 409 || error.response?.data?.code === 'DEVICE_CONFLICT') {
         return {
           success: false,
           code: 'DEVICE_CONFLICT',
           message: error.response?.data?.message || "Akun sudah login di perangkat lain",
-          sessionInfo: error.response?.data?.sessionInfo || {
-            lastDevice: error.response?.data?.lastDevice || 'Perangkat lain',
-            lastLogin: error.response?.data?.lastLogin || 'Baru saja',
-            ipAddress: error.response?.data?.ipAddress || 'Unknown',
-          }
+          sessionInfo: error.response?.data?.sessionInfo
+        };
+      }
+
+      // ✅ Handle 401 Unauthorized
+      if (error.response?.status === 401) {
+        return {
+          success: false,
+          message: "Email atau password salah. Silakan coba lagi.",
+          code: 'INVALID_CREDENTIALS'
         };
       }
 
       return {
         success: false,
-        message:
-          error.response?.data?.error ||
-          error.response?.data?.message ||
-          error.message ||
-          "Login gagal",
+        message: error.response?.data?.message || 
+                 error.response?.data?.error || 
+                 "Login gagal. Silakan coba lagi."
       };
     }
   };
