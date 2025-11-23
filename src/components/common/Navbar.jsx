@@ -127,7 +127,7 @@ export default function Navbar({ isUser = false }) {
                     className="text-lg md:text-xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent leading-tight"
                     whileHover={{ scale: 1.05 }}
                   >
-                    Sebumi
+                    NexCube
                   </motion.h1>
                   <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium leading-tight">
                     CCS - System
