@@ -35,28 +35,35 @@ import Settings from "../pages/settings/Settings";
 import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../contexts/AuthContext";
 
-function VerifikasiWrapper() {
+// ✅ Smart Verifikasi Router - Route berdasarkan status autentikasi
+function VerifikasiRouter() {
   const { isAuthenticated, user } = useAuth();
 
-  if (!isAuthenticated) {
-    // Public verifikasi page (tanpa layout)
-    return <Verifikasi />;
+  if (isAuthenticated) {
+    // ✅ User sudah login - arahkan ke role-specific verifikasi
+    if (user?.role === "admin") {
+      return (
+        <ProtectedRoute role="admin">
+          <DashboardLayout>
+            <Verifikasi />
+          </DashboardLayout>
+        </ProtectedRoute>
+      );
+    }
+
+    if (user?.role === "user") {
+      return (
+        <ProtectedRoute role="user">
+          <UserLayout>
+            <Verifikasi />
+          </UserLayout>
+        </ProtectedRoute>
+      );
+    }
   }
 
-  // Authenticated verifikasi dengan layout sesuai role
-  if (user?.role === "admin") {
-    return (
-      <DashboardLayout>
-        <Verifikasi />
-      </DashboardLayout>
-    );
-  }
-
-  return (
-    <UserLayout>
-      <Verifikasi />
-    </UserLayout>
-  );
+  // ✅ Public - tanpa layout dan authentication
+  return <Verifikasi />;
 }
 
 export default function AppRoutes() {
@@ -69,8 +76,8 @@ export default function AppRoutes() {
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
       
-      {/* Verifikasi - Public (untuk user yang belum login) */}
-      <Route path="/verifikasi" element={<VerifikasiWrapper />} />
+      {/* ✅ Smart Verifikasi Route - berdasarkan autentikasi */}
+      <Route path="/verifikasi" element={<VerifikasiRouter />} />
 
       {/* Admin - Full Access */}
       <Route

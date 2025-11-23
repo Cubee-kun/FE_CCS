@@ -1,346 +1,237 @@
-import { useState } from 'react';
-import { useBlockchain } from '../contexts/BlockchainContext';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiCode, FiCheckCircle, FiX, FiMinimize2, FiMaximize2, FiWifi, FiWifiOff, FiAlertCircle } from 'react-icons/fi';
+import { FiChevronDown, FiX, FiRefreshCw, FiWifi, FiWifiOff, FiCheck, FiAlertCircle } from 'react-icons/fi';
+import { useBlockchain } from '../contexts/BlockchainContext';
 
 export default function BlockchainDebug() {
-  const { isReady, walletAddress, walletStatus, loading } = useBlockchain();
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
-  const [debugInfo, setDebugInfo] = useState(null);
-  const [testing, setTesting] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [diagnostics, setDiagnostics] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const { isReady, error, contract } = useBlockchain();
 
+  // ✅ Run diagnostics
   const runDiagnostics = async () => {
-    setTesting(true);
-    const info = {
-      blockchainReady: isReady,
-      walletAddress: walletAddress,
-      walletStatus: walletStatus,
-      timestamp: new Date().toISOString(),
-      network: walletStatus?.network || 'Unknown',
-      chainId: walletStatus?.chainId || 'N/A',
-      balance: walletStatus?.balance || '0'
-    };
+    setLoading(true);
+    try {
+      const results = {
+        timestamp: new Date().toISOString(),
+        blockchain: {
+          isReady,
+          error: error || 'No errors',
+          contractExists: !!contract,
+          contractAddress: contract?.address || 'N/A',
+        },
+        environment: {
+          rpcUrl: import.meta.env.VITE_SEPOLIA_URL ? '✅ Configured' : '❌ Missing',
+          contractAddress: import.meta.env.VITE_CONTRACT_ADDRESS ? '✅ Configured' : '❌ Missing',
+          privateKey: import.meta.env.VITE_PRIVATE_KEY ? '✅ Configured' : '❌ Missing',
+        },
+        connection: {
+          web3Available: typeof window.web3 !== 'undefined' ? '✅ Yes' : '❌ No',
+          ethersAvailable: typeof window.ethers !== 'undefined' ? '✅ Yes' : '❌ No',
+        },
+      };
 
-    setDebugInfo(info);
-    setTesting(false);
+      setDiagnostics(results);
+      console.log('[BlockchainDebug] Diagnostics:', results);
+    } catch (err) {
+      console.error('[BlockchainDebug] Diagnostics error:', err);
+      setDiagnostics({
+        timestamp: new Date().toISOString(),
+        error: err.message,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!isVisible) {
-    return (
-      <motion.button
-        onClick={() => setIsVisible(true)}
-        className="fixed bottom-4 right-4 p-3 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full shadow-xl z-40 group"
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        title="Show Blockchain Debug Panel"
-      >
-        <motion.div
-          animate={{ rotate: [0, 360] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        >
-          <FiCode className="w-5 h-5" />
-        </motion.div>
-        {/* Tooltip */}
-        <motion.div
-          className="absolute bottom-full mb-3 right-0 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none"
-          initial={{ opacity: 0, y: 5 }}
-          whileHover={{ opacity: 1, y: 0 }}
-        >
-          Show Debug Panel
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 -translate-y-1 w-2 h-2 bg-gray-900 rotate-45"></div>
-        </motion.div>
-      </motion.button>
-    );
-  }
+  // ✅ Auto-run diagnostics on mount
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      runDiagnostics();
+    }
+  }, []);
+
+  // ✅ Auto-update status
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setInterval(runDiagnostics, 5000);
+      return () => clearInterval(timer);
+    }
+  }, [isOpen]);
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed bottom-4 right-4 z-50"
-        initial={{ opacity: 0, y: 50, scale: 0.9 }}
-        animate={{ 
-          opacity: 1, 
-          y: 0, 
-          scale: 1,
-          width: isMinimized ? '280px' : '420px'
-        }}
-        exit={{ opacity: 0, y: 50, scale: 0.9 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+    <>
+      {/* ✅ Floating Button */}
+      <motion.button
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 text-white shadow-xl hover:shadow-2xl transition-all flex items-center justify-center group"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        title="Blockchain Debug Panel"
       >
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-purple-200 dark:border-purple-700 overflow-hidden backdrop-blur-xl">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-purple-500 to-blue-500 px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                >
-                  <FiCode className="w-5 h-5 text-white" />
-                </motion.div>
-                <h3 className="font-bold text-white text-sm">
-                  3TREESIFY Blockchain Debug
-                </h3>
-              </div>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <FiChevronDown className="w-6 h-6" />
+        </motion.div>
+        
+        {/* Status indicator */}
+        <motion.div
+          className={`absolute top-1 right-1 w-3 h-3 rounded-full ${
+            isReady ? 'bg-green-400 animate-pulse' : 'bg-red-400'
+          }`}
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+      </motion.button>
 
-              <div className="flex items-center gap-1">
-                {/* Minimize/Maximize Button */}
-                <motion.button
-                  onClick={() => setIsMinimized(!isMinimized)}
-                  className="p-1.5 hover:bg-white/20 rounded-lg transition-colors group"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  title={isMinimized ? "Maximize" : "Minimize"}
-                >
-                  {isMinimized ? (
-                    <FiMaximize2 className="w-4 h-4 text-white group-hover:text-yellow-200 transition-colors" />
-                  ) : (
-                    <FiMinimize2 className="w-4 h-4 text-white group-hover:text-yellow-200 transition-colors" />
-                  )}
-                </motion.button>
-
-                {/* Close Button */}
-                <motion.button
-                  onClick={() => setIsVisible(false)}
-                  className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors group relative"
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                  title="Close Debug Panel"
-                >
-                  <FiX className="w-4 h-4 text-white group-hover:text-red-200 transition-colors" />
-                  
-                  {/* Close Tooltip */}
-                  <motion.div
-                    className="absolute -top-10 right-0 bg-gray-900 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none"
-                    initial={{ opacity: 0, y: 5 }}
-                    whileHover={{ opacity: 1, y: 0 }}
-                  >
-                    Close Panel
-                    <div className="absolute bottom-0 right-2 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
-                  </motion.div>
-                </motion.button>
-              </div>
-            </div>
-          </div>
-
-          {/* Content - Only show when not minimized */}
-          <AnimatePresence>
-            {!isMinimized && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="p-4">
-                  {/* Loading State */}
-                  {loading ? (
-                    <motion.div
-                      className="flex items-center justify-center py-8"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                    >
-                      <div className="text-center">
-                        <motion.div
-                          className="w-12 h-12 border-4 border-purple-200 border-t-purple-500 rounded-full mx-auto mb-3"
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        />
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                          Initializing Blockchain...
-                        </p>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <>
-                      {/* Status Section */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Status</span>
-                          <motion.div
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                              isReady
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                            }`}
-                            initial={{ scale: 0.9 }}
-                            animate={{ scale: 1 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            {isReady ? (
-                              <>
-                                <FiWifi className="w-3 h-3" />
-                                Connected
-                              </>
-                            ) : (
-                              <>
-                                <FiWifiOff className="w-3 h-3" />
-                                Not Connected
-                              </>
-                            )}
-                          </motion.div>
-                        </div>
-
-                        {/* Status Details */}
-                        {isReady && walletStatus && (
-                          <motion.div
-                            className="space-y-2 bg-green-50 dark:bg-green-900/10 rounded-lg p-3 border border-green-200 dark:border-green-800"
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-600 dark:text-gray-400">Network:</span>
-                              <span className="text-xs font-semibold text-green-700 dark:text-green-300 capitalize">
-                                {walletStatus.network}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-600 dark:text-gray-400">Balance:</span>
-                              <span className="text-xs font-semibold text-green-700 dark:text-green-300">
-                                {parseFloat(walletStatus.balance).toFixed(4)} ETH
-                              </span>
-                            </div>
-                          </motion.div>
-                        )}
-
-                        {!isReady && (
-                          <motion.div
-                            className="bg-amber-50 dark:bg-amber-900/10 rounded-lg p-3 border border-amber-200 dark:border-amber-800 flex items-start gap-2"
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                          >
-                            <FiAlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                            <p className="text-xs text-amber-700 dark:text-amber-300">
-                              Blockchain service initializing. Check console for details.
-                            </p>
-                          </motion.div>
-                        )}
-                      </div>
-
-                      {/* Wallet Address Section */}
-                      {walletAddress && (
-                        <motion.div
-                          className="mb-4 bg-purple-50 dark:bg-purple-900/10 rounded-lg p-3 border border-purple-200 dark:border-purple-800"
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                        >
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1 font-medium">Wallet Address:</p>
-                          <code className="block text-xs font-mono text-purple-700 dark:text-purple-300 break-all truncate">
-                            {walletAddress.slice(0, 10)}...{walletAddress.slice(-8)}
-                          </code>
-                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                            Full: {walletAddress}
-                          </p>
-                        </motion.div>
-                      )}
-
-                      {/* Debug Info */}
-                      {debugInfo && (
-                        <motion.div
-                          className="mb-4 bg-gray-50 dark:bg-gray-900 rounded-lg p-3 border border-gray-200 dark:border-gray-700"
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Debug Info:</span>
-                            <motion.button
-                              onClick={() => setDebugInfo(null)}
-                              className="text-xs text-gray-500 hover:text-red-500 transition-colors"
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                            >
-                              <FiX className="w-3 h-3" />
-                            </motion.button>
-                          </div>
-                          <div className="text-xs space-y-1 font-mono text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto">
-                            <div>Ready: {debugInfo.blockchainReady ? '✅' : '❌'}</div>
-                            <div>Network: {debugInfo.network}</div>
-                            <div>Chain ID: {debugInfo.chainId}</div>
-                            <div>Balance: {debugInfo.balance}</div>
-                            <div className="text-xs text-gray-500">
-                              {new Date(debugInfo.timestamp).toLocaleTimeString()}
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <motion.button
-                          onClick={runDiagnostics}
-                          disabled={testing}
-                          className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                            testing
-                              ? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed text-gray-500'
-                              : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100'
-                          }`}
-                          whileHover={!testing ? { scale: 1.02 } : {}}
-                          whileTap={!testing ? { scale: 0.98 } : {}}
-                        >
-                          {testing ? (
-                            <span className="flex items-center justify-center gap-1">
-                              <motion.div
-                                className="w-2 h-2 border border-gray-500 border-t-transparent rounded-full"
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                              />
-                              Testing
-                            </span>
-                          ) : (
-                            'Run Diagnostics'
-                          )}
-                        </motion.button>
-                        
-                        {isReady && (
-                          <motion.button
-                            onClick={() => {
-                              navigator.clipboard.writeText(walletAddress);
-                              alert('Wallet address copied!');
-                            }}
-                            className="flex-1 px-3 py-2 bg-purple-200 dark:bg-purple-900/30 hover:bg-purple-300 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-medium transition-all"
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                          >
-                            Copy Address
-                          </motion.button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Minimized view */}
-          {isMinimized && (
+      {/* ✅ Debug Panel */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
             <motion.div
-              className="p-3"
+              className="fixed inset-0 bg-black/20 z-30"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-            >
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isReady ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  {isReady ? 'Blockchain Ready' : 'Initializing'}
-                </span>
-              </div>
-              {isReady && walletAddress && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate font-mono">
-                  {walletAddress.slice(0, 8)}...
-                </p>
-              )}
-            </motion.div>
-          )}
+              onClick={() => setIsOpen(false)}
+            />
 
-          {/* Footer indicator */}
-          <div className="h-0.5 bg-gradient-to-r from-purple-500 to-blue-500"></div>
-        </div>
-      </motion.div>
-    </AnimatePresence>
+            {/* Panel */}
+            <motion.div
+              className="fixed bottom-24 right-6 z-40 w-96 max-h-96 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {isReady ? (
+                    <FiWifi className="w-5 h-5 text-green-300 animate-pulse" />
+                  ) : (
+                    <FiWifiOff className="w-5 h-5 text-red-300" />
+                  )}
+                  <h3 className="text-white font-bold">🔗 Blockchain Debug</h3>
+                </div>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <FiX className="w-5 h-5 text-white" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Status */}
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-2">
+                  <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    📊 Status
+                  </h4>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Connection:</span>
+                      <div className="flex items-center gap-1">
+                        <span className={isReady ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-red-600 dark:text-red-400 font-semibold'}>
+                          {isReady ? 'Connected' : 'Disconnected'}
+                        </span>
+                        {isReady ? (
+                          <FiCheck className="w-3 h-3 text-green-600 dark:text-green-400" />
+                        ) : (
+                          <FiAlertCircle className="w-3 h-3 text-red-600 dark:text-red-400" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Contract:</span>
+                      <span className={contract ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}>
+                        {contract ? '✅ Ready' : '⚠️ Loading'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Error if any */}
+                {error && (
+                  <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                    <h4 className="font-semibold text-sm text-red-700 dark:text-red-300 mb-1 flex items-center gap-2">
+                      ⚠️ Error
+                    </h4>
+                    <p className="text-xs text-red-600 dark:text-red-400 break-words">
+                      {error}
+                    </p>
+                  </div>
+                )}
+
+                {/* Diagnostics Results */}
+                {diagnostics && (
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-2">
+                    <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                      🔍 Diagnostics
+                    </h4>
+                    
+                    {/* Environment */}
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                        Environment:
+                      </p>
+                      <div className="text-xs space-y-1 ml-2">
+                        {Object.entries(diagnostics.environment || {}).map(([key, value]) => (
+                          <div key={key} className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">{key}:</span>
+                            <span className={value.includes('✅') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                              {value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Connection */}
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                        Connection:
+                      </p>
+                      <div className="text-xs space-y-1 ml-2">
+                        {Object.entries(diagnostics.connection || {}).map(([key, value]) => (
+                          <div key={key} className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">{key}:</span>
+                            <span className={value.includes('✅') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                              {value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Timestamp */}
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                      Last update: {diagnostics.timestamp}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex gap-2">
+                <button
+                  onClick={runDiagnostics}
+                  disabled={loading}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white text-sm font-medium disabled:opacity-50 transition-all"
+                >
+                  <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  {loading ? 'Testing...' : 'Run Diagnostics'}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

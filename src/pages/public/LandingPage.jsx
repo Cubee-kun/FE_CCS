@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { FiArrowRight, FiPlay, FiStar, FiUsers, FiTrendingUp, FiShield, FiZap, FiHeart, FiCheck } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import Footer from "../../components/common/Footer";
+import { useAuth } from "../../contexts/AuthContext";
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const [activeTestimonial, setActiveTestimonial] = useState(0);
 
   const stats = [
@@ -90,6 +92,19 @@ const LandingPage = () => {
   const scrollToSection = (sectionId) => {
     const element = document.querySelector(sectionId);
     element?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // ✅ Smart navigation ke verifikasi berdasarkan status autentikasi
+  const handleVerifikasiClick = () => {
+    if (isAuthenticated) {
+      if (user?.role === "admin") {
+        navigate("/admin/verifikasi");
+      } else if (user?.role === "user") {
+        navigate("/user/verifikasi");
+      }
+    } else {
+      navigate("/verifikasi");
+    }
   };
 
   return (

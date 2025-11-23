@@ -81,6 +81,19 @@ export default function Navbar({ isUser = false }) {
     }, 150);
   };
 
+  // ✅ Smart navigation ke verifikasi
+  const handleVerifikasiNav = () => {
+    if (isAuthenticated) {
+      if (user?.role === "admin") {
+        navigate("/admin/verifikasi");
+      } else if (user?.role === "user") {
+        navigate("/user/verifikasi");
+      }
+    } else {
+      navigate("/verifikasi");
+    }
+  };
+
   return (
     <motion.nav
       className="sticky top-0 z-40 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm transition-all duration-300"
@@ -161,7 +174,7 @@ export default function Navbar({ isUser = false }) {
 
             {/* ✅ Verifikasi Button - LARGER */}
             <motion.button
-              onClick={() => handleNavigation("/verifikasi")}
+              onClick={handleVerifikasiNav}
               className="flex items-center space-x-2 px-5 py-3 rounded-xl text-base font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all border-2 border-emerald-200 dark:border-emerald-800"
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}

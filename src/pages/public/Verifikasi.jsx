@@ -4,38 +4,65 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { 
   FiCamera, FiCheckCircle, FiAlertCircle, FiRefreshCw, 
-  FiX, FiDownload, FiCopy, FiChevronDown, FiChevronUp, FiUpload,
-  FiFileText, FiCalendar, FiUser, FiMapPin, FiShield, FiExternalLink
+  FiX, FiDownload, FiCopy, FiChevronDown, FiChevronUp, FiUpload
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../contexts/AuthContext";
-import "leaflet/dist/leaflet.css";
+import { useBlockchain } from "../../contexts/BlockchainContext";
 import api from "../../api/axios";
+import "leaflet/dist/leaflet.css";
 
 // ✅ Lazy load Scanner
 const Scanner = null;
 
-// ✅ Mock data untuk testing jika API tidak tersedia
+// ✅ Hapus mock data statis, ganti dengan fungsi fetch dari blockchain
 const getMockLaporanDetail = (id) => {
-  const mockData = {
-    1: {
-      id: 1,
-      nama_perusahaan: "PT. Contoh Indonesia",
-      nama_pic: "John Doe",
-      narahubung: "+62 812-3456-7890",
-      jenis_kegiatan: "Planting Mangrove",
-      jenis_bibit: "Mangrove",
-      jumlah_bibit: 100,
-      lokasi: "-2.548922, 118.014968",
-      tanggal_pelaksanaan: "2024-01-15",
-      is_implemented: true,
-      blockchain_doc_hash: "0x1234567890abcdef",
-      blockchain_tx_hash: "0xaabbccdd",
-      created_at: "2024-01-01"
-    }
+  // ✅ Fallback minimal jika blockchain tidak tersedia
+  return {
+    id,
+    nama_perusahaan: "Data dari Blockchain (Loading...)",
+    error: "Silakan tunggu atau cek blockchain connection"
   };
-  
-  return mockData[id] || null;
+};
+
+// ✅ Fungsi baru untuk fetch dari Sepolia Blockchain
+const fetchFromBlockchain = async (docHash, blockchainContext) => {
+  try {
+    if (!blockchainContext?.contract) {
+      console.warn('[Verifikasi] Blockchain contract not available');
+      return null;
+    }
+
+    console.log('[Verifikasi] Fetching from blockchain:', docHash);
+    
+    // ✅ Call smart contract function untuk ambil document
+    const documentData = await blockchainContext.contract.getDocument(docHash);
+    
+    console.log('[Verifikasi] Blockchain data received:', documentData);
+    
+    // ✅ Parse blockchain data
+    const parsedData = {
+      id: documentData.id?.toNumber?.() || documentData.id,
+      nama_perusahaan: documentData.nama_perusahaan,
+      nama_pic: documentData.nama_pic,
+      narahubung: documentData.narahubung,
+      jenis_kegiatan: documentData.jenis_kegiatan,
+      jenis_bibit: documentData.jenis_bibit,
+      jumlah_bibit: documentData.jumlah_bibit?.toNumber?.() || documentData.jumlah_bibit,
+      lokasi: documentData.lokasi,
+      tanggal_pelaksanaan: documentData.tanggal_pelaksanaan,
+      is_implemented: documentData.is_implemented || true,
+      blockchain_doc_hash: docHash,
+      blockchain_timestamp: documentData.timestamp?.toNumber?.() || Date.now(),
+      blockchain_verified: true,
+      source: 'BLOCKCHAIN_SEPOLIA'
+    };
+    
+    return parsedData;
+  } catch (err) {
+    console.error('[Verifikasi] Error fetching from blockchain:', err);
+    return null;
+  }
 };
 
 export default function Verifikasi() {
@@ -52,11 +79,15 @@ export default function Verifikasi() {
   const [manualQRCode, setManualQRCode] = useState("");
   const [laporanDetail, setLaporanDetail] = useState(null);
   const [loadingLaporan, setLoadingLaporan] = useState(false);
+  const [blockchainReady, setBlockchainReady] = useState(false);
+  const [blockchainError, setBlockchainError] = useState(null);
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const blockchainContext = useBlockchain();
 
   const [ScannerComponent, setScannerComponent] = useState(null);
 
+  // ✅ Load Scanner Component
   useEffect(() => {
     const loadScanner = async () => {
       try {
@@ -86,7 +117,7 @@ export default function Verifikasi() {
           const backCamera = videoDevices.find(d => d.label.toLowerCase().includes('back'));
           setDeviceId(backCamera?.deviceId || videoDevices[0].deviceId);
           
-          if (scannerReady) {
+          if (scannerReady && !useManualInput) {
             setScanning(true);
           }
         }
@@ -102,112 +133,133 @@ export default function Verifikasi() {
     }
   }, [scannerReady]);
 
-  // ✅ Handle successful scan
+  // ✅ Check blockchain readiness
+  useEffect(() => {
+    if (blockchainContext?.isReady) {
+      setBlockchainReady(true);
+      setBlockchainError(null);
+      console.log('[Verifikasi] Blockchain is ready');
+    } else {
+      setBlockchainReady(false);
+      console.warn('[Verifikasi] Blockchain not ready yet');
+    }
+  }, [blockchainContext?.isReady]);
+
+  // ✅ Handle successful scan dari kamera
   const handleScan = (detections) => {
     if (detections?.length > 0) {
       const qrData = detections[0].rawValue;
+      console.log('[Verifikasi] QR Code detected:', qrData);
       processQRData(qrData);
     }
   };
 
-  // ✅ Fetch detail laporan dari API dengan multiple fallback strategies
+  // ✅ Modified Fetch detail laporan - prioritas blockchain
   const fetchLaporanDetail = async (laporanId) => {
     setLoadingLaporan(true);
     try {
-      // ✅ Try endpoints in order of preference
       let laporan = null;
       let lastError = null;
 
-      // ✅ 1. Try public endpoint first (no auth required)
+      // ✅ 1. PRIORITY: Fetch dari Sepolia Blockchain jika ada doc hash
+      if (blockchainReady && parsedData?.blockchain_doc_hash) {
+        try {
+          console.log('[Verifikasi] Step 1: Trying Sepolia Blockchain...');
+          laporan = await fetchFromBlockchain(parsedData.blockchain_doc_hash, blockchainContext);
+          
+          if (laporan) {
+            console.log('[Verifikasi] ✅ Data fetched from Sepolia Blockchain successfully');
+            setLaporanDetail(laporan);
+            toast.success("🔗 Data berhasil diambil dari Sepolia Blockchain!");
+            setLoadingLaporan(false);
+            return;
+          }
+        } catch (blockchainErr) {
+          console.warn('[Verifikasi] Sepolia Blockchain fetch failed:', blockchainErr.message);
+          lastError = blockchainErr;
+        }
+      }
+
+      // ✅ 2. Fallback: Try public endpoint
       try {
-        console.log(`[Verifikasi] Trying public endpoint: /perencanaan/${laporanId}/public`);
+        console.log(`[Verifikasi] Step 2: Trying public endpoint: /perencanaan/${laporanId}/public`);
         const response = await api.get(`/perencanaan/${laporanId}/public`);
         laporan = response.data?.data || response.data;
-        console.log('[Verifikasi] Public endpoint success');
-      } catch (err1) {
-        console.warn(`[Verifikasi] Public endpoint failed (${err1.response?.status}):`, err1.response?.data?.message);
-        lastError = err1;
-
-        // ✅ 2. Try authenticated endpoint (jika user login)
-        if (isAuthenticated) {
-          try {
-            console.log(`[Verifikasi] Trying authenticated endpoint: /perencanaan/${laporanId}`);
-            const response = await api.get(`/perencanaan/${laporanId}`);
-            laporan = response.data?.data || response.data;
-            console.log('[Verifikasi] Authenticated endpoint success');
-          } catch (err2) {
-            console.warn(`[Verifikasi] Authenticated endpoint failed (${err2.response?.status}):`, err2.response?.data?.message);
-            lastError = err2;
-          }
+        
+        if (laporan) {
+          console.log('[Verifikasi] ✅ Data fetched from API successfully');
+          setLaporanDetail(laporan);
+          toast.success("📊 Detail laporan berhasil dimuat dari server!");
+          setLoadingLaporan(false);
+          return;
         }
+      } catch (publicErr) {
+        console.warn(`[Verifikasi] Public endpoint failed (${publicErr.response?.status})`);
+        lastError = publicErr;
+      }
 
-        // ✅ 3. Fallback: gunakan data dari QR code atau mock data
-        if (!laporan) {
-          if (parsedData && typeof parsedData === 'object' && parsedData.id) {
-            laporan = parsedData;
-            console.log('[Verifikasi] Using data from QR code as fallback');
-            toast.info("💡 Menampilkan data dari QR Code (akses detail terbatas)", { 
-              autoClose: 3000 
-            });
-          } else {
-            const mockLaporan = getMockLaporanDetail(laporanId);
-            if (mockLaporan) {
-              laporan = mockLaporan;
-              console.log('[Verifikasi] Using mock data as fallback');
-              toast.info("💡 Menampilkan data demo - Backend endpoint tidak tersedia", { 
-                autoClose: 3000 
-              });
-            }
+      // ✅ 3. Fallback: Try authenticated endpoint
+      if (isAuthenticated) {
+        try {
+          console.log(`[Verifikasi] Step 3: Trying authenticated endpoint: /perencanaan/${laporanId}`);
+          const response = await api.get(`/perencanaan/${laporanId}`);
+          laporan = response.data?.data || response.data;
+          
+          if (laporan) {
+            console.log('[Verifikasi] ✅ Data fetched from authenticated endpoint');
+            setLaporanDetail(laporan);
+            toast.success("📊 Detail laporan berhasil dimuat!");
+            setLoadingLaporan(false);
+            return;
           }
+        } catch (authErr) {
+          console.warn(`[Verifikasi] Authenticated endpoint failed (${authErr.response?.status})`);
+          lastError = authErr;
         }
       }
 
-      if (laporan) {
+      // ✅ 4. Fallback: Use QR code data
+      if (parsedData && typeof parsedData === 'object' && parsedData.id) {
+        laporan = parsedData;
+        console.log('[Verifikasi] Using data from QR code as fallback');
         setLaporanDetail(laporan);
-        console.log('[Verifikasi] Laporan detail set successfully');
-        toast.success("📊 Detail laporan berhasil dimuat!");
-      } else {
-        // ✅ All attempts failed
-        throw lastError || new Error('Tidak dapat memuat detail laporan dari semua sumber');
+        toast.info("💡 Menampilkan data dari QR Code", { autoClose: 2000 });
+        setLoadingLaporan(false);
+        return;
       }
+
+      // ✅ 5. Last resort: Mock data
+      const mockLaporan = getMockLaporanDetail(laporanId);
+      if (mockLaporan) {
+        laporan = mockLaporan;
+        console.log('[Verifikasi] Using mock data as last resort');
+        setLaporanDetail(laporan);
+        toast.info("💡 Menampilkan data demo", { autoClose: 2000 });
+        setLoadingLaporan(false);
+        return;
+      }
+
+      throw lastError || new Error('Tidak dapat memuat detail laporan dari semua sumber');
 
     } catch (err) {
-      console.error('[Verifikasi] Final error after all retries:', {
-        status: err.response?.status,
-        message: err.response?.data?.message || err.message,
-        url: err.config?.url,
-        isAuthenticated
+      console.error('[Verifikasi] All fetch attempts failed:', {
+        blockchainReady,
+        error: err.message,
+        parsedDataAvailable: !!parsedData
       });
       
-      // ✅ Show user-friendly error
-      if (err.response?.status === 401) {
-        toast.warning("🔒 Silakan login untuk melihat detail lengkap laporan");
-        // ✅ Tetap tampilkan data dari QR code
-        if (parsedData) {
-          setLaporanDetail(parsedData);
-        }
-      } else if (err.response?.status === 404) {
-        toast.error("❌ Laporan tidak ditemukan - ID mungkin tidak valid");
-        // ✅ Try menampilkan mock data sebagai fallback terakhir
-        if (laporanId) {
-          const mockLaporan = getMockLaporanDetail(laporanId);
-          if (mockLaporan) {
-            setLaporanDetail(mockLaporan);
-            toast.info("💡 Menampilkan data demo");
-          }
-        }
+      toast.warning("⚠️ Tidak dapat memuat detail lengkap - menampilkan data QR Code");
+      if (parsedData) {
+        setLaporanDetail(parsedData);
       } else {
-        toast.warning("⚠️ Tidak dapat memuat detail lengkap - menampilkan data QR Code");
-        if (parsedData) {
-          setLaporanDetail(parsedData);
-        }
+        setLaporanDetail(null);
       }
     } finally {
       setLoadingLaporan(false);
     }
   };
 
-  // ✅ Process QR data - extract ID lebih robust
+  // ✅ Enhanced processQRData - detect blockchain hash
   const processQRData = async (qrData) => {
     try {
       const parsed = JSON.parse(qrData);
@@ -221,24 +273,33 @@ export default function Verifikasi() {
         autoClose: 2000
       });
 
-      // ✅ Extract ID dari berbagai format yang mungkin
+      // ✅ Extract ID atau blockchain doc hash
       const laporanId = parsed.id || parsed.perencanaan_id || parsed.laporan_id;
-      
+      const docHash = parsed.blockchain_doc_hash;
+
+      if (docHash && blockchainReady) {
+        console.log('[Verifikasi] Blockchain doc hash detected, fetching from blockchain...');
+        // ✅ Langsung fetch dari blockchain jika ada doc hash
+        const blockchainData = await fetchFromBlockchain(docHash, blockchainContext);
+        if (blockchainData) {
+          setLaporanDetail(blockchainData);
+          return;
+        }
+      }
+
       if (laporanId) {
         console.log(`[Verifikasi] Found laporan ID: ${laporanId}`);
         await fetchLaporanDetail(laporanId);
       } else {
-        // ✅ Jika tidak ada ID, tetap tampilkan data dari QR code
-        console.warn('[Verifikasi] No ID found in QR data, showing QR data only');
+        console.warn('[Verifikasi] No ID found in QR data');
         setLaporanDetail(parsed);
         toast.info("💡 Menampilkan data dari QR Code", { autoClose: 2000 });
       }
 
     } catch (parseError) {
-      // ✅ If not JSON, treat as raw text or ID
       console.log('[Verifikasi] QR data is not JSON, treating as text');
       
-      // ✅ Check if it's a numeric ID
+      // ✅ Check if numeric ID
       if (/^\d+$/.test(qrData.trim())) {
         const numericId = parseInt(qrData.trim());
         console.log(`[Verifikasi] Detected numeric ID: ${numericId}`);
@@ -254,7 +315,26 @@ export default function Verifikasi() {
         
         await fetchLaporanDetail(numericId);
       } else {
-        // ✅ Raw text data
+        // ✅ Check if blockchain hash format (0x...)
+        if (qrData.trim().startsWith('0x')) {
+          console.log('[Verifikasi] Blockchain hash detected, fetching...');
+          if (blockchainReady) {
+            const blockchainData = await fetchFromBlockchain(qrData.trim(), blockchainContext);
+            if (blockchainData) {
+              setScanResult(qrData);
+              setParsedData({ blockchain_doc_hash: qrData.trim(), type: 'BLOCKCHAIN_HASH' });
+              setScanning(false);
+              setError(null);
+              setLaporanDetail(blockchainData);
+              toast.success("🔗 Data fetched dari Sepolia Blockchain!");
+              return;
+            }
+          } else {
+            toast.warning("⚠️ Blockchain belum siap, silakan tunggu...");
+          }
+        }
+        
+        // Raw text data
         setScanResult(qrData);
         setParsedData({ raw: qrData, type: 'TEXT' });
         setScanning(false);
@@ -318,50 +398,82 @@ export default function Verifikasi() {
     setManualQRCode("");
   };
 
-  // ✅ Handle file upload
+  // ✅ Handle file upload dengan jsQR dan fallback
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
+      console.log('[Verifikasi] Processing file upload:', file.name);
       const reader = new FileReader();
       reader.onload = async (event) => {
         const img = new Image();
         img.onload = async () => {
           try {
+            console.log('[Verifikasi] Image loaded, attempting to decode QR');
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
             canvas.height = img.height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
             
+            let qrContent = null;
+
+            // ✅ Approach 1: Try jsQR
             try {
+              console.log('[Verifikasi] Attempting jsQR decode...');
               const { default: jsQR } = await import('jsqr');
               const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
               const code = jsQR(imageData.data, imageData.width, imageData.height);
               
               if (code) {
-                processQRData(code.data);
-                return;
+                qrContent = code.data;
+                console.log('[Verifikasi] jsQR decode successful:', qrContent);
               }
             } catch (jsqrErr) {
-              console.warn('[Verifikasi] jsQR not available:', jsqrErr.message);
+              console.warn('[Verifikasi] jsQR not available or decode failed:', jsqrErr.message);
             }
 
-            try {
-              const QrScanner = await import('qr-scanner').then(m => m.default);
-              const code = await QrScanner.scanImage(img);
-              if (code) {
-                processQRData(code);
-                return;
+            // ✅ Approach 2: Try qr-scanner
+            if (!qrContent) {
+              try {
+                console.log('[Verifikasi] Attempting qr-scanner decode...');
+                const { default: QrScanner } = await import('qr-scanner');
+                const code = await QrScanner.scanImage(img);
+                if (code) {
+                  qrContent = code;
+                  console.log('[Verifikasi] qr-scanner decode successful:', qrContent);
+                }
+              } catch (qrScannerErr) {
+                console.warn('[Verifikasi] qr-scanner not available or decode failed:', qrScannerErr.message);
               }
-            } catch (qrScannerErr) {
-              console.warn('[Verifikasi] QrScanner not available:', qrScannerErr.message);
             }
 
-            toast.warning('⚠️ Tidak dapat membaca QR dari gambar otomatis.');
-            toast.info('💡 Silakan input QR code secara manual atau copy-paste data-nya');
-            setUseManualInput(true);
+            // ✅ Approach 3: Fallback dengan ZXing
+            if (!qrContent) {
+              try {
+                console.log('[Verifikasi] Attempting ZXing decode...');
+                const { BrowserMultiFormatReader } = await import('@zxing/library');
+                const reader = new BrowserMultiFormatReader();
+                const result = await reader.decodeFromImageElement(img);
+                if (result) {
+                  qrContent = result.getText();
+                  console.log('[Verifikasi] ZXing decode successful:', qrContent);
+                }
+              } catch (zxingErr) {
+                console.warn('[Verifikasi] ZXing not available or decode failed:', zxingErr.message);
+              }
+            }
+
+            // ✅ Fallback: Ask user untuk input manual
+            if (!qrContent) {
+              console.log('[Verifikasi] All QR decoders failed, falling back to manual input');
+              toast.warning('⚠️ Tidak dapat membaca QR dari gambar otomatis.');
+              toast.info('💡 Silakan input QR code secara manual atau copy-paste data-nya');
+              setUseManualInput(true);
+            } else {
+              processQRData(qrContent);
+            }
             
           } catch (decodeErr) {
             console.error('[Verifikasi] Error decoding QR from image:', decodeErr);
@@ -381,9 +493,17 @@ export default function Verifikasi() {
     }
   };
 
+  const containerClass = isAuthenticated 
+    ? "" 
+    : "min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 pt-28 pb-12 px-3 sm:px-6 lg:px-8 transition-colors";
+
+  const innerContainerClass = isAuthenticated 
+    ? "" 
+    : "max-w-7xl mx-auto";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 pt-28 pb-12 px-3 sm:px-6 lg:px-8 transition-colors">
-      <div className="max-w-7xl mx-auto">
+    <div className={containerClass}>
+      <div className={innerContainerClass}>
         {/* Header Card */}
         <motion.div 
           className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden border border-green-100 dark:border-gray-700 mb-8"
@@ -548,7 +668,7 @@ export default function Verifikasi() {
               </label>
             </div>
 
-            {/* Success State - Show when scan berhasil */}
+            {/* Success State */}
             {scanResult && !laporanDetail && (
               <motion.div 
                 className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-2xl p-8 text-center aspect-square flex flex-col items-center justify-center"
@@ -588,7 +708,7 @@ export default function Verifikasi() {
               <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 overflow-hidden sticky top-20">
                 <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4">
                   <h3 className="font-semibold text-white flex items-center gap-2">
-                    <FiFileText className="w-5 h-5" />
+                    <FiCheckCircle className="w-5 h-5" />
                     Detail Laporan
                   </h3>
                 </div>
@@ -598,7 +718,7 @@ export default function Verifikasi() {
                   <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-start gap-4 mb-4">
                       <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg flex-shrink-0">
-                        <FiFileText className="w-6 h-6" />
+                        <FiCheckCircle className="w-6 h-6" />
                       </div>
                       <div className="flex-1">
                         <h4 className="font-bold text-lg text-gray-900 dark:text-gray-100 mb-1">
@@ -620,15 +740,10 @@ export default function Verifikasi() {
                       )}
                       {laporanDetail.blockchain_doc_hash && (
                         <span className="px-3 py-1 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center gap-1">
-                          <FiShield className="w-3 h-3" />
-                          Verified Blockchain
+                          🔗 Verified Blockchain
                         </span>
                       )}
-                      <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                        laporanDetail.jenis_kegiatan === 'Planting Mangrove'
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                      }`}>
+                      <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                         {laporanDetail.jenis_kegiatan}
                       </span>
                     </div>
@@ -636,51 +751,36 @@ export default function Verifikasi() {
 
                   {/* Detail Fields */}
                   <div className="space-y-4">
-                    {/* PIC */}
                     <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1 flex items-center gap-2">
-                        <FiUser className="w-4 h-4" /> PIC
-                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Nama PIC</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {laporanDetail.nama_pic}
                       </p>
                     </div>
 
-                    {/* Narahubung */}
                     <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
-                        Narahubung
-                      </p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 break-all">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Narahubung</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {laporanDetail.narahubung}
                       </p>
                     </div>
 
-                    {/* Jenis Bibit */}
                     <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
-                        Jenis Bibit
-                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Jenis Bibit</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {laporanDetail.jenis_bibit}
                       </p>
                     </div>
 
-                    {/* Jumlah Bibit */}
                     <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
-                        Jumlah Bibit
-                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Jumlah Bibit</p>
                       <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                         {laporanDetail.jumlah_bibit} unit
                       </p>
                     </div>
 
-                    {/* Tanggal */}
                     <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1 flex items-center gap-2">
-                        <FiCalendar className="w-4 h-4" /> Tanggal Pelaksanaan
-                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Tanggal Pelaksanaan</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {new Date(laporanDetail.tanggal_pelaksanaan).toLocaleDateString("id-ID", {
                           day: "numeric",
@@ -690,11 +790,8 @@ export default function Verifikasi() {
                       </p>
                     </div>
 
-                    {/* Lokasi */}
                     <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1 flex items-center gap-2">
-                        <FiMapPin className="w-4 h-4" /> Lokasi
-                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Lokasi</p>
                       <p className="text-sm font-mono text-gray-900 dark:text-gray-100 break-all">
                         {laporanDetail.lokasi}
                       </p>
@@ -777,13 +874,6 @@ export default function Verifikasi() {
                   Cara Menggunakan
                 </h4>
                 <ol className="space-y-3">
-                  {/*
-                    "Izinkan akses kamera",
-                    "Pilih kamera jika ada lebih dari satu",
-                    "Arahkan ke QR Code",
-                    "Atau upload gambar/input manual",
-                    "Detail laporan akan ditampilkan"
-                  */}
                   {["Izinkan akses kamera", "Pilih kamera jika ada lebih dari satu", "Arahkan ke QR Code", "Atau upload gambar/input manual", "Detail laporan akan ditampilkan"].map((step, i) => (
                     <li key={i} className="flex items-start gap-3 text-xs text-gray-600 dark:text-gray-400">
                       <span className="flex-shrink-0 w-5 h-5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-xs font-bold">
