@@ -41,7 +41,7 @@ export default function UserLayout() {
             <FiMenu size={24} />
           </button>
           <h1 className="ml-4 text-lg font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-            User Panel
+            3TREESIFY User
           </h1>
         </div>
 

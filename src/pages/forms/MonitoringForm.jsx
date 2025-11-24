@@ -9,9 +9,9 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { toast } from "react-toastify";
 
-// ✅ Orange marker for monitoring locations
-const monitoringMarkerIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+// ✅ Purple marker untuk lokasi implementasi
+const implementationMarkerIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-purple.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
@@ -32,11 +32,15 @@ const selectedMarkerIcon = new L.Icon({
 const MonitoringForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [implementasis, setImplementasis] = useState([]);
+  const [selectedImplementasi, setSelectedImplementasi] = useState(null);
+  const [loadingImplementasi, setLoadingImplementasi] = useState(true);
   const [existingLocations, setExistingLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const validationSchema = Yup.object({
+    implementasi_id: Yup.string().required("Wajib pilih implementasi terlebih dahulu"),
     jumlah_bibit_ditanam: Yup.number().required("Wajib diisi").positive("Harus positif"),
     jumlah_bibit_mati: Yup.number().required("Wajib diisi").min(0, "Tidak boleh negatif"),
     diameter_batang: Yup.number().required("Wajib diisi").positive("Harus positif"),
@@ -55,6 +59,7 @@ const MonitoringForm = () => {
 
   const formik = useFormik({
     initialValues: {
+      implementasi_id: "",
       jumlah_bibit_ditanam: "",
       jumlah_bibit_mati: "",
       diameter_batang: "",
@@ -75,63 +80,118 @@ const MonitoringForm = () => {
       setSubmitting(true);
       try {
         const formData = new FormData();
-        Object.keys(values).forEach((key) => {
-          if (key !== "dokumentasi") {
-            formData.append(key, JSON.stringify(values[key]));
-          } else if (values[key]) {
-            values[key].forEach((file) => {
-              formData.append("dokumentasi", file);
-            });
-          }
-        });
-        formData.append("perencanaan_id", selectedLocation?.id);
+        formData.append("implementasi_id", values.implementasi_id);
+        formData.append("daun_mengering", values.kondisi_daun.mengering);
+        formData.append("daun_layu", values.kondisi_daun.layu);
+        formData.append("daun_menguning", values.kondisi_daun.menguning);
+        formData.append("bercak_daun", values.kondisi_daun.bercak);
+        formData.append("daun_serangga", values.kondisi_daun.hama);
+        formData.append("jumlah_bibit_ditanam", values.jumlah_bibit_ditanam);
+        formData.append("jumlah_bibit_mati", values.jumlah_bibit_mati);
+        formData.append("diameter_batang", values.diameter_batang);
+        formData.append("jumlah_daun", values.jumlah_daun);
+        formData.append("survival_rate", values.survival_rate);
+        
+        // Append dokumentasi dengan index yang jelas
+        if (values.dokumentasi && Array.isArray(values.dokumentasi) && values.dokumentasi.length > 0) {
+          values.dokumentasi.forEach((file, index) => {
+            if (file instanceof File) {
+              formData.append(`dokumentasi_monitoring_${index}`, file);
+            }
+          });
+          formData.append("dokumentasi_count", values.dokumentasi.length);
+        }
 
-        await api.post("/forms/monitoring", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
+        // Log form data untuk debug
+        console.log('[Monitoring Form] Submitting:', {
+          implementasi_id: values.implementasi_id,
+          daun_mengering: values.kondisi_daun.mengering,
+          daun_layu: values.kondisi_daun.layu,
+          daun_menguning: values.kondisi_daun.menguning,
+          bercak_daun: values.kondisi_daun.bercak,
+          daun_serangga: values.kondisi_daun.hama,
+          jumlah_bibit_ditanam: values.jumlah_bibit_ditanam,
+          jumlah_bibit_mati: values.jumlah_bibit_mati,
+          diameter_batang: values.diameter_batang,
+          jumlah_daun: values.jumlah_daun,
+          survival_rate: values.survival_rate,
+          files: values.dokumentasi?.length || 0
         });
 
-        setSuccess(true);
-        toast.success("✅ Monitoring berhasil disimpan!");
-        setTimeout(() => {
-          formik.resetForm();
-          setSelectedLocation(null);
-          setSuccess(false);
-        }, 2000);
+        const response = await api.post(`/monitoring`, formData);
+
+        if (response.status === 201 || response.status === 200) {
+          setSuccess(true);
+          toast.success("✅ Monitoring berhasil disimpan!");
+          setTimeout(() => {
+            formik.resetForm();
+            setSelectedLocation(null);
+            setSelectedImplementasi(null);
+            setSuccess(false);
+          }, 2500);
+        }
       } catch (error) {
         console.error("Error submitting form:", error);
-        toast.error("❌ Gagal menyimpan monitoring!");
+        console.error("Error response data:", error.response?.data);
+        const errorMsg = error.response?.data?.message || error.message || "Gagal menyimpan monitoring";
+        toast.error(`❌ ${errorMsg}`);
       } finally {
         setSubmitting(false);
       }
     },
   });
 
-  // ✅ Fetch locations
+  // ✅ Fetch implementasi dan lokasi
   useEffect(() => {
-    const fetchLocations = async () => {
+    let isMounted = true;
+
+    const fetchData = async () => {
       try {
-        const response = await api.get("/forms/perencanaan/locations");
-        const locations = response.data?.data || response.data || [];
-        setExistingLocations(locations);
-        if (locations.length > 0) {
-          toast.success(`📍 ${locations.length} lokasi perencanaan ditemukan`);
+        const response = await api.get("/implementasi");
+        const data = response.data?.data || response.data || [];
+        
+        if (isMounted) {
+          setImplementasis(data);
+          setExistingLocations(data);
+          
+          if (data.length > 0) {
+            console.log(`✅ ${data.length} data implementasi ditemukan`);
+          }
         }
       } catch (error) {
-        console.error("Error fetching locations:", error);
-        toast.warning("Tidak dapat memuat lokasi perencanaan");
-        setExistingLocations([]);
+        console.error("Error fetching data:", error);
+        if (isMounted) {
+          setImplementasis([]);
+          setExistingLocations([]);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoadingImplementasi(false);
+          setLoading(false);
+        }
       }
     };
 
-    fetchLocations();
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  // ✅ Handle implementasi selection
+  const handleImplementasiSelect = (implementasi) => {
+    setSelectedImplementasi(implementasi);
+    formik.setFieldValue("implementasi_id", implementasi.id);
+    // Auto-select lokasi dari implementasi yang dipilih
+    handleLocationSelect(implementasi);
+  };
 
   const handleLocationSelect = (location) => {
     setSelectedLocation(location);
-    formik.setFieldValue("lokasi", location.lokasi);
-    toast.success(`📍 Lokasi "${location.nama_perusahaan}" dipilih!`);
+    // Format geotagging as "lat,long"
+    const geotagging = `${location.lat},${location.long}`;
+    formik.setFieldValue("lokasi", geotagging);
   };
 
   const renderRadioGroup = (name, label) => (
@@ -198,7 +258,7 @@ const MonitoringForm = () => {
             Form Monitoring Kegiatan
           </h1>
           <p className="text-gray-600 dark:text-gray-400 text-lg">
-            Monitoring dan evaluasi kesehatan bibit tanaman
+            Monitoring kesehatan bibit dari hasil implementasi yang telah dilakukan
           </p>
         </motion.div>
 
@@ -232,6 +292,82 @@ const MonitoringForm = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           <form onSubmit={formik.handleSubmit} className="p-8 md:p-12">
+            {/* ✅ SELECT IMPLEMENTASI DROPDOWN */}
+            <motion.div
+              className="mb-10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                Pilih Implementasi <span className="text-red-500">*</span>
+              </label>
+
+              {loadingImplementasi ? (
+                <div className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>
+                  <span className="text-gray-600 dark:text-gray-400">Memuat data implementasi...</span>
+                </div>
+              ) : implementasis.length === 0 ? (
+                <div className="w-full px-4 py-3.5 rounded-xl border-2 border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20">
+                  <p className="text-amber-700 dark:text-amber-300">Tidak ada data implementasi. Silakan buat implementasi terlebih dahulu.</p>
+                </div>
+              ) : (
+                <select
+                  id="implementasi_id"
+                  name="implementasi_id"
+                  value={formik.values.implementasi_id}
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    formik.setFieldValue("implementasi_id", selectedId);
+                    if (selectedId) {
+                      const implementasi = implementasis.find(i => String(i.id) === String(selectedId));
+                      if (implementasi) {
+                        handleImplementasiSelect(implementasi);
+                      }
+                    }
+                  }}
+                  onBlur={formik.handleBlur}
+                  className={`w-full px-4 py-3.5 rounded-xl border-2 bg-white dark:bg-gray-700 dark:text-gray-100 transition-all ${
+                    formik.touched.implementasi_id && formik.errors.implementasi_id
+                      ? "border-red-400 focus:ring-4 focus:ring-red-200"
+                      : "border-gray-200 dark:border-gray-600 focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                  }`}
+                >
+                  <option value="">-- Pilih Implementasi --</option>
+                  {implementasis.map((impl) => (
+                    <option key={impl.id} value={impl.id}>
+                      {impl.nama_perusahaan || "N/A"} • {impl.pic_koorlap || "N/A"}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {formik.touched.implementasi_id && formik.errors.implementasi_id && (
+                <p className="text-red-500 text-sm mt-2">{formik.errors.implementasi_id}</p>
+              )}
+
+              {/* Info dari implementasi terpilih */}
+              {selectedImplementasi && (
+                <motion.div
+                  className="mt-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-300 dark:border-green-700 rounded-xl p-4"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-green-600 dark:text-green-400 font-semibold">Perusahaan</p>
+                      <p className="text-sm font-bold text-green-900 dark:text-green-200">{selectedImplementasi.nama_perusahaan}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-green-600 dark:text-green-400 font-semibold">PIC Koorlap</p>
+                      <p className="text-sm font-bold text-green-900 dark:text-green-200">{selectedImplementasi.pic_koorlap}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+
             {/* Input Grid Data Monitoring */}
             <motion.div
               className="mb-10"
@@ -296,7 +432,7 @@ const MonitoringForm = () => {
               </div>
             </motion.div>
 
-            {/* ✅ Upload Dokumentasi dengan Preview Modern */}
+            {/* Upload Dokumentasi */}
             <motion.div
               className="mb-10"
               initial={{ opacity: 0, y: 20 }}
@@ -342,7 +478,7 @@ const MonitoringForm = () => {
                 <p className="text-red-500 text-sm mt-2">{formik.errors.dokumentasi}</p>
               )}
 
-              {/* Preview Grid dengan Animasi */}
+              {/* Preview Grid */}
               {formik.values.dokumentasi && formik.values.dokumentasi.length > 0 && (
                 <motion.div
                   className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
@@ -389,7 +525,7 @@ const MonitoringForm = () => {
               )}
             </motion.div>
 
-            {/* ✅ Select Location Map */}
+            {/* ✅ Select Location Map - DARI IMPLEMENTASI */}
             <motion.div
               className="mb-10"
               initial={{ opacity: 0, y: 20 }}
@@ -398,7 +534,7 @@ const MonitoringForm = () => {
             >
               <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
                 <FiMapPin className="w-5 h-5 text-green-600 dark:text-green-400" />
-                Pilih Lokasi Monitoring
+                Pilih Lokasi Implementasi untuk Monitoring
                 <span className="text-red-500">*</span>
               </label>
 
@@ -408,11 +544,11 @@ const MonitoringForm = () => {
                   <FiMapPin className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <h4 className="font-bold text-green-900 dark:text-green-200 mb-2">
-                      📍 Pilih dari Lokasi yang Sudah Direncanakan
+                      📍 Pilih dari Lokasi Implementasi
                     </h4>
                     <p className="text-sm text-green-800 dark:text-green-300">
-                      Klik pada marker orange di peta untuk memilih lokasi monitoring. 
-                      Lokasi ini berasal dari data perencanaan yang sudah dibuat sebelumnya.
+                      Klik pada marker di peta untuk memilih lokasi implementasi yang akan dimonitor. 
+                      Hanya lokasi yang telah diimplementasikan yang dapat dipilih untuk monitoring.
                     </p>
                   </div>
                 </div>
@@ -431,25 +567,28 @@ const MonitoringForm = () => {
                     </div>
                     <div className="flex-1">
                       <h4 className="font-bold text-green-900 dark:text-green-200 mb-1">
-                        Lokasi Terpilih
+                        Lokasi Implementasi Terpilih
                       </h4>
                       <p className="text-sm text-green-800 dark:text-green-300">
                         <strong>Perusahaan:</strong> {selectedLocation.nama_perusahaan}
                       </p>
+                      <p className="text-sm text-green-800 dark:text-green-300">
+                        <strong>Kegiatan:</strong> {selectedLocation.jenis_kegiatan}
+                      </p>
                       <p className="text-xs text-green-700 dark:text-green-400 font-mono mt-1">
-                        Koordinat: {selectedLocation.lokasi}
+                        Koordinat: {selectedLocation.lat}, {selectedLocation.long}
                       </p>
                     </div>
                   </div>
                 </motion.div>
               )}
 
-              {/* Map with Existing Locations */}
+              {/* Map with Implementasi Locations */}
               {loading ? (
                 <div className="h-96 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-                    <p className="text-gray-600 dark:text-gray-400">Memuat lokasi perencanaan...</p>
+                    <p className="text-gray-600 dark:text-gray-400">Memuat lokasi implementasi...</p>
                   </div>
                 </div>
               ) : existingLocations.length === 0 ? (
@@ -457,10 +596,10 @@ const MonitoringForm = () => {
                   <div className="text-center p-8">
                     <FiAlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
                     <h3 className="text-xl font-bold text-amber-900 dark:text-amber-200 mb-2">
-                      Belum Ada Lokasi Perencanaan
+                      Belum Ada Lokasi Implementasi
                     </h3>
                     <p className="text-amber-700 dark:text-amber-300">
-                      Silakan buat perencanaan terlebih dahulu untuk menandai lokasi.
+                      Silakan lakukan implementasi terlebih dahulu untuk mendapatkan data lokasi monitoring.
                     </p>
                   </div>
                 </div>
@@ -471,24 +610,43 @@ const MonitoringForm = () => {
                   animate={{ opacity: 1, scale: 1 }}
                 >
                   <MapContainer
-                    center={existingLocations.length > 0 ? existingLocations[0].lokasi.split(',').map(Number) : [-2.5489, 118.0149]}
+                    center={
+                      selectedImplementasi
+                        ? [
+                            parseFloat(selectedImplementasi.lat) || -2.5489,
+                            parseFloat(selectedImplementasi.long) || 118.0149
+                          ]
+                        : existingLocations.length > 0
+                        ? [
+                            parseFloat(existingLocations[0].lat) || -2.5489,
+                            parseFloat(existingLocations[0].long) || 118.0149
+                          ]
+                        : [-2.5489, 118.0149]
+                    }
                     zoom={13}
                     style={{ height: "500px", width: "100%" }}
                     className="z-0"
+                    key={selectedImplementasi?.id || 'default'}
                   >
                     <TileLayer
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
                     {existingLocations.map((location) => {
-                      const [lat, lng] = location.lokasi.split(',').map(Number);
+                      const lat = parseFloat(location.lat);
+                      const lng = parseFloat(location.long);
                       const isSelected = selectedLocation?.id === location.id;
+                      
+                      // Skip invalid coordinates
+                      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+                        return null;
+                      }
                       
                       return (
                         <Marker
                           key={location.id}
                           position={[lat, lng]}
-                          icon={isSelected ? selectedMarkerIcon : monitoringMarkerIcon}
+                          icon={isSelected ? selectedMarkerIcon : implementationMarkerIcon}
                           eventHandlers={{
                             click: () => handleLocationSelect(location),
                           }}
@@ -496,12 +654,15 @@ const MonitoringForm = () => {
                           <Popup>
                             <div className="text-center">
                               <p className="font-bold text-green-700">{location.nama_perusahaan}</p>
-                              <p className="text-xs text-gray-600 mb-2">
-                                {location.jenis_kegiatan}
+                              <p className="text-xs text-gray-600 mb-1">
+                                Implementasi: {location.jenis_kegiatan}
+                              </p>
+                              <p className="text-xs text-gray-600 mb-3">
+                                Bibit: {location.jenis_bibit} ({location.jumlah_bibit} unit)
                               </p>
                               <button
                                 onClick={() => handleLocationSelect(location)}
-                                className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-colors"
+                                className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-colors font-semibold"
                               >
                                 Pilih Lokasi Ini
                               </button>

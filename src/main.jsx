@@ -3,13 +3,12 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import "./assets/styles/index.css";
-import { ThemeProvider } from "./contexts/ThemeContext";
 
-// ✅ Remove StrictMode to prevent double initialization in development
+// ✅ Proper provider nesting: BrowserRouter > App (yang berisi AuthProvider, etc)
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <ThemeProvider>
+  <React.StrictMode>
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </ThemeProvider>
+  </React.StrictMode>
 );

@@ -1,273 +1,310 @@
-import { useState } from 'react';
-import { useBlockchain } from '../contexts/BlockchainContext';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiCode, FiCheckCircle, FiX, FiMinimize2, FiMaximize2 } from 'react-icons/fi';
+import { FiChevronDown, FiX, FiRefreshCw, FiWifi, FiWifiOff, FiCheck, FiAlertCircle, FiActivity } from 'react-icons/fi';
+import { useBlockchain } from '../contexts/BlockchainContext';
+import api from '../api/axios';
 
 export default function BlockchainDebug() {
-  const { isConnected, account, network, connectWallet } = useBlockchain();
-  const [debugInfo, setDebugInfo] = useState(null);
-  const [testing, setTesting] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
+  const [diagnostics, setDiagnostics] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [realtimeData, setRealtimeData] = useState(null);
+  const pollingRef = useRef(null);
+  const { isReady, error, contract, walletAddress } = useBlockchain();
 
+  // ✅ Run diagnostics
   const runDiagnostics = async () => {
-    setTesting(true);
-    const info = {
-      metamaskInstalled: typeof window.ethereum !== 'undefined',
-      isConnected,
-      account,
-      network,
-      timestamp: new Date().toISOString()
-    };
-
-    // Check network
-    if (window.ethereum) {
+    setLoading(true);
+    try {
+      let ethersAvailable = false;
       try {
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        info.chainId = chainId;
-        info.isSepoliaNetwork = chainId === '0xaa36a7';
-      } catch (error) {
-        info.error = error.message;
+        await import('ethers');
+        ethersAvailable = true;
+      } catch (e) {
+        ethersAvailable = false;
       }
-    }
 
-    setDebugInfo(info);
-    setTesting(false);
+      const results = {
+        timestamp: new Date().toISOString(),
+        blockchain: {
+          isReady,
+          error: error || 'No errors',
+          contractExists: !!contract,
+          contractAddress: contract?.address || 'N/A',
+          walletAddress: walletAddress || 'N/A',
+        },
+        environment: {
+          nodeEnv: import.meta.env.MODE,
+          rpcUrl: import.meta.env.VITE_SEPOLIA_URL ? '✅ Configured' : '❌ Missing',
+          contractAddress: import.meta.env.VITE_CONTRACT_ADDRESS ? '✅ Configured' : '❌ Missing',
+          privateKey: import.meta.env.VITE_PRIVATE_KEY ? '✅ Configured' : '❌ Missing',
+        },
+        libraries: {
+          ethersAvailable: ethersAvailable ? '✅ Available' : '❌ Not loaded',
+          ethersVersion: '6.x',
+          reactVersion: '19.x',
+        },
+        connection: {
+          isConnected: isReady && !!contract ? '✅ Yes' : '❌ No',
+          contractDeployed: !!contract ? '✅ Yes' : '❌ No',
+          hasWallet: !!walletAddress ? '✅ Yes' : '❌ No',
+        },
+      };
+
+      setDiagnostics(results);
+      console.log('[BlockchainDebug] Diagnostics:', results);
+    } catch (err) {
+      console.error('[BlockchainDebug] Diagnostics error:', err);
+      setDiagnostics({
+        timestamp: new Date().toISOString(),
+        error: err.message,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!isVisible) return null;
+  // ✅ Fetch real-time data dari API
+  const fetchRealtimeData = async () => {
+    try {
+      const [statsRes, contractsRes, transactionsRes] = await Promise.allSettled([
+        api.get('/dashboard/stats'),
+        api.get('/blockchain/contracts'),
+        api.get('/blockchain/transactions?limit=5')
+      ]);
+
+      const data = {
+        timestamp: new Date().toISOString(),
+        stats: statsRes.status === 'fulfilled' ? statsRes.value.data : null,
+        contracts: contractsRes.status === 'fulfilled' ? contractsRes.value.data?.data || [] : [],
+        recentTransactions: transactionsRes.status === 'fulfilled' ? transactionsRes.value.data?.data || [] : [],
+      };
+
+      setRealtimeData(data);
+      console.log('[BlockchainDebug] Real-time data:', data);
+    } catch (err) {
+      console.error('[BlockchainDebug] Real-time data fetch error:', err);
+    }
+  };
+
+  // ✅ Auto-run diagnostics on mount
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      runDiagnostics();
+      // Disable fetchRealtimeData untuk now - endpoint belum ada di backend
+      // fetchRealtimeData();
+    }
+  }, []);
+
+  // ✅ Set up polling untuk real-time data
+  useEffect(() => {
+    if (isOpen) {
+      // Initial fetch - disabled for now
+      // fetchRealtimeData();
+      
+      // Poll every 3 seconds - disabled for now
+      // pollingRef.current = setInterval(fetchRealtimeData, 3000);
+      
+      return () => {
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+        }
+      };
+    }
+  }, [isOpen]);
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed bottom-4 right-4 z-50"
-        initial={{ opacity: 0, y: 50, scale: 0.9 }}
-        animate={{ 
-          opacity: 1, 
-          y: 0, 
-          scale: 1,
-          width: isMinimized ? '240px' : '380px'
-        }}
-        exit={{ opacity: 0, y: 50, scale: 0.9 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+    <>
+      {/* ✅ Floating Button dengan indicator real-time */}
+      <motion.button
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 text-white shadow-xl hover:shadow-2xl transition-all flex items-center justify-center group"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        title="Blockchain Debug Panel"
       >
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-purple-200 dark:border-purple-700 overflow-hidden backdrop-blur-xl">
-          {/* ✅ Header dengan Close & Minimize buttons yang lebih user-friendly */}
-          <div className="bg-gradient-to-r from-purple-500 to-blue-500 px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                >
-                  <FiCode className="w-5 h-5 text-white" />
-                </motion.div>
-                <h3 className="font-bold text-white text-sm">
-                  Blockchain Debug
-                </h3>
-              </div>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <FiChevronDown className="w-6 h-6" />
+        </motion.div>
+        
+        {/* Status indicator - real-time */}
+        <motion.div
+          className={`absolute top-1 right-1 w-3 h-3 rounded-full ${
+            isReady && contract ? 'bg-green-400 animate-pulse' : 'bg-red-400'
+          }`}
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
 
-              {/* ✅ Action buttons */}
-              <div className="flex items-center gap-1">
-                {/* Minimize/Maximize Button */}
-                <motion.button
-                  onClick={() => setIsMinimized(!isMinimized)}
-                  className="p-1.5 hover:bg-white/20 rounded-lg transition-colors group"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  title={isMinimized ? "Maximize" : "Minimize"}
-                >
-                  {isMinimized ? (
-                    <FiMaximize2 className="w-4 h-4 text-white group-hover:text-yellow-200 transition-colors" />
-                  ) : (
-                    <FiMinimize2 className="w-4 h-4 text-white group-hover:text-yellow-200 transition-colors" />
-                  )}
-                </motion.button>
+        {/* Activity indicator */}
+        {isOpen && (
+          <motion.div
+            className="absolute top-10 right-0 w-2 h-2 bg-blue-400 rounded-full"
+            animate={{ scale: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          />
+        )}
+      </motion.button>
 
-                {/* Close Button - Enhanced */}
-                <motion.button
-                  onClick={() => setIsVisible(false)}
-                  className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors group relative"
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                  title="Close Debug Panel"
-                >
-                  <FiX className="w-4 h-4 text-white group-hover:text-red-200 transition-colors" />
-                  
-                  {/* ✅ Tooltip on hover */}
-                  <motion.div
-                    className="absolute -top-10 right-0 bg-gray-900 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none"
-                    initial={{ opacity: 0, y: 5 }}
-                    whileHover={{ opacity: 1, y: 0 }}
-                  >
-                    Close Panel
-                    <div className="absolute bottom-0 right-2 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
-                  </motion.div>
-                </motion.button>
-              </div>
-            </div>
-          </div>
-
-          {/* ✅ Content - Only show when not minimized */}
-          <AnimatePresence>
-            {!isMinimized && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="p-4">
-                  {/* Status */}
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400 font-medium">Status:</span>
-                      <motion.span 
-                        className={`font-semibold flex items-center gap-2 ${isConnected ? 'text-green-600' : 'text-red-600'}`}
-                        animate={{ scale: isConnected ? [1, 1.05, 1] : 1 }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        {isConnected ? (
-                          <>
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            Connected
-                          </>
-                        ) : (
-                          <>
-                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                            Not Connected
-                          </>
-                        )}
-                      </motion.span>
-                    </div>
-
-                    {account && (
-                      <div className="text-xs">
-                        <span className="text-gray-600 dark:text-gray-400 font-medium">Account:</span>
-                        <code className="block bg-purple-50 dark:bg-purple-900/20 p-2 rounded-lg mt-1 break-all text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                          {account}
-                        </code>
-                      </div>
-                    )}
-
-                    {network && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400 font-medium">Network:</span>
-                        <span className="font-semibold text-blue-600 dark:text-blue-400 capitalize">
-                          {network}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Debug Info */}
-                  {debugInfo && (
-                    <motion.div 
-                      className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3 mb-4 border border-gray-200 dark:border-gray-700"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Debug Info:</span>
-                        <motion.button
-                          onClick={() => setDebugInfo(null)}
-                          className="text-xs text-gray-500 hover:text-red-500 transition-colors"
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                        >
-                          <FiX className="w-3 h-3" />
-                        </motion.button>
-                      </div>
-                      <pre className="text-xs overflow-auto max-h-32 scrollbar-thin text-gray-800 dark:text-gray-200">
-                        {JSON.stringify(debugInfo, null, 2)}
-                      </pre>
-                    </motion.div>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    {!isConnected ? (
-                      <motion.button
-                        onClick={connectWallet}
-                        className="flex-1 px-3 py-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-lg text-sm font-medium shadow-lg transition-all"
-                        whileHover={{ scale: 1.02, boxShadow: "0 10px 30px -10px rgba(139, 92, 246, 0.5)" }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        Connect Wallet
-                      </motion.button>
-                    ) : (
-                      <motion.button
-                        onClick={runDiagnostics}
-                        disabled={testing}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                          testing 
-                            ? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed text-gray-500' 
-                            : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100'
-                        }`}
-                        whileHover={!testing ? { scale: 1.02 } : {}}
-                        whileTap={!testing ? { scale: 0.98 } : {}}
-                      >
-                        {testing ? (
-                          <span className="flex items-center justify-center gap-2">
-                            <motion.div
-                              className="w-3 h-3 border-2 border-gray-500 border-t-transparent rounded-full"
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            />
-                            Testing...
-                          </span>
-                        ) : (
-                          'Run Diagnostics'
-                        )}
-                      </motion.button>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* ✅ Minimized view */}
-          {isMinimized && (
-            <motion.div 
-              className="p-3"
+      {/* ✅ Debug Panel dengan Real-time Data */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              className="fixed inset-0 bg-black/20 z-30 backdrop-blur-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+            />
+
+            {/* Panel */}
+            <motion.div
+              className="fixed bottom-24 right-6 z-40 w-96 max-h-[600px] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.3 }}
             >
-              <div className="flex items-center justify-between">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-4 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                    {isConnected ? 'Connected' : 'Disconnected'}
-                  </span>
+                  {isReady && contract ? (
+                    <FiWifi className="w-5 h-5 text-green-300 animate-pulse" />
+                  ) : (
+                    <FiWifiOff className="w-5 h-5 text-red-300" />
+                  )}
+                  <h3 className="text-white font-bold">🔗 Blockchain Debug</h3>
+                  <motion.div
+                    className="w-2 h-2 bg-blue-200 rounded-full ml-2"
+                    animate={{ scale: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
                 </div>
-                {isConnected && (
-                  <FiCheckCircle className="w-4 h-4 text-green-500" />
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <FiX className="w-5 h-5 text-white" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Status Summary */}
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg p-4 border-2 border-emerald-200 dark:border-emerald-700">
+                  <h4 className="font-semibold text-sm text-emerald-900 dark:text-emerald-200 mb-3 flex items-center gap-2">
+                    {isReady && contract ? (
+                      <>
+                        <FiCheck className="w-5 h-5 text-green-600" />
+                        <span>✅ Blockchain Connected</span>
+                      </>
+                    ) : (
+                      <>
+                        <FiAlertCircle className="w-5 h-5 text-red-600" />
+                        <span>❌ Blockchain Disconnected</span>
+                      </>
+                    )}
+                  </h4>
+                  <div className="space-y-2 text-xs text-emerald-800 dark:text-emerald-300">
+                    <p><strong>Status:</strong> {isReady ? '🟢 Connected' : '🔴 Disconnected'}</p>
+                    <p><strong>Contract:</strong> {contract ? '🟢 Deployed' : '🔴 Not loaded'}</p>
+                    <p><strong>Wallet:</strong> {walletAddress ? '🟢 Ready' : '🔴 No wallet'}</p>
+                    {error && <p className="text-red-600 dark:text-red-400"><strong>Error:</strong> {error}</p>}
+                  </div>
+                </div>
+
+                {/* ✅ Real-time Stats */}
+                {realtimeData?.stats && (
+                  <motion.div
+                    className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-700"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <h4 className="font-bold text-blue-900 dark:text-blue-200 text-sm mb-2 flex items-center gap-2">
+                      <FiActivity className="w-4 h-4" />
+                      📊 Real-time Stats
+                    </h4>
+                    <div className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
+                      <p><strong>Total Perencanaan:</strong> {realtimeData.stats.stats?.total_perencanaan || 0}</p>
+                      <p><strong>Total Implementasi:</strong> {realtimeData.stats.stats?.total_implementasi || 0}</p>
+                      <p><strong>Total Monitoring:</strong> {realtimeData.stats.stats?.total_monitoring || 0}</p>
+                    </div>
+                  </motion.div>
                 )}
+
+                {/* ✅ Recent Transactions */}
+                {realtimeData?.recentTransactions && realtimeData.recentTransactions.length > 0 && (
+                  <motion.div
+                    className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border-2 border-purple-200 dark:border-purple-700"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <h4 className="font-bold text-purple-900 dark:text-purple-200 text-sm mb-2">
+                      🔄 Recent Transactions ({realtimeData.recentTransactions.length})
+                    </h4>
+                    <div className="text-xs text-purple-800 dark:text-purple-300 space-y-2 max-h-32 overflow-y-auto">
+                      {realtimeData.recentTransactions.slice(0, 3).map((tx, i) => (
+                        <motion.div
+                          key={i}
+                          className="p-2 bg-white/50 dark:bg-gray-700/50 rounded font-mono"
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                        >
+                          <p className="truncate">Hash: {tx.hash?.substring(0, 20)}...</p>
+                          <p className="text-xs">Status: {tx.status || 'Pending'}</p>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Environment Info */}
+                {diagnostics && (
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-2">
+                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300">⚙️ Environment</p>
+                    <div className="text-xs space-y-1 ml-2">
+                      {Object.entries(diagnostics.environment || {}).map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">{key}:</span>
+                          <span className={value.includes('✅') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                            {value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Last Update Time */}
+                <div className="text-xs text-center text-gray-500 dark:text-gray-400">
+                  🕐 Last update: {realtimeData?.timestamp ? new Date(realtimeData.timestamp).toLocaleTimeString('id-ID') : 'N/A'}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex-shrink-0">
+                <motion.button
+                  onClick={runDiagnostics}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  whileHover={!loading ? { scale: 1.05 } : {}}
+                  whileTap={!loading ? { scale: 0.95 } : {}}
+                >
+                  <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  {loading ? 'Testing...' : 'Run Diagnostics'}
+                </motion.button>
               </div>
             </motion.div>
-          )}
-
-          {/* ✅ Footer indicator */}
-          <div className="h-1 bg-gradient-to-r from-purple-500 to-blue-500"></div>
-        </div>
-
-        {/* ✅ Reopen button when closed */}
-        {!isVisible && (
-          <motion.button
-            onClick={() => setIsVisible(true)}
-            className="fixed bottom-4 right-4 p-3 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full shadow-xl"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            title="Show Debug Panel"
-          >
-            <FiCode className="w-5 h-5" />
-          </motion.button>
+          </>
         )}
-      </motion.div>
-    </AnimatePresence>
+      </AnimatePresence>
+    </>
   );
 }

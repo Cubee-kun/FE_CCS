@@ -35,8 +35,12 @@ const ImplementasiForm = () => {
   const [existingLocations, setExistingLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [perencanaans, setPerencanaans] = useState([]);
+  const [selectedPerencanaan, setSelectedPerencanaan] = useState(null);
+  const [loadingPerencanaan, setLoadingPerencanaan] = useState(true);
 
   const validationSchema = Yup.object({
+    perencanaan_id: Yup.string().required("Wajib pilih perencanaan"),
     pic_koorlap: Yup.string().required("Wajib diisi"),
     dokumentasi: Yup.mixed().required("Wajib diisi"),
     geotagging: Yup.string().required("Wajib diisi - Pilih lokasi dari peta"),
@@ -44,6 +48,7 @@ const ImplementasiForm = () => {
 
   const formik = useFormik({
     initialValues: {
+      perencanaan_id: "",
       kesesuaian: {
         nama_perusahaan: false,
         lokasi: false,
@@ -61,59 +66,90 @@ const ImplementasiForm = () => {
       setSubmitting(true);
       try {
         const formData = new FormData();
+        formData.append("perencanaan_id", values.perencanaan_id);
         formData.append("kesesuaian", JSON.stringify(values.kesesuaian));
         formData.append("pic_koorlap", values.pic_koorlap);
         if (Array.isArray(values.dokumentasi)) {
           values.dokumentasi.forEach((file) => formData.append("dokumentasi[]", file));
         }
         formData.append("geotagging", values.geotagging);
-        formData.append("perencanaan_id", selectedLocation?.id); // Link to perencanaan
 
-        await api.post("/forms/implementasi", formData, {
+        const response = await api.post("/implementasi", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
 
-        setSuccess(true);
-        toast.success("✅ Implementasi berhasil disimpan!");
-        setTimeout(() => {
-          formik.resetForm();
-          setSelectedLocation(null);
-          setSuccess(false);
-        }, 2000);
+        if (response.status === 201 || response.status === 200) {
+          setSuccess(true);
+          toast.success("✅ Implementasi berhasil disimpan!");
+          setTimeout(() => {
+            formik.resetForm();
+            setSelectedLocation(null);
+            setSelectedPerencanaan(null);
+            setSuccess(false);
+          }, 2500);
+        }
       } catch (error) {
         console.error("Error submitting form:", error);
-        toast.error("❌ Gagal menyimpan implementasi!");
+        const errorMsg = error.response?.data?.message || error.message || "Gagal menyimpan implementasi";
+        toast.error(`❌ ${errorMsg}`);
       } finally {
         setSubmitting(false);
       }
     },
   });
 
-  // ✅ Fetch existing locations from perencanaan
+  // ✅ Fetch daftar perencanaan dan lokasi (combined)
   useEffect(() => {
-    const fetchLocations = async () => {
+    let isMounted = true;
+
+    const fetchData = async () => {
       try {
-        const response = await api.get("/forms/perencanaan/locations");
-        const locations = response.data?.data || response.data || [];
-        setExistingLocations(locations);
-        toast.success(`📍 ${locations.length} lokasi perencanaan ditemukan`);
+        const response = await api.get("/perencanaan");
+        const data = response.data?.data || response.data || [];
+        
+        if (isMounted) {
+          setPerencanaans(data);
+          setExistingLocations(data);
+          
+          if (data.length > 0) {
+            console.log(`✅ ${data.length} lokasi perencanaan ditemukan`);
+          }
+        }
       } catch (error) {
-        console.error("Error fetching locations:", error);
-        toast.warning("Tidak dapat memuat lokasi perencanaan");
-        setExistingLocations([]);
+        console.error("Error fetching data:", error);
+        if (isMounted) {
+          setPerencanaans([]);
+          setExistingLocations([]);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoadingPerencanaan(false);
+          setLoading(false);
+        }
       }
     };
 
-    fetchLocations();
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  // ✅ Handle perencanaan selection
+  const handlePerencanaanSelect = (perencanaan) => {
+    setSelectedPerencanaan(perencanaan);
+    formik.setFieldValue("perencanaan_id", perencanaan.id);
+    // Auto-select lokasi dari perencanaan yang dipilih
+    handleLocationSelect(perencanaan);
+  };
 
   // ✅ Handle marker selection
   const handleLocationSelect = (location) => {
     setSelectedLocation(location);
-    formik.setFieldValue("geotagging", location.lokasi);
-    toast.success(`📍 Lokasi "${location.nama_perusahaan}" dipilih!`);
+    // Format geotagging as "lat,long"
+    const geotagging = `${location.lat},${location.long}`;
+    formik.setFieldValue("geotagging", geotagging);
   };
 
   return (
@@ -173,6 +209,90 @@ const ImplementasiForm = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           <form onSubmit={formik.handleSubmit} className="p-8 md:p-12">
+            {/* ✅ SELECT PERENCANAAN DROPDOWN */}
+            <motion.div
+              className="mb-10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                Pilih Perencanaan <span className="text-red-500">*</span>
+              </label>
+
+              {loadingPerencanaan ? (
+                <div className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-500"></div>
+                  <span className="text-gray-600 dark:text-gray-400">Memuat data perencanaan...</span>
+                </div>
+              ) : perencanaans.length === 0 ? (
+                <div className="w-full px-4 py-3.5 rounded-xl border-2 border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20">
+                  <p className="text-amber-700 dark:text-amber-300">Tidak ada data perencanaan. Silakan buat perencanaan terlebih dahulu.</p>
+                </div>
+              ) : (
+                <select
+                  id="perencanaan_id"
+                  name="perencanaan_id"
+                  value={formik.values.perencanaan_id}
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    formik.setFieldValue("perencanaan_id", selectedId);
+                    if (selectedId) {
+                      const perencanaan = perencanaans.find(p => String(p.id) === String(selectedId));
+                      if (perencanaan) {
+                        handlePerencanaanSelect(perencanaan);
+                      }
+                    }
+                  }}
+                  onBlur={formik.handleBlur}
+                  className={`w-full px-4 py-3.5 rounded-xl border-2 bg-white dark:bg-gray-700 dark:text-gray-100 transition-all ${
+                    formik.touched.perencanaan_id && formik.errors.perencanaan_id
+                      ? "border-red-400 focus:ring-4 focus:ring-red-200"
+                      : "border-gray-200 dark:border-gray-600 focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                  }`}
+                >
+                  <option value="">-- Pilih Perencanaan --</option>
+                  {perencanaans.map((perencanaan) => (
+                    <option key={perencanaan.id} value={perencanaan.id}>
+                      {perencanaan.nama_perusahaan} • {perencanaan.jenis_kegiatan}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {formik.touched.perencanaan_id && formik.errors.perencanaan_id && (
+                <p className="text-red-500 text-sm mt-2">{formik.errors.perencanaan_id}</p>
+              )}
+
+              {/* Info dari perencanaan terpilih */}
+              {selectedPerencanaan && (
+                <motion.div
+                  className="mt-4 bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-teal-900/20 dark:to-emerald-900/20 border-2 border-teal-300 dark:border-teal-700 rounded-xl p-4"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold">Perusahaan</p>
+                      <p className="text-sm font-bold text-teal-900 dark:text-teal-200">{selectedPerencanaan.nama_perusahaan}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold">Jenis Kegiatan</p>
+                      <p className="text-sm font-bold text-teal-900 dark:text-teal-200">{selectedPerencanaan.jenis_kegiatan}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold">Jumlah Bibit</p>
+                      <p className="text-sm font-bold text-teal-900 dark:text-teal-200">{selectedPerencanaan.jumlah_bibit}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold">Jenis Bibit</p>
+                      <p className="text-sm font-bold text-teal-900 dark:text-teal-200">{selectedPerencanaan.jenis_bibit}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+
             {/* Checklist Kesesuaian */}
             <motion.div
               className="mb-10"
@@ -431,7 +551,10 @@ const ImplementasiForm = () => {
                   <MapContainer
                     center={
                       existingLocations.length > 0
-                        ? existingLocations[0].lokasi.split(',').map(Number)
+                        ? [
+                            parseFloat(existingLocations[0].lat) || -2.5489,
+                            parseFloat(existingLocations[0].long) || 118.0149
+                          ]
                         : [-2.5489, 118.0149]
                     }
                     zoom={13}
@@ -443,8 +566,14 @@ const ImplementasiForm = () => {
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
                     {existingLocations.map((location) => {
-                      const [lat, lng] = location.lokasi.split(',').map(Number);
+                      const lat = parseFloat(location.lat);
+                      const lng = parseFloat(location.long);
                       const isSelected = selectedLocation?.id === location.id;
+                      
+                      // Skip invalid coordinates
+                      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+                        return null;
+                      }
                       
                       return (
                         <Marker

@@ -1,15 +1,14 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import api from "../../api/axios";
 import { FiMapPin, FiCalendar, FiUser, FiPhone, FiBriefcase, FiCheckCircle, FiNavigation, FiLink } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "react-toastify/dist/ReactToastify.css";
-import { useBlockchain } from "../../contexts/BlockchainContext";
 
 // ✅ Fix Leaflet default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -55,15 +54,22 @@ function LocationMarker({ onLocationSelect, selectedLocation }) {
   ) : null;
 }
 
+// ✅ Komponen untuk menghandle map view updates
+function MapViewUpdater({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.setView(center, 13);
+    }
+  }, [center, map]);
+  return null;
+}
+
 const PerencanaanForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [mapCenter, setMapCenter] = useState([-2.5489, 118.0149]); // Indonesia center
-  const { isConnected, connectWallet, storeDocument } = useBlockchain();
-  const { isReady, walletAddress } = useBlockchain();
-  const [blockchainData, setBlockchainData] = useState(null);
-  const [savingToBlockchain, setSavingToBlockchain] = useState(false);
 
   const validationSchema = Yup.object({
     nama_perusahaan: Yup.string().required("Wajib diisi"),
@@ -71,6 +77,8 @@ const PerencanaanForm = () => {
     narahubung: Yup.string().required("Wajib diisi"),
     jenis_kegiatan: Yup.string().required("Pilih salah satu"),
     lokasi: Yup.string().required("Wajib diisi - Klik pada peta untuk menandai lokasi"),
+    lat: Yup.number().required("Latitude diperlukan"),
+    lng: Yup.number().required("Longitude diperlukan"),
     jumlah_bibit: Yup.number().required("Wajib diisi").positive("Harus positif"),
     jenis_bibit: Yup.string().required("Wajib diisi"),
     tanggal_pelaksanaan: Yup.date().required("Wajib diisi"),
@@ -83,6 +91,8 @@ const PerencanaanForm = () => {
       narahubung: "",
       jenis_kegiatan: "",
       lokasi: "",
+      lat: "",
+      lng: "",
       jumlah_bibit: "",
       jenis_bibit: "",
       tanggal_pelaksanaan: "",
@@ -93,50 +103,16 @@ const PerencanaanForm = () => {
       
       try {
         // ✅ 1. Save to backend first
-        const response = await api.post("/forms/perencanaan", values);
+        const response = await api.post("/perencanaan", values);
         const savedId = response.data?.id;
         
         setSuccess(true);
         toast.success("✅ Data berhasil disimpan!");
 
-        // ✅ 2. Save hash to blockchain
-        if (isConnected) {
-          setSavingToBlockchain(true);
-          toast.info("💎 Menyimpan hash ke blockchain...");
-          
-          const blockchainResult = await storeDocument(
-            'PERENCANAAN',
-            values,
-            {
-              backendId: savedId,
-              nama_perusahaan: values.nama_perusahaan,
-              jenis_kegiatan: values.jenis_kegiatan,
-            }
-          );
-
-          if (blockchainResult) {
-            setBlockchainData(blockchainResult);
-            
-            // Update backend with blockchain info
-            await api.put(`/forms/perencanaan/${savedId}`, {
-              blockchain_tx_hash: blockchainResult.txHash,
-              blockchain_doc_id: blockchainResult.docId,
-              blockchain_doc_hash: blockchainResult.docHash,
-            });
-            
-            toast.success("✅ Hash berhasil disimpan ke blockchain!");
-          }
-          
-          setSavingToBlockchain(false);
-        } else {
-          toast.warning("⚠️ Wallet tidak terhubung. Data hanya tersimpan di database.");
-        }
-
         setTimeout(() => {
           resetForm();
           setSelectedLocation(null);
           setSuccess(false);
-          setBlockchainData(null);
         }, 5000);
       } catch (error) {
         console.error("Error submitting form:", error);
@@ -151,8 +127,10 @@ const PerencanaanForm = () => {
   // ✅ Handle map click untuk menandai lokasi
   const handleLocationSelect = (latlng) => {
     setSelectedLocation(latlng);
-    const coords = `${latlng.lat},${latlng.lng}`;
+    const coords = `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
     formik.setFieldValue("lokasi", coords);
+    formik.setFieldValue("lat", latlng.lat);
+    formik.setFieldValue("lng", latlng.lng);
   };
 
   // ✅ Get current location sebagai starting point
@@ -167,7 +145,8 @@ const PerencanaanForm = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setMapCenter([latitude, longitude]);
+        const newCenter = [latitude, longitude];
+        setMapCenter(newCenter);
         toast.success("✅ Peta dipusatkan ke lokasi Anda!", { autoClose: 2000 });
       },
       (error) => {
@@ -235,30 +214,6 @@ const PerencanaanForm = () => {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* ✅ Blockchain Info Card - Sekarang menampilkan wallet yang digunakan */}
-        {isReady && (
-          <motion.div
-            className="mb-6 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-xl p-4"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse flex-shrink-0 mt-2"></div>
-              <div className="flex-1">
-                <h4 className="font-bold text-purple-900 dark:text-purple-200 mb-2">
-                  💎 Blockchain Ready
-                </h4>
-                <p className="text-sm text-purple-800 dark:text-purple-300 mb-3">
-                  Dokumen akan otomatis disimpan ke blockchain dengan wallet ini:
-                </p>
-                <div className="bg-white dark:bg-gray-800 px-3 py-2 rounded-lg font-mono text-xs text-purple-700 dark:text-purple-300 break-all">
-                  {walletAddress}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
 
         {/* Form Card */}
         <motion.div
@@ -452,6 +407,7 @@ const PerencanaanForm = () => {
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
+                  <MapViewUpdater center={mapCenter} />
                   <LocationMarker 
                     onLocationSelect={handleLocationSelect}
                     selectedLocation={selectedLocation}
@@ -497,24 +453,22 @@ const PerencanaanForm = () => {
             >
               <motion.button
                 type="submit"
-                disabled={submitting || savingToBlockchain}
+                disabled={submitting}
                 className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-all ${
-                  submitting || savingToBlockchain
+                  submitting
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 text-white"
                 }`}
               >
-                {savingToBlockchain ? (
+                {submitting ? (
                   <span className="flex items-center justify-center gap-2">
                     <motion.div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
-                    Menyimpan ke Blockchain...
+                    Menyimpan Data...
                   </span>
-                ) : submitting ? (
-                  <span>Menyimpan...</span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
                     <FiCheckCircle className="w-6 h-6" />
-                    {isConnected ? "Simpan Data & Hash ke Blockchain" : "Simpan Data Perencanaan"}
+                    Simpan Data Perencanaan
                   </span>
                 )}
               </motion.button>
