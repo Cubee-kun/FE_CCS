@@ -605,7 +605,7 @@ export default function LaporanPage() {
           </motion.div>
         </div>
 
-        {/* Laporan List dengan Enhanced Actions */}
+        {/* ✅ SIMPLIFIED LAPORAN LIST - Hanya nama perusahaan dan blockchain hash */}
         {currentItems.length === 0 ? (
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 rounded-2xl p-8 text-center">
             <FiFileText className="w-16 h-16 mx-auto mb-4 text-amber-400" />
@@ -613,225 +613,108 @@ export default function LaporanPage() {
             <p>Belum ada data laporan yang sesuai dengan filter Anda</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 mb-8">
-            {currentItems.map((item, index) => (
-              <motion.div
-                key={item.id}
-                className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all border border-gray-100 dark:border-gray-700 overflow-hidden"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                whileHover={{ y: -2 }}
-              >
-                <div className="p-6">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                    {/* Left: Info */}
-                    <div className="flex-1">
-                      <div className="flex items-start gap-4 mb-4">
-                        <div className={`p-3 rounded-xl text-white shadow-lg flex-shrink-0 ${
-                          item.blockchain_doc_hash
-                            ? 'bg-gradient-to-br from-green-500 to-emerald-500'
-                            : 'bg-gradient-to-br from-gray-500 to-gray-600'
-                        }`}>
-                          <FiFileText className="w-6 h-6" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2 flex-wrap">
-                            <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">
-                              {item.nama_perusahaan}
-                            </h3>
-                            
-                            {/* ✅ Status Badges */}
-                            <div className="flex gap-2 flex-wrap">
-                              {item.is_implemented && (
-                                <motion.div 
-                                  className="px-2.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-700"
-                                  whileHover={{ scale: 1.05 }}
-                                >
-                                  <FiCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
-                                    ✓ Implementasi
-                                  </span>
-                                </motion.div>
-                              )}
-                              
-                              {item.monitoring_status === 'completed' && (
-                                <motion.div 
-                                  className="px-2.5 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center gap-1.5 border border-blue-200 dark:border-blue-700"
-                                  whileHover={{ scale: 1.05 }}
-                                >
-                                  <FiMonitor className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                                  <span className="text-xs font-bold text-blue-700 dark:text-blue-300">
-                                    ✓ Monitoring
-                                  </span>
-                                </motion.div>
-                              )}
-                              
-                              {item.blockchain_doc_hash && (
-                                <motion.div 
-                                  className="px-2.5 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center gap-1.5 border border-purple-200 dark:border-purple-700"
-                                  whileHover={{ scale: 1.05 }}
-                                >
-                                  <FiShield className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                                  <span className="text-xs font-bold text-purple-700 dark:text-purple-300">
-                                    🔗 On-Chain
-                                  </span>
-                                </motion.div>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-gray-700 dark:text-gray-300">PIC:</span>
-                              <span>{item.nama_pic}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-gray-700 dark:text-gray-300">Bibit:</span>
-                              <span>{item.jenis_bibit}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-gray-700 dark:text-gray-300">Jumlah:</span>
-                              <span>{item.jumlah_bibit} unit</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <FiCalendar className="w-3 h-3" />
-                              <span>
-                                {new Date(item.tanggal_pelaksanaan).toLocaleDateString("id-ID", {
-                                  day: "numeric",
-                                  month: "short",
-                                  year: "numeric",
-                                })}
-                              </span>
-                            </div>
-                          </div>
+          <motion.div 
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* Table Header */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-gray-700 dark:to-gray-600 px-6 py-4 border-b border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-200">
+              <div className="md:col-span-1 text-sm">No</div>
+              <div className="md:col-span-4 text-sm">Nama Perusahaan</div>
+              <div className="md:col-span-5 text-sm">Hash Transaksi Blockchain</div>
+              <div className="md:col-span-2 text-sm text-center">Aksi</div>
+            </div>
 
-                          {/* On-Chain Info */}
-                          {item.blockchain_doc_hash && (
-                            <div className="mt-3 p-3 rounded-lg bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800">
-                              <div className="flex items-center justify-between flex-wrap gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                                    🔗 On-Chain Hash:
-                                  </p>
-                                  <code className="block text-xs font-mono text-purple-700 dark:text-purple-300 truncate">
-                                    {item.blockchain_doc_hash.substring(0, 40)}...
-                                  </code>
-                                </div>
-                                {item.blockchain_tx_hash && (
-                                  <a
-                                    href={`https://sepolia.etherscan.io/tx/${item.blockchain_tx_hash}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 font-medium whitespace-nowrap"
-                                  >
-                                    <FiExternalLink className="w-3 h-3" />
-                                    View
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right: Enhanced Actions */}
-                    <div className="flex flex-col gap-2 lg:w-80">
-                      {/* Primary Actions Row */}
-                      <div className="grid grid-cols-2 gap-2">
-                        {/* Generate QR */}
-                        <motion.button
-                          onClick={() => generateBlockchainQRCode(item)}
-                          disabled={loadingBlockchain}
-                          className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg font-medium transition-all text-sm bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          title="Generate QR Code"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                          </svg>
-                          <span className="hidden sm:inline">QR</span>
-                        </motion.button>
-
-                        {/* Download PDF */}
-                        <motion.button
-                          onClick={() => generatePDF(item)}
-                          className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg font-medium transition-all text-sm bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-lg"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          title="Download PDF"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          <span className="hidden sm:inline">PDF</span>
-                        </motion.button>
-                      </div>
-
-                      {/* Secondary Actions Row */}
-                      <div className="grid grid-cols-2 gap-2">
-                        {/* Implementasi Status */}
-                        <motion.button
-                          onClick={() => toggleImplementasiStatus(item.id, item.is_implemented)}
-                          disabled={updatingStatus === item.id}
-                          className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg font-medium transition-all text-sm ${
-                            item.is_implemented
-                              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-600'
-                          }`}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          title={item.is_implemented ? "Mark as not implemented" : "Mark as implemented"}
-                        >
-                          <FiCheck className="w-4 h-4" />
-                          <span className="hidden sm:inline text-xs">Impl.</span>
-                        </motion.button>
-
-                        {/* Download All Formats */}
-                        <motion.button
-                          onClick={() => downloadAllAsZip([item])}
-                          disabled={downloadingZip}
-                          className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg font-medium transition-all text-sm bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white shadow-lg"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          title="Download as ZIP"
-                        >
-                          <FiPackage className="w-4 h-4" />
-                          <span className="hidden sm:inline">ZIP</span>
-                        </motion.button>
-                      </div>
-
-                      {/* View Details (Full Width) */}
-                      <motion.button
-                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <FiEye className="w-4 h-4" />
-                        <span>Lihat Detail</span>
-                      </motion.button>
-                    </div>
+            {/* Table Body */}
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {currentItems.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  className="grid grid-cols-1 md:grid-cols-12 gap-4 px-6 py-4 hover:bg-emerald-50/50 dark:hover:bg-gray-700/50 transition-all items-center"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  whileHover={{ scale: 1.01 }}
+                >
+                  {/* No */}
+                  <div className="md:col-span-1">
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold text-sm">
+                      {indexOfFirstItem + index + 1}
+                    </span>
                   </div>
-                </div>
 
-                {/* Bottom Badge */}
-                <div className="px-6 py-3 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                  <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                    item.jenis_kegiatan === 'Planting Mangrove'
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                      : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                  }`}>
-                    {item.jenis_kegiatan}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    ID: {item.id}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                  {/* Nama Perusahaan */}
+                  <div className="md:col-span-4">
+                    <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                      {item.nama_perusahaan}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      ID: {item.id}
+                    </p>
+                  </div>
+
+                  {/* Hash Transaksi Blockchain */}
+                  <div className="md:col-span-5">
+                    {item.blockchain_tx_hash ? (
+                      <div className="flex items-center gap-2 group">
+                        <motion.div
+                          className="flex items-center gap-2 flex-1 min-w-0"
+                          whileHover={{ scale: 1.02 }}
+                        >
+                          <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0 animate-pulse"></div>
+                          <code className="text-xs font-mono text-emerald-600 dark:text-emerald-400 truncate bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded">
+                            {item.blockchain_tx_hash.substring(0, 30)}...
+                          </code>
+                        </motion.div>
+                        {item.blockchain_tx_hash && (
+                          <motion.a
+                            href={`https://sepolia.etherscan.io/tx/${item.blockchain_tx_hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                            whileHover={{ scale: 1.15 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <FiExternalLink className="w-4 h-4" />
+                          </motion.a>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-gray-300 rounded-full flex-shrink-0"></div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Belum di-verify</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Aksi */}
+                  <div className="md:col-span-2 flex gap-2 justify-center">
+                    <motion.button
+                      onClick={() => generateBlockchainQRCode(item)}
+                      disabled={loadingBlockchain}
+                      className="px-3 py-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 font-medium text-sm transition-all"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      title="Generate QR Code"
+                    >
+                      <FiFileText className="w-4 h-4" />
+                    </motion.button>
+                    <motion.button
+                      onClick={() => generatePDF(item)}
+                      className="px-3 py-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 font-medium text-sm transition-all"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      title="Download PDF"
+                    >
+                      <FiDownload className="w-4 h-4" />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
         )}
 
         {/* ✅ PREMIUM PAGINATION */}
