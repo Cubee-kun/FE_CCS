@@ -86,6 +86,7 @@ export default function Verifikasi() {
   const blockchainContext = useBlockchain();
 
   const [ScannerComponent, setScannerComponent] = useState(null);
+  const [qrDataParsed, setQrDataParsed] = useState(null);
 
   // ✅ Load Scanner Component
   useEffect(() => {
@@ -154,7 +155,26 @@ export default function Verifikasi() {
     }
   };
 
-  // ✅ Modified Fetch detail laporan - prioritas blockchain
+  // ✅ Handle scan errors - FIXED
+  const handleError = (error) => {
+    console.error('[Verifikasi] Scan error:', error);
+    
+    if (error?.name === 'NotAllowedError') {
+      setError('❌ Izin kamera ditolak. Silakan izinkan akses kamera di pengaturan browser.');
+    } else if (error?.name === 'NotFoundError') {
+      setError('❌ Kamera tidak ditemukan.');
+    } else if (error?.name === 'NotSupportedError') {
+      setError('❌ Browser tidak mendukung akses kamera.');
+    } else {
+      setError('❌ Gagal mengakses kamera. Gunakan input manual.');
+    }
+    
+    setScanning(false);
+    setUseManualInput(true);
+    toast.error(error?.message || 'Gagal mengakses kamera');
+  };
+
+  // ✅ Fetch detail laporan dari API
   const fetchLaporanDetail = async (laporanId) => {
     setLoadingLaporan(true);
     try {
@@ -162,10 +182,10 @@ export default function Verifikasi() {
       let lastError = null;
 
       // ✅ 1. PRIORITY: Fetch dari Sepolia Blockchain jika ada doc hash
-      if (blockchainReady && parsedData?.blockchain_doc_hash) {
+      if (blockchainReady && qrDataParsed?.blockchain_doc_hash) {
         try {
           console.log('[Verifikasi] Step 1: Trying Sepolia Blockchain...');
-          laporan = await fetchFromBlockchain(parsedData.blockchain_doc_hash, blockchainContext);
+          laporan = await blockchainContext.getDocument(qrDataParsed.blockchain_doc_hash);
           
           if (laporan) {
             console.log('[Verifikasi] ✅ Data fetched from Sepolia Blockchain successfully');
@@ -263,43 +283,44 @@ export default function Verifikasi() {
   const processQRData = async (qrData) => {
     try {
       const parsed = JSON.parse(qrData);
+      
+      console.log('[Verifikasi] QR Data parsed:', parsed);
+      
+      // ✅ Check if ini blockchain QR format
+      if (parsed.type === 'PERENCANAAN_BLOCKCHAIN') {
+        setQrDataParsed(parsed);
+        setScanResult(qrData);
+        setParsedData(parsed.data);
+        setScanning(false);
+        setError(null);
+        
+        toast.success(parsed.verification.blockchainVerified 
+          ? "🔗 QR Code dari Blockchain berhasil dipindai!" 
+          : "✅ QR Code berhasil dipindai!");
+        
+        // ✅ Set laporan detail langsung dari parsed data
+        if (parsed.data) {
+          setLaporanDetail(parsed.data);
+          toast.success("📊 Detail laporan berhasil dimuat dari QR!");
+        }
+        return;
+      }
+      
+      // ✅ Fallback ke format lama
       setScanResult(qrData);
       setParsedData(parsed);
       setScanning(false);
       setError(null);
       
-      toast.success("✅ QR Code berhasil dipindai!", {
-        position: "top-center",
-        autoClose: 2000
-      });
-
-      // ✅ Extract ID atau blockchain doc hash
       const laporanId = parsed.id || parsed.perencanaan_id || parsed.laporan_id;
-      const docHash = parsed.blockchain_doc_hash;
-
-      if (docHash && blockchainReady) {
-        console.log('[Verifikasi] Blockchain doc hash detected, fetching from blockchain...');
-        // ✅ Langsung fetch dari blockchain jika ada doc hash
-        const blockchainData = await fetchFromBlockchain(docHash, blockchainContext);
-        if (blockchainData) {
-          setLaporanDetail(blockchainData);
-          return;
-        }
-      }
-
       if (laporanId) {
-        console.log(`[Verifikasi] Found laporan ID: ${laporanId}`);
         await fetchLaporanDetail(laporanId);
-      } else {
-        console.warn('[Verifikasi] No ID found in QR data');
-        setLaporanDetail(parsed);
-        toast.info("💡 Menampilkan data dari QR Code", { autoClose: 2000 });
       }
-
+      
     } catch (parseError) {
       console.log('[Verifikasi] QR data is not JSON, treating as text');
       
-      // ✅ Check if numeric ID
+      // ✅ Check if it's a numeric ID
       if (/^\d+$/.test(qrData.trim())) {
         const numericId = parseInt(qrData.trim());
         console.log(`[Verifikasi] Detected numeric ID: ${numericId}`);
@@ -318,16 +339,21 @@ export default function Verifikasi() {
         // ✅ Check if blockchain hash format (0x...)
         if (qrData.trim().startsWith('0x')) {
           console.log('[Verifikasi] Blockchain hash detected, fetching...');
-          if (blockchainReady) {
-            const blockchainData = await fetchFromBlockchain(qrData.trim(), blockchainContext);
-            if (blockchainData) {
-              setScanResult(qrData);
-              setParsedData({ blockchain_doc_hash: qrData.trim(), type: 'BLOCKCHAIN_HASH' });
-              setScanning(false);
-              setError(null);
-              setLaporanDetail(blockchainData);
-              toast.success("🔗 Data fetched dari Sepolia Blockchain!");
-              return;
+          if (blockchainReady && blockchainContext?.contract) {
+            try {
+              const blockchainData = await blockchainContext.getDocument(qrData.trim());
+              if (blockchainData) {
+                setScanResult(qrData);
+                setParsedData({ blockchain_doc_hash: qrData.trim(), type: 'BLOCKCHAIN_HASH' });
+                setScanning(false);
+                setError(null);
+                setLaporanDetail(blockchainData);
+                toast.success("🔗 Data fetched dari Sepolia Blockchain!");
+                return;
+              }
+            } catch (err) {
+              console.error('[Verifikasi] Blockchain fetch failed:', err);
+              toast.error("❌ Gagal fetch dari blockchain");
             }
           } else {
             toast.warning("⚠️ Blockchain belum siap, silakan tunggu...");
@@ -349,23 +375,38 @@ export default function Verifikasi() {
     }
   };
 
-  // ✅ Handle scan errors
-  const handleError = (error) => {
-    console.error('[Verifikasi] Scan error:', error);
-    
-    if (error?.name === 'NotAllowedError') {
-      setError('❌ Izin kamera ditolak. Silakan izinkan akses kamera di pengaturan browser.');
-    } else if (error?.name === 'NotFoundError') {
-      setError('❌ Kamera tidak ditemukan.');
-    } else if (error?.name === 'NotSupportedError') {
-      setError('❌ Browser tidak mendukung akses kamera.');
-    } else {
-      setError('❌ Gagal mengakses kamera. Gunakan input manual.');
+  // ✅ Verify Blockchain Data
+  const verifyBlockchainData = async () => {
+    if (!qrDataParsed?.verification?.blockchainVerified) {
+      toast.warning("⚠️ Data ini belum terverifikasi di blockchain");
+      return;
     }
-    
-    setScanning(false);
-    setUseManualInput(true);
-    toast.error(error?.message || 'Gagal mengakses kamera');
+
+    try {
+      console.log('[Verifikasi] Verifying blockchain data:', qrDataParsed.verification.docHash);
+      
+      if (blockchainReady && blockchainContext?.contract) {
+        const blockchainVerified = await blockchainContext.getDocument(qrDataParsed.verification.docHash);
+        
+        console.log('[Verifikasi] ✅ Blockchain verification successful:', blockchainVerified);
+        
+        toast.success("🔗 Data berhasil diverifikasi dari Blockchain Sepolia!");
+        
+        // Update laporan dengan data blockchain
+        if (blockchainVerified) {
+          setLaporanDetail({
+            ...laporanDetail,
+            ...blockchainVerified,
+            blockchain_verified_at: new Date().toISOString()
+          });
+        }
+      } else {
+        toast.warning("⚠️ Blockchain service belum siap");
+      }
+    } catch (err) {
+      console.error('[Verifikasi] Verification failed:', err);
+      toast.error("❌ Verifikasi blockchain gagal");
+    }
   };
 
   // ✅ Reset scan

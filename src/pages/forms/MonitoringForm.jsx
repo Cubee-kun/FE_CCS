@@ -9,9 +9,9 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { toast } from "react-toastify";
 
-// ✅ Orange marker for monitoring locations
-const monitoringMarkerIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+// ✅ Purple marker untuk lokasi implementasi
+const implementationMarkerIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-purple.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
@@ -84,7 +84,8 @@ const MonitoringForm = () => {
             });
           }
         });
-        formData.append("perencanaan_id", selectedLocation?.id);
+        // ✅ Link ke implementasi, bukan perencanaan
+        formData.append("implementasi_id", selectedLocation?.implementasi_id);
 
         await api.post("/forms/monitoring", formData, {
           headers: { "Content-Type": "multipart/form-data" },
@@ -106,19 +107,30 @@ const MonitoringForm = () => {
     },
   });
 
-  // ✅ Fetch locations
+  // ✅ Fetch implementasi locations - CHANGED FROM perencanaan
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const response = await api.get("/forms/perencanaan/locations");
+        // ✅ Fetch dari endpoint implementasi
+        const response = await api.get("/forms/implementasi/locations");
         const locations = response.data?.data || response.data || [];
+        
+        console.log('[MonitoringForm] Implementasi locations fetched:', locations);
+        
         setExistingLocations(locations);
         if (locations.length > 0) {
-          toast.success(`📍 ${locations.length} lokasi perencanaan ditemukan`);
+          toast.success(`📍 ${locations.length} lokasi implementasi ditemukan`);
+        } else {
+          toast.info("ℹ️ Belum ada data implementasi. Silakan lakukan implementasi terlebih dahulu.");
         }
       } catch (error) {
-        console.error("Error fetching locations:", error);
-        toast.warning("Tidak dapat memuat lokasi perencanaan");
+        console.error("Error fetching implementasi locations:", error);
+        
+        if (error.response?.status === 404) {
+          toast.warning("⚠️ Belum ada data implementasi. Silakan lakukan implementasi terlebih dahulu.");
+        } else {
+          toast.warning("Tidak dapat memuat lokasi implementasi");
+        }
         setExistingLocations([]);
       } finally {
         setLoading(false);
@@ -131,7 +143,7 @@ const MonitoringForm = () => {
   const handleLocationSelect = (location) => {
     setSelectedLocation(location);
     formik.setFieldValue("lokasi", location.lokasi);
-    toast.success(`📍 Lokasi "${location.nama_perusahaan}" dipilih!`);
+    toast.success(`📍 Lokasi "${location.nama_perusahaan}" dipilih untuk monitoring!`);
   };
 
   const renderRadioGroup = (name, label) => (
@@ -198,7 +210,7 @@ const MonitoringForm = () => {
             Form Monitoring Kegiatan
           </h1>
           <p className="text-gray-600 dark:text-gray-400 text-lg">
-            Monitoring dan evaluasi kesehatan bibit tanaman
+            Monitoring kesehatan bibit dari hasil implementasi yang telah dilakukan
           </p>
         </motion.div>
 
@@ -296,7 +308,7 @@ const MonitoringForm = () => {
               </div>
             </motion.div>
 
-            {/* ✅ Upload Dokumentasi dengan Preview Modern */}
+            {/* Upload Dokumentasi */}
             <motion.div
               className="mb-10"
               initial={{ opacity: 0, y: 20 }}
@@ -342,7 +354,7 @@ const MonitoringForm = () => {
                 <p className="text-red-500 text-sm mt-2">{formik.errors.dokumentasi}</p>
               )}
 
-              {/* Preview Grid dengan Animasi */}
+              {/* Preview Grid */}
               {formik.values.dokumentasi && formik.values.dokumentasi.length > 0 && (
                 <motion.div
                   className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
@@ -389,7 +401,7 @@ const MonitoringForm = () => {
               )}
             </motion.div>
 
-            {/* ✅ Select Location Map */}
+            {/* ✅ Select Location Map - DARI IMPLEMENTASI */}
             <motion.div
               className="mb-10"
               initial={{ opacity: 0, y: 20 }}
@@ -398,7 +410,7 @@ const MonitoringForm = () => {
             >
               <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
                 <FiMapPin className="w-5 h-5 text-green-600 dark:text-green-400" />
-                Pilih Lokasi Monitoring
+                Pilih Lokasi Implementasi untuk Monitoring
                 <span className="text-red-500">*</span>
               </label>
 
@@ -408,11 +420,11 @@ const MonitoringForm = () => {
                   <FiMapPin className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <h4 className="font-bold text-green-900 dark:text-green-200 mb-2">
-                      📍 Pilih dari Lokasi yang Sudah Direncanakan
+                      📍 Pilih dari Lokasi Implementasi
                     </h4>
                     <p className="text-sm text-green-800 dark:text-green-300">
-                      Klik pada marker orange di peta untuk memilih lokasi monitoring. 
-                      Lokasi ini berasal dari data perencanaan yang sudah dibuat sebelumnya.
+                      Klik pada marker di peta untuk memilih lokasi implementasi yang akan dimonitor. 
+                      Hanya lokasi yang telah diimplementasikan yang dapat dipilih untuk monitoring.
                     </p>
                   </div>
                 </div>
@@ -431,10 +443,13 @@ const MonitoringForm = () => {
                     </div>
                     <div className="flex-1">
                       <h4 className="font-bold text-green-900 dark:text-green-200 mb-1">
-                        Lokasi Terpilih
+                        Lokasi Implementasi Terpilih
                       </h4>
                       <p className="text-sm text-green-800 dark:text-green-300">
                         <strong>Perusahaan:</strong> {selectedLocation.nama_perusahaan}
+                      </p>
+                      <p className="text-sm text-green-800 dark:text-green-300">
+                        <strong>Kegiatan:</strong> {selectedLocation.jenis_kegiatan}
                       </p>
                       <p className="text-xs text-green-700 dark:text-green-400 font-mono mt-1">
                         Koordinat: {selectedLocation.lokasi}
@@ -444,12 +459,12 @@ const MonitoringForm = () => {
                 </motion.div>
               )}
 
-              {/* Map with Existing Locations */}
+              {/* Map with Implementasi Locations */}
               {loading ? (
                 <div className="h-96 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-                    <p className="text-gray-600 dark:text-gray-400">Memuat lokasi perencanaan...</p>
+                    <p className="text-gray-600 dark:text-gray-400">Memuat lokasi implementasi...</p>
                   </div>
                 </div>
               ) : existingLocations.length === 0 ? (
@@ -457,10 +472,10 @@ const MonitoringForm = () => {
                   <div className="text-center p-8">
                     <FiAlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
                     <h3 className="text-xl font-bold text-amber-900 dark:text-amber-200 mb-2">
-                      Belum Ada Lokasi Perencanaan
+                      Belum Ada Lokasi Implementasi
                     </h3>
                     <p className="text-amber-700 dark:text-amber-300">
-                      Silakan buat perencanaan terlebih dahulu untuk menandai lokasi.
+                      Silakan lakukan implementasi terlebih dahulu untuk mendapatkan data lokasi monitoring.
                     </p>
                   </div>
                 </div>
@@ -488,7 +503,7 @@ const MonitoringForm = () => {
                         <Marker
                           key={location.id}
                           position={[lat, lng]}
-                          icon={isSelected ? selectedMarkerIcon : monitoringMarkerIcon}
+                          icon={isSelected ? selectedMarkerIcon : implementationMarkerIcon}
                           eventHandlers={{
                             click: () => handleLocationSelect(location),
                           }}
@@ -496,12 +511,15 @@ const MonitoringForm = () => {
                           <Popup>
                             <div className="text-center">
                               <p className="font-bold text-green-700">{location.nama_perusahaan}</p>
-                              <p className="text-xs text-gray-600 mb-2">
-                                {location.jenis_kegiatan}
+                              <p className="text-xs text-gray-600 mb-1">
+                                Implementasi: {location.jenis_kegiatan}
+                              </p>
+                              <p className="text-xs text-gray-600 mb-3">
+                                Bibit: {location.jenis_bibit} ({location.jumlah_bibit} unit)
                               </p>
                               <button
                                 onClick={() => handleLocationSelect(location)}
-                                className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-colors"
+                                className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-colors font-semibold"
                               >
                                 Pilih Lokasi Ini
                               </button>

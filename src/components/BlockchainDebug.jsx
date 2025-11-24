@@ -1,18 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiChevronDown, FiX, FiRefreshCw, FiWifi, FiWifiOff, FiCheck, FiAlertCircle } from 'react-icons/fi';
+import { FiChevronDown, FiX, FiRefreshCw, FiWifi, FiWifiOff, FiCheck, FiAlertCircle, FiActivity } from 'react-icons/fi';
 import { useBlockchain } from '../contexts/BlockchainContext';
+import api from '../api/axios';
 
 export default function BlockchainDebug() {
   const [isOpen, setIsOpen] = useState(false);
   const [diagnostics, setDiagnostics] = useState(null);
   const [loading, setLoading] = useState(false);
-  const { isReady, error, contract } = useBlockchain();
+  const [realtimeData, setRealtimeData] = useState(null);
+  const pollingRef = useRef(null);
+  const { isReady, error, contract, walletAddress } = useBlockchain();
 
   // ✅ Run diagnostics
   const runDiagnostics = async () => {
     setLoading(true);
     try {
+      let ethersAvailable = false;
+      try {
+        await import('ethers');
+        ethersAvailable = true;
+      } catch (e) {
+        ethersAvailable = false;
+      }
+
       const results = {
         timestamp: new Date().toISOString(),
         blockchain: {
@@ -20,15 +31,23 @@ export default function BlockchainDebug() {
           error: error || 'No errors',
           contractExists: !!contract,
           contractAddress: contract?.address || 'N/A',
+          walletAddress: walletAddress || 'N/A',
         },
         environment: {
+          nodeEnv: import.meta.env.MODE,
           rpcUrl: import.meta.env.VITE_SEPOLIA_URL ? '✅ Configured' : '❌ Missing',
           contractAddress: import.meta.env.VITE_CONTRACT_ADDRESS ? '✅ Configured' : '❌ Missing',
           privateKey: import.meta.env.VITE_PRIVATE_KEY ? '✅ Configured' : '❌ Missing',
         },
+        libraries: {
+          ethersAvailable: ethersAvailable ? '✅ Available' : '❌ Not loaded',
+          ethersVersion: '6.x',
+          reactVersion: '19.x',
+        },
         connection: {
-          web3Available: typeof window.web3 !== 'undefined' ? '✅ Yes' : '❌ No',
-          ethersAvailable: typeof window.ethers !== 'undefined' ? '✅ Yes' : '❌ No',
+          isConnected: isReady && !!contract ? '✅ Yes' : '❌ No',
+          contractDeployed: !!contract ? '✅ Yes' : '❌ No',
+          hasWallet: !!walletAddress ? '✅ Yes' : '❌ No',
         },
       };
 
@@ -45,24 +64,57 @@ export default function BlockchainDebug() {
     }
   };
 
+  // ✅ Fetch real-time data dari API
+  const fetchRealtimeData = async () => {
+    try {
+      const [statsRes, contractsRes, transactionsRes] = await Promise.allSettled([
+        api.get('/dashboard/stats'),
+        api.get('/blockchain/contracts'),
+        api.get('/blockchain/transactions?limit=5')
+      ]);
+
+      const data = {
+        timestamp: new Date().toISOString(),
+        stats: statsRes.status === 'fulfilled' ? statsRes.value.data : null,
+        contracts: contractsRes.status === 'fulfilled' ? contractsRes.value.data?.data || [] : [],
+        recentTransactions: transactionsRes.status === 'fulfilled' ? transactionsRes.value.data?.data || [] : [],
+      };
+
+      setRealtimeData(data);
+      console.log('[BlockchainDebug] Real-time data:', data);
+    } catch (err) {
+      console.error('[BlockchainDebug] Real-time data fetch error:', err);
+    }
+  };
+
   // ✅ Auto-run diagnostics on mount
   useEffect(() => {
     if (import.meta.env.DEV) {
       runDiagnostics();
+      fetchRealtimeData();
     }
   }, []);
 
-  // ✅ Auto-update status
+  // ✅ Set up polling untuk real-time data
   useEffect(() => {
     if (isOpen) {
-      const timer = setInterval(runDiagnostics, 5000);
-      return () => clearInterval(timer);
+      // Initial fetch
+      fetchRealtimeData();
+      
+      // Poll every 3 seconds
+      pollingRef.current = setInterval(fetchRealtimeData, 3000);
+      
+      return () => {
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+        }
+      };
     }
   }, [isOpen]);
 
   return (
     <>
-      {/* ✅ Floating Button */}
+      {/* ✅ Floating Button dengan indicator real-time */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 text-white shadow-xl hover:shadow-2xl transition-all flex items-center justify-center group"
@@ -77,23 +129,32 @@ export default function BlockchainDebug() {
           <FiChevronDown className="w-6 h-6" />
         </motion.div>
         
-        {/* Status indicator */}
+        {/* Status indicator - real-time */}
         <motion.div
           className={`absolute top-1 right-1 w-3 h-3 rounded-full ${
-            isReady ? 'bg-green-400 animate-pulse' : 'bg-red-400'
+            isReady && contract ? 'bg-green-400 animate-pulse' : 'bg-red-400'
           }`}
           animate={{ scale: [1, 1.2, 1] }}
           transition={{ duration: 2, repeat: Infinity }}
         />
+
+        {/* Activity indicator */}
+        {isOpen && (
+          <motion.div
+            className="absolute top-10 right-0 w-2 h-2 bg-blue-400 rounded-full"
+            animate={{ scale: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          />
+        )}
       </motion.button>
 
-      {/* ✅ Debug Panel */}
+      {/* ✅ Debug Panel dengan Real-time Data */}
       <AnimatePresence>
         {isOpen && (
           <>
             {/* Backdrop */}
             <motion.div
-              className="fixed inset-0 bg-black/20 z-30"
+              className="fixed inset-0 bg-black/20 z-30 backdrop-blur-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -102,21 +163,26 @@ export default function BlockchainDebug() {
 
             {/* Panel */}
             <motion.div
-              className="fixed bottom-24 right-6 z-40 w-96 max-h-96 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col"
+              className="fixed bottom-24 right-6 z-40 w-96 max-h-[600px] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col"
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ duration: 0.3 }}
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-4 flex items-center justify-between">
+              <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-4 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-2">
-                  {isReady ? (
+                  {isReady && contract ? (
                     <FiWifi className="w-5 h-5 text-green-300 animate-pulse" />
                   ) : (
                     <FiWifiOff className="w-5 h-5 text-red-300" />
                   )}
                   <h3 className="text-white font-bold">🔗 Blockchain Debug</h3>
+                  <motion.div
+                    className="w-2 h-2 bg-blue-200 rounded-full ml-2"
+                    animate={{ scale: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
                 </div>
                 <button
                   onClick={() => setIsOpen(false)}
@@ -128,105 +194,111 @@ export default function BlockchainDebug() {
 
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {/* Status */}
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-2">
-                  <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                    📊 Status
+                {/* Status Summary */}
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg p-4 border-2 border-emerald-200 dark:border-emerald-700">
+                  <h4 className="font-semibold text-sm text-emerald-900 dark:text-emerald-200 mb-3 flex items-center gap-2">
+                    {isReady && contract ? (
+                      <>
+                        <FiCheck className="w-5 h-5 text-green-600" />
+                        <span>✅ Blockchain Connected</span>
+                      </>
+                    ) : (
+                      <>
+                        <FiAlertCircle className="w-5 h-5 text-red-600" />
+                        <span>❌ Blockchain Disconnected</span>
+                      </>
+                    )}
                   </h4>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Connection:</span>
-                      <div className="flex items-center gap-1">
-                        <span className={isReady ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-red-600 dark:text-red-400 font-semibold'}>
-                          {isReady ? 'Connected' : 'Disconnected'}
-                        </span>
-                        {isReady ? (
-                          <FiCheck className="w-3 h-3 text-green-600 dark:text-green-400" />
-                        ) : (
-                          <FiAlertCircle className="w-3 h-3 text-red-600 dark:text-red-400" />
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Contract:</span>
-                      <span className={contract ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}>
-                        {contract ? '✅ Ready' : '⚠️ Loading'}
-                      </span>
-                    </div>
+                  <div className="space-y-2 text-xs text-emerald-800 dark:text-emerald-300">
+                    <p><strong>Status:</strong> {isReady ? '🟢 Connected' : '🔴 Disconnected'}</p>
+                    <p><strong>Contract:</strong> {contract ? '🟢 Deployed' : '🔴 Not loaded'}</p>
+                    <p><strong>Wallet:</strong> {walletAddress ? '🟢 Ready' : '🔴 No wallet'}</p>
+                    {error && <p className="text-red-600 dark:text-red-400"><strong>Error:</strong> {error}</p>}
                   </div>
                 </div>
 
-                {/* Error if any */}
-                {error && (
-                  <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
-                    <h4 className="font-semibold text-sm text-red-700 dark:text-red-300 mb-1 flex items-center gap-2">
-                      ⚠️ Error
+                {/* ✅ Real-time Stats */}
+                {realtimeData?.stats && (
+                  <motion.div
+                    className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-700"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <h4 className="font-bold text-blue-900 dark:text-blue-200 text-sm mb-2 flex items-center gap-2">
+                      <FiActivity className="w-4 h-4" />
+                      📊 Real-time Stats
                     </h4>
-                    <p className="text-xs text-red-600 dark:text-red-400 break-words">
-                      {error}
-                    </p>
-                  </div>
+                    <div className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
+                      <p><strong>Total Perencanaan:</strong> {realtimeData.stats.stats?.total_perencanaan || 0}</p>
+                      <p><strong>Total Implementasi:</strong> {realtimeData.stats.stats?.total_implementasi || 0}</p>
+                      <p><strong>Total Monitoring:</strong> {realtimeData.stats.stats?.total_monitoring || 0}</p>
+                    </div>
+                  </motion.div>
                 )}
 
-                {/* Diagnostics Results */}
+                {/* ✅ Recent Transactions */}
+                {realtimeData?.recentTransactions && realtimeData.recentTransactions.length > 0 && (
+                  <motion.div
+                    className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border-2 border-purple-200 dark:border-purple-700"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <h4 className="font-bold text-purple-900 dark:text-purple-200 text-sm mb-2">
+                      🔄 Recent Transactions ({realtimeData.recentTransactions.length})
+                    </h4>
+                    <div className="text-xs text-purple-800 dark:text-purple-300 space-y-2 max-h-32 overflow-y-auto">
+                      {realtimeData.recentTransactions.slice(0, 3).map((tx, i) => (
+                        <motion.div
+                          key={i}
+                          className="p-2 bg-white/50 dark:bg-gray-700/50 rounded font-mono"
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                        >
+                          <p className="truncate">Hash: {tx.hash?.substring(0, 20)}...</p>
+                          <p className="text-xs">Status: {tx.status || 'Pending'}</p>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Environment Info */}
                 {diagnostics && (
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-2">
-                    <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100">
-                      🔍 Diagnostics
-                    </h4>
-                    
-                    {/* Environment */}
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                        Environment:
-                      </p>
-                      <div className="text-xs space-y-1 ml-2">
-                        {Object.entries(diagnostics.environment || {}).map(([key, value]) => (
-                          <div key={key} className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">{key}:</span>
-                            <span className={value.includes('✅') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                              {value}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-2">
+                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300">⚙️ Environment</p>
+                    <div className="text-xs space-y-1 ml-2">
+                      {Object.entries(diagnostics.environment || {}).map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">{key}:</span>
+                          <span className={value.includes('✅') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                            {value}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-
-                    {/* Connection */}
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                        Connection:
-                      </p>
-                      <div className="text-xs space-y-1 ml-2">
-                        {Object.entries(diagnostics.connection || {}).map(([key, value]) => (
-                          <div key={key} className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">{key}:</span>
-                            <span className={value.includes('✅') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                              {value}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Timestamp */}
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                      Last update: {diagnostics.timestamp}
-                    </p>
                   </div>
                 )}
+
+                {/* Last Update Time */}
+                <div className="text-xs text-center text-gray-500 dark:text-gray-400">
+                  🕐 Last update: {realtimeData?.timestamp ? new Date(realtimeData.timestamp).toLocaleTimeString('id-ID') : 'N/A'}
+                </div>
               </div>
 
               {/* Footer */}
-              <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex gap-2">
-                <button
+              <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex-shrink-0">
+                <motion.button
                   onClick={runDiagnostics}
                   disabled={loading}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white text-sm font-medium disabled:opacity-50 transition-all"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  whileHover={!loading ? { scale: 1.05 } : {}}
+                  whileTap={!loading ? { scale: 0.95 } : {}}
                 >
                   <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                   {loading ? 'Testing...' : 'Run Diagnostics'}
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           </>
