@@ -13,13 +13,12 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const [deviceConflict, setDeviceConflict] = useState(false); // ✅ State untuk konflik device
-  const [sessionInfo, setSessionInfo] = useState(null); // ✅ Info session yang aktif
+  const [deviceConflict, setDeviceConflict] = useState(false);
+  const [sessionInfo, setSessionInfo] = useState(null);
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
-  // ✅ Get the intended destination from location state
   const from = location.state?.from?.pathname || null;
 
   const handleSubmit = async (e) => {
@@ -35,11 +34,15 @@ export default function Login() {
     setLoading(false);
 
     if (!result.success) {
+<<<<<<< HEAD
       // ✅ Device conflict
+=======
+>>>>>>> 6cb1bb9f18ae787f21e585de8cfb287dff3a09dc
       if (result.code === 'DEVICE_CONFLICT') {
         setDeviceConflict(true);
         setSessionInfo(result.sessionInfo || {});
         setError(result.message);
+<<<<<<< HEAD
       }
       // ✅ Invalid credentials
       else if (result.code === 'INVALID_CREDENTIALS') {
@@ -48,6 +51,12 @@ export default function Login() {
       }
       // ✅ Other errors
       else {
+=======
+      } else if (result.code === 'INVALID_CREDENTIALS') {
+        setError(result.message);
+        console.warn('[Login] Invalid credentials - please check email and password');
+      } else {
+>>>>>>> 6cb1bb9f18ae787f21e585de8cfb287dff3a09dc
         setError(result.message);
         console.error('[Login] Login error:', result.message);
       }
@@ -66,16 +75,14 @@ export default function Login() {
     }
   };
 
-  // ✅ Fungsi untuk logout perangkat lain (force login)
   const handleForceLogout = async () => {
     setLoading(true);
     setError("");
 
     try {
-      // Call API untuk logout semua device dan login ulang
       const result = await login({ 
         ...credentials, 
-        forceLogout: true // Flag untuk force logout device lain
+        forceLogout: true
       });
 
       setLoading(false);
@@ -83,7 +90,6 @@ export default function Login() {
       if (result.success) {
         localStorage.setItem("user", JSON.stringify(result.data.user));
         
-        // ✅ Redirect to intended page or default dashboard
         if (from && from !== '/login') {
           navigate(from, { replace: true });
         } else if (result.data.user.role === "admin") {
@@ -109,20 +115,20 @@ export default function Login() {
     { icon: "🌲", size: "text-3xl", position: "bottom-1/3 right-1/6" },
   ];
 
-  if (loading) {
+  if (loading && !deviceConflict) {
     return <LoadingSpinner />;
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-emerald-50 via-white to-teal-50">
-      {/* Left Side - Floating Elements and Image */}
+    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 transition-colors duration-300">
+      {/* Left Side - Desktop Only */}
       <motion.div 
         className="hidden md:flex md:w-1/2 items-center justify-center p-10 relative overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-600/10 z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-600/10 dark:from-emerald-500/5 dark:to-teal-600/5 z-10"></div>
         <motion.img
           src="/images/login-bg.jpg"
           alt="Login background"
@@ -135,7 +141,7 @@ export default function Login() {
         {floatingShapes.map((shape, index) => (
           <motion.div
             key={index}
-            className={`absolute ${shape.position} ${shape.size} text-emerald-600/30 z-20`}
+            className={`absolute ${shape.position} ${shape.size} text-emerald-600/30 dark:text-emerald-400/20 z-20`}
             animate={{
               y: [0, (Math.random() - 0.5) * 40],
               x: [0, (Math.random() - 0.5) * 40],
@@ -153,13 +159,13 @@ export default function Login() {
         ))}
 
         <motion.div 
-          className="relative z-20 w-full max-w-lg bg-white/90 backdrop-blur-sm px-8 py-6 rounded-2xl shadow-xl border border-white/20"
+          className="relative z-20 w-full max-w-lg bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-8 py-6 rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 transition-all"
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.8 }}
         >
           <motion.h1 
-            className="text-3xl font-bold text-emerald-800 mb-2"
+            className="text-3xl font-bold text-emerald-800 dark:text-emerald-200 mb-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
@@ -167,7 +173,7 @@ export default function Login() {
             Selamat Datang Kembali
           </motion.h1>
           <motion.p 
-            className="text-emerald-700/90 mb-6"
+            className="text-emerald-700/90 dark:text-emerald-300/90 mb-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
@@ -194,7 +200,7 @@ export default function Login() {
                 >
                   {item.icon}
                 </motion.span>
-                <span className="text-emerald-800/90">{item.text}</span>
+                <span className="text-emerald-800/90 dark:text-emerald-200/90">{item.text}</span>
               </motion.div>
             ))}
           </div>
@@ -210,7 +216,7 @@ export default function Login() {
           title="Kembali ke Beranda"
         >
           <motion.div
-            className="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-full shadow-lg border border-emerald-200 dark:border-emerald-700 hover:shadow-xl transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-full shadow-lg border border-emerald-200 dark:border-emerald-700/50 hover:shadow-xl transition-all"
             whileHover={{ scale: 1.05, x: -3 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -227,14 +233,14 @@ export default function Login() {
         </Link>
 
         <motion.div 
-          className="w-full max-w-md bg-white rounded-2xl md:rounded-3xl shadow-xl overflow-hidden border border-white/20 relative"
+          className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl md:rounded-3xl shadow-xl overflow-hidden border border-white/20 dark:border-gray-700/50 transition-all"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.5 }}
         >
           {/* Form Header */}
           <motion.div 
-            className="bg-gradient-to-r from-emerald-600 to-teal-500 p-6 text-center"
+            className="bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-700 dark:to-teal-600 p-6 text-center transition-all"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -264,7 +270,7 @@ export default function Login() {
 
           {/* Form Content */}
           <div className="p-6 md:p-8">
-            {/* ✅ Device Conflict Warning */}
+            {/* Device Conflict Warning */}
             <AnimatePresence>
               {deviceConflict && (
                 <motion.div
@@ -345,11 +351,11 @@ export default function Login() {
               )}
             </AnimatePresence>
 
-            {/* ✅ Normal Error Message */}
+            {/* Normal Error Message */}
             <AnimatePresence>
               {error && !deviceConflict && (
                 <motion.div 
-                  className="mb-6 bg-red-50/80 text-red-700 px-4 py-3 rounded-lg text-sm flex items-start space-x-2 border border-red-100"
+                  className="mb-6 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm flex items-start space-x-2 border border-red-100 dark:border-red-800"
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
@@ -368,25 +374,23 @@ export default function Login() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Alamat Email
                 </label>
-                <div className="relative">
-                  <motion.input
-                    type="email"
-                    value={credentials.email}
-                    onChange={(e) =>
-                      setCredentials({ ...credentials, email: e.target.value })
-                    }
-                    required
-                    placeholder="email@example.com"
-                    className="block w-full px-4 py-2.5 text-sm md:text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-white placeholder-gray-400"
-                    whileFocus={{ 
-                      borderColor: "#10B981",
-                      boxShadow: "0 0 0 3px rgba(16, 185, 129, 0.2)"
-                    }}
-                  />
-                </div>
+                <motion.input
+                  type="email"
+                  value={credentials.email}
+                  onChange={(e) =>
+                    setCredentials({ ...credentials, email: e.target.value })
+                  }
+                  required
+                  placeholder="email@example.com"
+                  className="block w-full px-4 py-2.5 text-sm md:text-base border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-white dark:bg-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                  whileFocus={{ 
+                    borderColor: "#10B981",
+                    boxShadow: "0 0 0 3px rgba(16, 185, 129, 0.2)"
+                  }}
+                />
               </motion.div>
 
               {/* Password */}
@@ -396,7 +400,7 @@ export default function Login() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Password
                 </label>
                 <div className="relative">
@@ -411,7 +415,7 @@ export default function Login() {
                     }
                     required
                     placeholder="••••••••"
-                    className="block w-full px-4 py-2.5 text-sm md:text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none pr-12 transition-all bg-white placeholder-gray-400"
+                    className="block w-full px-4 py-2.5 text-sm md:text-base border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none pr-12 transition-all bg-white dark:bg-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                     whileFocus={{ 
                       borderColor: "#10B981",
                       boxShadow: "0 0 0 3px rgba(16, 185, 129, 0.2)"
@@ -420,7 +424,7 @@ export default function Login() {
                   <motion.button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-gray-500 hover:text-emerald-600 transition-colors p-1"
+                    className="absolute right-3 top-2.5 text-gray-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors p-1"
                     whileHover={{ scale: 1.2 }}
                     whileTap={{ scale: 0.9 }}
                   >
@@ -439,76 +443,58 @@ export default function Login() {
                 >
                   <Link
                     to="/forgot-password"
-                    className="text-xs text-emerald-600 hover:text-emerald-800 hover:underline"
+                    className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 hover:underline"
                   >
                     Lupa password?
                   </Link>
                 </motion.div>
               </motion.div>
 
-              {/* Submit */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
-                onHoverStart={() => setIsHovering(true)}
-                onHoverEnd={() => setIsHovering(false)}
-              >
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white py-2.5 px-4 rounded-lg font-medium text-sm md:text-base tracking-wide transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center space-x-2 relative overflow-hidden"
-                >
-                  <motion.span 
-                    className="absolute inset-0 bg-white/20"
-                    initial={{ x: "-100%" }}
-                    animate={{ x: isHovering ? "100%" : "-100%" }}
-                    transition={{ duration: 0.8, ease: "easeInOut" }}
-                  />
-                  {loading ? (
-                    <>
-                      <ArrowPathIcon className="h-4 w-4 animate-spin" />
-                      <span>Memproses...</span>
-                    </>
-                  ) : (
-                    <span className="relative z-10">Masuk Sekarang</span>
-                  )}
-                </button>
-              </motion.div>
-            </form>
-
-            <motion.div 
-              className="mt-6 text-center text-sm text-gray-600"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-            >
-              <p>
-                Belum punya akun?{" "}
-                <motion.span className="inline-block">
-                  <Link
-                    to="/register"
-                    className="font-medium text-emerald-600 hover:text-emerald-800 hover:underline"
-                  >
-                    Buat akun baru
-                  </Link>
-                </motion.span>
-              </p>
-            </motion.div>
-
-            <motion.div 
-              className="mt-6 md:mt-8 border-t border-gray-200 pt-6"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.9 }}
-            >
-              <p className="text-xs text-gray-500 text-center">
-                © {new Date().getFullYear()} CCS System. All rights reserved.
-              </p>
-            </motion.div>
-          </div>
-        </motion.div>
-      </div>
-    </div>
-  );
-}
+                            {/* Submit */}
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.7 }}
+                              onHoverStart={() => setIsHovering(true)}
+                              onHoverEnd={() => setIsHovering(false)}
+                            >
+                              <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 dark:from-emerald-700 dark:to-teal-600 dark:hover:from-emerald-800 dark:hover:to-teal-700 text-white font-semibold py-2.5 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                whileHover={!loading ? { scale: 1.02, boxShadow: "0 10px 35px -5px rgba(16, 185, 129, 0.4)" } : {}}
+                                whileTap={!loading ? { scale: 0.98 } : {}}
+                              >
+                                {loading ? (
+                                  <>
+                                    <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                                    <span>Memproses...</span>
+                                  </>
+                                ) : (
+                                  <span>Masuk</span>
+                                )}
+                              </button>
+                            </motion.div>
+              
+                            {/* Sign Up Link */}
+                            <motion.p 
+                              className="text-center text-sm text-gray-600 dark:text-gray-400"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: 0.8 }}
+                            >
+                              Belum punya akun?{" "}
+                              <Link
+                                to="/register"
+                                className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 font-semibold hover:underline"
+                              >
+                                Daftar di sini
+                              </Link>
+                            </motion.p>
+                          </form>
+                        </div>
+                      </motion.div>
+                    </div>
+                  </div>
+                );
+              }

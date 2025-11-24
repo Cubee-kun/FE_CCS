@@ -80,56 +80,28 @@ const MonitoringForm = () => {
       setSubmitting(true);
       try {
         const formData = new FormData();
-        formData.append("implementasi_id", values.implementasi_id);
-        formData.append("daun_mengering", values.kondisi_daun.mengering);
-        formData.append("daun_layu", values.kondisi_daun.layu);
-        formData.append("daun_menguning", values.kondisi_daun.menguning);
-        formData.append("bercak_daun", values.kondisi_daun.bercak);
-        formData.append("daun_serangga", values.kondisi_daun.hama);
-        formData.append("jumlah_bibit_ditanam", values.jumlah_bibit_ditanam);
-        formData.append("jumlah_bibit_mati", values.jumlah_bibit_mati);
-        formData.append("diameter_batang", values.diameter_batang);
-        formData.append("jumlah_daun", values.jumlah_daun);
-        formData.append("survival_rate", values.survival_rate);
-        
-        // Append dokumentasi dengan index yang jelas
-        if (values.dokumentasi && Array.isArray(values.dokumentasi) && values.dokumentasi.length > 0) {
-          values.dokumentasi.forEach((file, index) => {
-            if (file instanceof File) {
-              formData.append(`dokumentasi_monitoring_${index}`, file);
-            }
-          });
-          formData.append("dokumentasi_count", values.dokumentasi.length);
-        }
+        Object.keys(values).forEach((key) => {
+          if (key !== "dokumentasi") {
+            formData.append(key, JSON.stringify(values[key]));
+          } else if (values[key]) {
+            values[key].forEach((file) => {
+              formData.append("dokumentasi", file);
+            });
+          }
+        });
+        formData.append("perencanaan_id", selectedLocation?.id);
 
-        // Log form data untuk debug
-        console.log('[Monitoring Form] Submitting:', {
-          implementasi_id: values.implementasi_id,
-          daun_mengering: values.kondisi_daun.mengering,
-          daun_layu: values.kondisi_daun.layu,
-          daun_menguning: values.kondisi_daun.menguning,
-          bercak_daun: values.kondisi_daun.bercak,
-          daun_serangga: values.kondisi_daun.hama,
-          jumlah_bibit_ditanam: values.jumlah_bibit_ditanam,
-          jumlah_bibit_mati: values.jumlah_bibit_mati,
-          diameter_batang: values.diameter_batang,
-          jumlah_daun: values.jumlah_daun,
-          survival_rate: values.survival_rate,
-          files: values.dokumentasi?.length || 0
+        await api.post("/forms/monitoring", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
         });
 
-        const response = await api.post(`/monitoring`, formData);
-
-        if (response.status === 201 || response.status === 200) {
-          setSuccess(true);
-          toast.success("✅ Monitoring berhasil disimpan!");
-          setTimeout(() => {
-            formik.resetForm();
-            setSelectedLocation(null);
-            setSelectedImplementasi(null);
-            setSuccess(false);
-          }, 2500);
-        }
+        setSuccess(true);
+        toast.success("✅ Monitoring berhasil disimpan!");
+        setTimeout(() => {
+          formik.resetForm();
+          setSelectedLocation(null);
+          setSuccess(false);
+        }, 2000);
       } catch (error) {
         console.error("Error submitting form:", error);
         console.error("Error response data:", error.response?.data);
@@ -141,29 +113,22 @@ const MonitoringForm = () => {
     },
   });
 
-  // ✅ Fetch implementasi dan lokasi
+  // ✅ Fetch locations
   useEffect(() => {
     let isMounted = true;
 
     const fetchData = async () => {
       try {
-        const response = await api.get("/implementasi");
-        const data = response.data?.data || response.data || [];
-        
-        if (isMounted) {
-          setImplementasis(data);
-          setExistingLocations(data);
-          
-          if (data.length > 0) {
-            console.log(`✅ ${data.length} data implementasi ditemukan`);
-          }
+        const response = await api.get("/forms/perencanaan/locations");
+        const locations = response.data?.data || response.data || [];
+        setExistingLocations(locations);
+        if (locations.length > 0) {
+          toast.success(`📍 ${locations.length} lokasi perencanaan ditemukan`);
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
-        if (isMounted) {
-          setImplementasis([]);
-          setExistingLocations([]);
-        }
+        console.error("Error fetching locations:", error);
+        toast.warning("Tidak dapat memuat lokasi perencanaan");
+        setExistingLocations([]);
       } finally {
         if (isMounted) {
           setLoadingImplementasi(false);
@@ -189,9 +154,8 @@ const MonitoringForm = () => {
 
   const handleLocationSelect = (location) => {
     setSelectedLocation(location);
-    // Format geotagging as "lat,long"
-    const geotagging = `${location.lat},${location.long}`;
-    formik.setFieldValue("lokasi", geotagging);
+    formik.setFieldValue("lokasi", location.lokasi);
+    toast.success(`📍 Lokasi "${location.nama_perusahaan}" dipilih!`);
   };
 
   const renderRadioGroup = (name, label) => (

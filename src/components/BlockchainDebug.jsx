@@ -14,104 +14,31 @@ export default function BlockchainDebug() {
 
   // ✅ Run diagnostics
   const runDiagnostics = async () => {
-    setLoading(true);
-    try {
-      let ethersAvailable = false;
+    setTesting(true);
+    const info = {
+      metamaskInstalled: typeof window.ethereum !== 'undefined',
+      isConnected,
+      account,
+      network,
+      timestamp: new Date().toISOString()
+    };
+
+    // Check network
+    if (window.ethereum) {
       try {
-        await import('ethers');
-        ethersAvailable = true;
-      } catch (e) {
-        ethersAvailable = false;
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        info.chainId = chainId;
+        info.isSepoliaNetwork = chainId === '0xaa36a7';
+      } catch (error) {
+        info.error = error.message;
       }
-
-      const results = {
-        timestamp: new Date().toISOString(),
-        blockchain: {
-          isReady,
-          error: error || 'No errors',
-          contractExists: !!contract,
-          contractAddress: contract?.address || 'N/A',
-          walletAddress: walletAddress || 'N/A',
-        },
-        environment: {
-          nodeEnv: import.meta.env.MODE,
-          rpcUrl: import.meta.env.VITE_SEPOLIA_URL ? '✅ Configured' : '❌ Missing',
-          contractAddress: import.meta.env.VITE_CONTRACT_ADDRESS ? '✅ Configured' : '❌ Missing',
-          privateKey: import.meta.env.VITE_PRIVATE_KEY ? '✅ Configured' : '❌ Missing',
-        },
-        libraries: {
-          ethersAvailable: ethersAvailable ? '✅ Available' : '❌ Not loaded',
-          ethersVersion: '6.x',
-          reactVersion: '19.x',
-        },
-        connection: {
-          isConnected: isReady && !!contract ? '✅ Yes' : '❌ No',
-          contractDeployed: !!contract ? '✅ Yes' : '❌ No',
-          hasWallet: !!walletAddress ? '✅ Yes' : '❌ No',
-        },
-      };
-
-      setDiagnostics(results);
-      console.log('[BlockchainDebug] Diagnostics:', results);
-    } catch (err) {
-      console.error('[BlockchainDebug] Diagnostics error:', err);
-      setDiagnostics({
-        timestamp: new Date().toISOString(),
-        error: err.message,
-      });
-    } finally {
-      setLoading(false);
     }
+
+    setDebugInfo(info);
+    setTesting(false);
   };
 
-  // ✅ Fetch real-time data dari API
-  const fetchRealtimeData = async () => {
-    try {
-      const [statsRes, contractsRes, transactionsRes] = await Promise.allSettled([
-        api.get('/dashboard/stats'),
-        api.get('/blockchain/contracts'),
-        api.get('/blockchain/transactions?limit=5')
-      ]);
-
-      const data = {
-        timestamp: new Date().toISOString(),
-        stats: statsRes.status === 'fulfilled' ? statsRes.value.data : null,
-        contracts: contractsRes.status === 'fulfilled' ? contractsRes.value.data?.data || [] : [],
-        recentTransactions: transactionsRes.status === 'fulfilled' ? transactionsRes.value.data?.data || [] : [],
-      };
-
-      setRealtimeData(data);
-      console.log('[BlockchainDebug] Real-time data:', data);
-    } catch (err) {
-      console.error('[BlockchainDebug] Real-time data fetch error:', err);
-    }
-  };
-
-  // ✅ Auto-run diagnostics on mount
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      runDiagnostics();
-      // Disable fetchRealtimeData untuk now - endpoint belum ada di backend
-      // fetchRealtimeData();
-    }
-  }, []);
-
-  // ✅ Set up polling untuk real-time data
-  useEffect(() => {
-    if (isOpen) {
-      // Initial fetch - disabled for now
-      // fetchRealtimeData();
-      
-      // Poll every 3 seconds - disabled for now
-      // pollingRef.current = setInterval(fetchRealtimeData, 3000);
-      
-      return () => {
-        if (pollingRef.current) {
-          clearInterval(pollingRef.current);
-        }
-      };
-    }
-  }, [isOpen]);
+  if (!isVisible) return null;
 
   return (
     <>
