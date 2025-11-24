@@ -14,12 +14,9 @@ export default function BlockchainDebug() {
 
   // ✅ Run diagnostics
   const runDiagnostics = async () => {
-    setTesting(true);
+    setLoading(true);
     const info = {
       metamaskInstalled: typeof window.ethereum !== 'undefined',
-      isConnected,
-      account,
-      network,
       timestamp: new Date().toISOString()
     };
 
@@ -34,11 +31,9 @@ export default function BlockchainDebug() {
       }
     }
 
-    setDebugInfo(info);
-    setTesting(false);
+    setDiagnostics(info);
+    setLoading(false);
   };
-
-  if (!isVisible) return null;
 
   return (
     <>

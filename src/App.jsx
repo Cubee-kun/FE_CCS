@@ -49,8 +49,8 @@ function AppContent() {
       {showNavbar && <Navbar />}
       <AppRoutes />
       
-      {/* ✅ Blockchain Debug Component (only in development) */}
-      {import.meta.env.DEV && <BlockchainDebug />}
+      {/* ✅ Blockchain Debug Component - DISABLED for now */}
+      {/* {import.meta.env.DEV && <BlockchainDebug />} */}
       
       <ToastContainer 
         position="top-right" 

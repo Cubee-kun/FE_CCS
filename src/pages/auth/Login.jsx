@@ -34,29 +34,14 @@ export default function Login() {
     setLoading(false);
 
     if (!result.success) {
-<<<<<<< HEAD
-      // ✅ Device conflict
-=======
->>>>>>> 6cb1bb9f18ae787f21e585de8cfb287dff3a09dc
       if (result.code === 'DEVICE_CONFLICT') {
         setDeviceConflict(true);
         setSessionInfo(result.sessionInfo || {});
         setError(result.message);
-<<<<<<< HEAD
-      }
-      // ✅ Invalid credentials
-      else if (result.code === 'INVALID_CREDENTIALS') {
-        setError(result.message);
-        console.warn('[Login] Invalid credentials - please check email and password');
-      }
-      // ✅ Other errors
-      else {
-=======
       } else if (result.code === 'INVALID_CREDENTIALS') {
         setError(result.message);
         console.warn('[Login] Invalid credentials - please check email and password');
       } else {
->>>>>>> 6cb1bb9f18ae787f21e585de8cfb287dff3a09dc
         setError(result.message);
         console.error('[Login] Login error:', result.message);
       }
