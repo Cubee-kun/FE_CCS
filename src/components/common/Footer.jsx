@@ -63,9 +63,9 @@ export default function Footer() {
               />
               <div>
                 <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent">
-                  NexCube
+                  3TREESIFY
                 </h3>
-                <p className="text-xs text-gray-500">CCS-System</p>
+                <p className="text-xs text-gray-500">Traceability, Transparancy & Trust</p>
               </div>
             </div>
 
@@ -163,7 +163,7 @@ export default function Footer() {
           <div className="text-center md:text-left">
             <p className="text-gray-500 text-sm">
               © {currentYear}{" "}
-              <span className="text-emerald-400 font-semibold">CCS-System</span>
+              <span className="text-emerald-400 font-semibold">3TREESIFY</span>
               . All rights reserved.
             </p>
           </div>

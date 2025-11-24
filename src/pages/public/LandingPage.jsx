@@ -109,8 +109,8 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
-      {/* Hero Section */}
-      <section id="home" className="relative pt-20 min-h-screen flex items-center overflow-hidden">
+      {/* Hero Section - Kurangi padding top */}
+      <section id="home" className="relative pt-0 md:pt-0 min-h-screen flex items-center overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-white to-teal-50"></div>
@@ -138,7 +138,7 @@ const LandingPage = () => {
           ))}
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16 lg:py-20">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <motion.div
@@ -347,8 +347,8 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-white">
+      {/* Stats Section - Kurangi padding */}
+      <section className="py-8 sm:py-12 md:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             className="grid grid-cols-2 md:grid-cols-4 gap-8"
@@ -375,8 +375,8 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Features Section - MODERN REDESIGN */}
-      <section id="features" className="py-32 bg-gradient-to-b from-white via-gray-50 to-white relative overflow-hidden">
+      {/* Features Section - Kurangi padding */}
+      <section id="features" className="py-16 sm:py-24 md:py-32 bg-gradient-to-b from-white via-gray-50 to-white relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/20 rounded-full blur-3xl animate-float"></div>
@@ -505,8 +505,8 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Testimonials Section - MODERN REDESIGN */}
-      <section id="testimonials" className="py-32 bg-gradient-to-b from-white via-emerald-50/30 to-white relative overflow-hidden">
+      {/* Testimonials Section - Kurangi padding */}
+      <section id="testimonials" className="py-16 sm:py-24 md:py-32 bg-gradient-to-b from-white via-emerald-50/30 to-white relative overflow-hidden">
         {/* Decorative Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-0 left-0 w-96 h-96 bg-emerald-200/20 rounded-full blur-3xl"></div>
@@ -692,8 +692,8 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-emerald-600 to-teal-600 relative overflow-hidden">
+      {/* CTA Section - Kurangi padding */}
+      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-br from-emerald-600 to-teal-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
@@ -702,17 +702,17 @@ const LandingPage = () => {
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 sm:mb-6">
               Siap Memulai Revolusi Konservasi?
             </h2>
-            <p className="text-xl text-emerald-100 mb-8 max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-emerald-100 mb-6 sm:mb-8 max-w-3xl mx-auto">
               Bergabunglah dengan ribuan organisasi yang telah mempercayakan proyek konservasi mereka pada platform kami
             </p>
             
-            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mb-8">
               <motion.button
                 onClick={() => navigate("/register")}
-                className="px-8 py-4 bg-white text-emerald-600 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                className="px-6 sm:px-8 py-3 sm:py-4 bg-white text-emerald-600 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -720,7 +720,7 @@ const LandingPage = () => {
               </motion.button>
               <motion.button
                 onClick={() => navigate("/contact")}
-                className="px-8 py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-emerald-600 transition-all"
+                className="px-6 sm:px-8 py-3 sm:py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-emerald-600 transition-all text-sm sm:text-base"
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -731,7 +731,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* ✅ Footer Component */}
+      {/* Footer Component */}
       <Footer />
     </div>
   );

@@ -101,54 +101,51 @@ export default function Navbar({ isUser = false }) {
       animate={{ y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="h-20 flex items-center justify-between">
-          {/* Logo Section - LARGER */}
+          {/* Logo Section */}
           <motion.div 
-            className="flex items-center space-x-3 group cursor-pointer flex-shrink-0"
+            className="flex items-center space-x-2 sm:space-x-3 group cursor-pointer flex-shrink-0"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => handleNavigation("/")}
           >
-            <div className="relative flex items-center gap-3">
+            <div className="relative flex items-center gap-2 sm:gap-3">
               <div className="relative">
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 rounded-full blur-xl opacity-30 group-hover:opacity-50"
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 3, repeat: Infinity }}
                 />
-                {/* ✅ Logo size: dari h-12/w-12 menjadi h-16/w-16 */}
                 <motion.img
                   src="/images/icon.png"
                   alt="CCS-System Logo"
-                  className="h-14 w-14 md:h-16 md:w-16 relative z-10 object-contain drop-shadow-2xl"
+                  className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 relative z-10 object-contain drop-shadow-2xl"
                   whileHover={{ rotate: [0, -10, 10, 0] }}
                   transition={{ duration: 0.5 }}
                 />
               </div>
               <div className="flex flex-col">
-                {/* ✅ Text size: text-lg/md:text-xl menjadi text-xl/md:text-2xl */}
                 <motion.h1 
-                  className="text-xl md:text-2xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent leading-tight"
+                  className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent leading-tight"
                   whileHover={{ scale: 1.05 }}
                 >
                   3TREESIFY
                 </motion.h1>
-                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium leading-tight">
+                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium leading-tight hidden sm:block">
                   Traceability, Transparancy & Trust
-
                 </p>
               </div>
             </div>
           </motion.div>
 
-          {/* Desktop Navigation - LARGER BUTTONS */}
-          <div className="hidden lg:flex items-center space-x-3">
+          {/* Desktop Navigation */}
+          <div className="hidden lg:flex items-center space-x-2 xl:space-x-3">
             {navItems.map((item, index) => (
               <motion.button
                 key={item.name}
                 onClick={() => handleNavigation(item.path)}
-                className={`relative px-5 py-3 rounded-xl text-base font-semibold transition-all group ${
+                className={`relative px-4 xl:px-5 py-2.5 xl:py-3 rounded-xl text-sm xl:text-base font-semibold transition-all group ${
                   location.pathname === item.path
                     ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
                     : "text-gray-700 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400"
@@ -160,7 +157,7 @@ export default function Navbar({ isUser = false }) {
                 transition={{ delay: index * 0.1 }}
               >
                 <div className="flex items-center space-x-2">
-                  <item.icon className="w-5 h-5" />
+                  <item.icon className="w-4 xl:w-5 h-4 xl:h-5" />
                   <span>{item.name}</span>
                 </div>
                 {location.pathname === item.path && (
@@ -172,63 +169,63 @@ export default function Navbar({ isUser = false }) {
               </motion.button>
             ))}
 
-            {/* ✅ Verifikasi Button - LARGER */}
+            {/* Verifikasi Button */}
             <motion.button
               onClick={handleVerifikasiNav}
-              className="flex items-center space-x-2 px-5 py-3 rounded-xl text-base font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all border-2 border-emerald-200 dark:border-emerald-800"
+              className="flex items-center space-x-2 px-4 xl:px-5 py-2.5 xl:py-3 rounded-xl text-sm xl:text-base font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all border-2 border-emerald-200 dark:border-emerald-800"
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
             >
-              <FiCheckCircle className="w-5 h-5" />
-              <span>Verifikasi</span>
+              <FiCheckCircle className="w-4 xl:w-5 h-4 xl:h-5" />
+              <span className="hidden xl:inline">Verifikasi</span>
             </motion.button>
 
-            {/* Dashboard Button - LARGER */}
+            {/* Dashboard Button */}
             {isAuthenticated && (
               <motion.button
                 onClick={() => handleNavigation(user?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')}
-                className="flex items-center space-x-2 px-6 py-3 rounded-xl text-base font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg"
+                className="flex items-center space-x-2 px-4 xl:px-6 py-2.5 xl:py-3 rounded-xl text-sm xl:text-base font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg"
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                <FiGrid className="w-5 h-5" />
-                <span>Dashboard</span>
+                <FiGrid className="w-4 xl:w-5 h-4 xl:h-5" />
+                <span className="hidden xl:inline">Dashboard</span>
               </motion.button>
             )}
           </div>
 
-          {/* Right Section - LARGER BUTTONS */}
-          <div className="flex items-center space-x-3">
+          {/* Right Section - Controls */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
             {isAuthenticated ? (
               <>
-                {/* Theme Toggle - Hidden on mobile, shown on desktop */}
+                {/* Theme Toggle - Hidden on mobile */}
                 <motion.button
                   onClick={toggleTheme}
-                  className="hidden lg:block p-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                  className="hidden sm:block p-2.5 sm:p-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
                   whileHover={{ scale: 1.1, rotate: 180 }}
                   whileTap={{ scale: 0.9 }}
                 >
                   {theme === "dark" ? (
-                    <FiSun className="w-5 h-5 text-yellow-500" />
+                    <FiSun className="w-4 sm:w-5 h-4 sm:h-5 text-yellow-500" />
                   ) : (
-                    <FiMoon className="w-5 h-5 text-gray-600" />
+                    <FiMoon className="w-4 sm:w-5 h-4 sm:h-5 text-gray-600" />
                   )}
                 </motion.button>
 
-                {/* ✅ Profile Button - Desktop - LARGER */}
+                {/* Profile Button - Desktop */}
                 <div className="hidden lg:block relative" ref={dropdownRef}>
                   <motion.button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center space-x-3 px-4 py-2.5 rounded-xl border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
+                    className="flex items-center space-x-2 px-3 xl:px-4 py-2 xl:py-2.5 rounded-xl border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <div className="relative">
                       <motion.div 
-                        className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold shadow-lg text-base"
+                        className="w-9 xl:w-10 h-9 xl:h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold shadow-lg text-sm xl:text-base"
                         whileHover={{ scale: 1.1 }}
                         animate={{ 
                           boxShadow: dropdownOpen 
@@ -238,10 +235,10 @@ export default function Navbar({ isUser = false }) {
                       >
                         {(user?.username || user?.name || "U")[0].toUpperCase()}
                       </motion.div>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
                     </div>
-                    <div className="text-left hidden sm:block">
-                      <p className="text-base font-bold text-gray-900 dark:text-gray-100 truncate max-w-[120px]">
+                    <div className="text-left hidden xl:block">
+                      <p className="text-sm xl:text-base font-bold text-gray-900 dark:text-gray-100 truncate max-w-[120px]">
                         {user?.username || user?.name || "User"}
                       </p>
                       <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -250,7 +247,7 @@ export default function Navbar({ isUser = false }) {
                     </div>
                   </motion.button>
                   
-                  {/* Dropdown Menu */}
+                  {/* Desktop Dropdown Menu */}
                   <AnimatePresence>
                     {dropdownOpen && (
                       <motion.div
@@ -285,7 +282,6 @@ export default function Navbar({ isUser = false }) {
                         
                         {/* Menu Items */}
                         <div className="p-2">
-                          {/* Settings */}
                           <motion.button
                             onClick={() => {
                               setDropdownOpen(false);
@@ -298,7 +294,6 @@ export default function Navbar({ isUser = false }) {
                             <span className="font-medium">Pengaturan</span>
                           </motion.button>
                           
-                          {/* Logout */}
                           <motion.button
                             onClick={handleLogout}
                             className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all border-t border-gray-200/50 dark:border-gray-700/50 mt-2"
@@ -315,38 +310,38 @@ export default function Navbar({ isUser = false }) {
               </>
             ) : (
               <>
-                {/* Login Button - LARGER */}
+                {/* Login Button - Desktop Only */}
                 <motion.button
                   onClick={() => handleNavigation("/login")}
-                  className="hidden lg:flex items-center space-x-2 px-6 py-3 rounded-xl text-base font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-gray-900 border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
+                  className="hidden lg:flex items-center space-x-2 px-4 xl:px-6 py-2.5 xl:py-3 rounded-xl text-sm xl:text-base font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-gray-900 border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                 >
-                  <FiUser className="w-5 h-5" />
+                  <FiUser className="w-4 xl:w-5 h-4 xl:h-5" />
                   <span>Masuk</span>
                 </motion.button>
 
-                {/* Theme Toggle - Mobile only */}
+                {/* Theme Toggle - Mobile */}
                 <motion.button
                   onClick={toggleTheme}
-                  className="lg:hidden p-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                  className="p-2.5 sm:p-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
                   whileHover={{ scale: 1.1, rotate: 180 }}
                   whileTap={{ scale: 0.9 }}
                 >
                   {theme === "dark" ? (
-                    <FiSun className="w-5 h-5 text-yellow-500" />
+                    <FiSun className="w-4 sm:w-5 h-4 sm:h-5 text-yellow-500" />
                   ) : (
-                    <FiMoon className="w-5 h-5 text-gray-600" />
+                    <FiMoon className="w-4 sm:w-5 h-4 sm:h-5 text-gray-600" />
                   )}
                 </motion.button>
               </>
             )}
 
-            {/* ✅ Mobile Menu Button - LARGER */}
+            {/* Mobile Menu Button */}
             <motion.button 
-              className="lg:hidden p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all border-2 border-emerald-200 dark:border-emerald-800"
+              className="lg:hidden p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all border-2 border-emerald-200 dark:border-emerald-800"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -360,7 +355,7 @@ export default function Navbar({ isUser = false }) {
                     exit={{ rotate: 90, opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <FiX className="w-6 h-6 text-emerald-600" />
+                    <FiX className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
                   </motion.div>
                 ) : (
                   <motion.div
@@ -370,7 +365,7 @@ export default function Navbar({ isUser = false }) {
                     exit={{ rotate: -90, opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <FiMenu className="w-6 h-6 text-emerald-600" />
+                    <FiMenu className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -378,6 +373,137 @@ export default function Navbar({ isUser = false }) {
           </div>
         </div>
       </div>
+
+      {/* ✅ Mobile Menu - Improved */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm lg:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              style={{ top: '80px', zIndex: 30 }}
+            />
+
+            {/* Mobile Menu Panel */}
+            <motion.div
+              className="fixed top-20 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 max-h-[calc(100vh-80px)] overflow-y-auto lg:hidden z-40"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="p-4 sm:p-6 space-y-3">
+                {/* Navigation Links */}
+                {navItems.map((item, index) => (
+                  <motion.button
+                    key={item.name}
+                    onClick={() => handleNavigation(item.path)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl font-semibold transition-all ${
+                      location.pathname === item.path
+                        ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-500"
+                        : "bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-2 border-transparent hover:border-emerald-200 dark:hover:border-emerald-800"
+                    }`}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileHover={{ x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span>{item.name}</span>
+                    {location.pathname === item.path && (
+                      <FiCheckCircle className="w-5 h-5 ml-auto text-emerald-600" />
+                    )}
+                  </motion.button>
+                ))}
+
+                {/* Divider */}
+                <div className="h-px bg-gray-200 dark:bg-gray-700 my-2" />
+
+                {/* Verifikasi Button */}
+                <motion.button
+                  onClick={handleVerifikasiNav}
+                  className="w-full flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-500 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-all"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  whileHover={{ x: 4 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <FiCheckCircle className="w-5 h-5" />
+                  <span>Verifikasi QR Code</span>
+                </motion.button>
+
+                {isAuthenticated ? (
+                  <>
+                    {/* Dashboard Button */}
+                    <motion.button
+                      onClick={() => handleNavigation(user?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')}
+                      className="w-full flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl font-semibold bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.15 }}
+                      whileHover={{ x: 4 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <FiGrid className="w-5 h-5" />
+                      <span>Dashboard</span>
+                    </motion.button>
+
+                    {/* Settings & Logout */}
+                    <motion.button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        navigate(user?.role === "admin" ? "/admin/settings" : "/user/settings");
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl font-semibold bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 }}
+                      whileHover={{ x: 4 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <FiSettings className="w-5 h-5" />
+                      <span>Pengaturan</span>
+                    </motion.button>
+
+                    <motion.button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl font-semibold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all border-2 border-red-200 dark:border-red-800"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.25 }}
+                      whileHover={{ x: 4 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <FiLogOut className="w-5 h-5" />
+                      <span>Keluar</span>
+                    </motion.button>
+                  </>
+                ) : (
+                  /* Login Button - Mobile */
+                  <motion.button
+                    onClick={() => handleNavigation("/login")}
+                    className="w-full flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-md"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.15 }}
+                    whileHover={{ x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <FiUser className="w-5 h-5" />
+                    <span>Masuk / Daftar</span>
+                  </motion.button>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </motion.nav>
   );
 }
