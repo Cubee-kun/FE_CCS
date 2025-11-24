@@ -4,10 +4,12 @@ import { FiArrowRight, FiPlay, FiStar, FiUsers, FiTrendingUp, FiShield, FiZap, F
 import { motion, AnimatePresence } from "framer-motion";
 import Footer from "../../components/common/Footer";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const { theme } = useTheme(); // ✅ Get current theme
   const [activeTestimonial, setActiveTestimonial] = useState(0);
 
   const stats = [
@@ -108,19 +110,33 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
-      {/* Hero Section - Kurangi padding top */}
+    <div className={`min-h-screen text-gray-900 dark:text-gray-100 overflow-x-hidden transition-colors duration-300 ${
+      theme === 'dark' 
+        ? 'bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950' 
+        : 'bg-white'
+    }`}>
+      {/* ✅ Hero Section - dengan dark mode support */}
       <section id="home" className="relative pt-0 md:pt-0 min-h-screen flex items-center overflow-hidden">
-        {/* Background */}
+        {/* Background - Responsive to theme */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-white to-teal-50"></div>
-          <div className="absolute inset-0 bg-[url('/images/login-bg.jpg')] bg-cover bg-center opacity-5"></div>
+          <div className={`absolute inset-0 bg-gradient-to-br ${
+            theme === 'dark'
+              ? 'from-gray-900 via-gray-800 to-gray-900'
+              : 'from-emerald-50 via-white to-teal-50'
+          }`}></div>
+          <div className={`absolute inset-0 bg-[url('/images/login-bg.jpg')] bg-cover bg-center ${
+            theme === 'dark' ? 'opacity-10' : 'opacity-5'
+          }`}></div>
           
-          {/* Floating Elements */}
+          {/* Floating Elements - Color changes with theme */}
           {Array.from({ length: 15 }).map((_, i) => (
             <motion.div
               key={i}
-              className="absolute w-2 h-2 bg-emerald-200 rounded-full"
+              className={`absolute w-2 h-2 rounded-full ${
+                theme === 'dark' 
+                  ? 'bg-emerald-400' 
+                  : 'bg-emerald-200'
+              }`}
               style={{
                 top: `${Math.random() * 100}%`,
                 left: `${Math.random() * 100}%`,
@@ -146,28 +162,40 @@ const LandingPage = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
             >
-              {/* Badge */}
+              {/* Badge - Theme adaptive */}
               <motion.div 
-                className="inline-flex items-center bg-white backdrop-blur-sm rounded-full px-4 py-2 text-sm mb-6 shadow-lg border border-emerald-200"
+                className={`inline-flex items-center rounded-full px-4 py-2 text-sm mb-6 shadow-lg border transition-colors ${
+                  theme === 'dark'
+                    ? 'bg-gray-800/80 backdrop-blur-sm border-emerald-500/30'
+                    : 'bg-white backdrop-blur-sm border-emerald-200'
+                }`}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2 }}
                 whileHover={{ scale: 1.05 }}
               >
                 <span className="mr-2">🌱</span>
-                <span className="font-medium text-emerald-700">Platform Konservasi Terdepan</span>
+                <span className={`font-medium ${
+                  theme === 'dark' 
+                    ? 'text-emerald-300' 
+                    : 'text-emerald-700'
+                }`}>
+                  Platform Konservasi Terdepan
+                </span>
                 <div className="ml-2 w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
               </motion.div>
 
               {/* Main Heading */}
               <motion.h1
-                className="text-4xl md:text-6xl font-bold leading-tight mb-6"
+                className={`text-4xl md:text-6xl font-bold leading-tight mb-6 transition-colors ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
               >
-                <span className="text-gray-900">Revolusi</span>{" "}
-                <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                <span>Revolusi</span>{" "}
+                <span className="bg-gradient-to-r from-emerald-400 to-teal-400 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
                   Konservasi Digital
                 </span>{" "}
                 <motion.span
@@ -181,17 +209,21 @@ const LandingPage = () => {
 
               {/* Subtitle */}
               <motion.p
-                className="text-xl text-gray-600 mb-8 leading-relaxed"
+                className={`text-xl mb-8 leading-relaxed transition-colors ${
+                  theme === 'dark' 
+                    ? 'text-gray-300' 
+                    : 'text-gray-600'
+                }`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
               >
                 Platform all-in-one untuk manajemen proyek konservasi dengan{" "}
-                <span className="font-semibold text-emerald-600">teknologi blockchain</span>,{" "}
+                <span className="font-semibold text-emerald-500 dark:text-emerald-400">teknologi blockchain</span>,{" "}
                 pencatatan immutable, dan transparansi data yang terjamin.
               </motion.p>
 
-              {/* Key Points */}
+              {/* Key Points - Theme adaptive */}
               <motion.div
                 className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8"
                 initial={{ opacity: 0, y: 20 }}
@@ -212,10 +244,18 @@ const LandingPage = () => {
                       whileHover={{ x: 5 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
-                      <div className="flex-shrink-0 w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
-                        <Icon className="w-4 h-4 text-emerald-600" />
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                        theme === 'dark'
+                          ? 'bg-emerald-900/40 text-emerald-400'
+                          : 'bg-emerald-100 text-emerald-600'
+                      }`}>
+                        <Icon className="w-4 h-4" />
                       </div>
-                      <span className="text-gray-700 font-medium">{item.text}</span>
+                      <span className={`font-medium transition-colors ${
+                        theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
+                      }`}>
+                        {item.text}
+                      </span>
                     </motion.div>
                   );
                 })}
@@ -243,7 +283,11 @@ const LandingPage = () => {
                 
                 <motion.button
                   onClick={() => scrollToSection("#features")}
-                  className="px-8 py-4 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-xl shadow-lg hover:shadow-xl transition-all border border-gray-200 flex items-center justify-center group"
+                  className={`px-8 py-4 font-medium rounded-xl shadow-lg hover:shadow-xl transition-all border flex items-center justify-center group ${
+                    theme === 'dark'
+                      ? 'bg-gray-800 hover:bg-gray-700 text-gray-100 border-gray-700'
+                      : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200'
+                  }`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -254,7 +298,9 @@ const LandingPage = () => {
 
               {/* Trust Indicators */}
               <motion.p
-                className="text-sm text-gray-500 mt-6"
+                className={`text-sm mt-6 transition-colors ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                }`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
@@ -271,14 +317,26 @@ const LandingPage = () => {
               transition={{ duration: 0.8, delay: 0.2 }}
             >
               <div className="relative">
-                {/* Main Dashboard Card with Image */}
+                {/* Main Dashboard Card */}
                 <motion.div
-                  className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200"
+                  className={`rounded-2xl shadow-2xl overflow-hidden border transition-colors ${
+                    theme === 'dark'
+                      ? 'bg-gray-800 border-gray-700'
+                      : 'bg-white border-gray-200'
+                  }`}
                   whileHover={{ scale: 1.02 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
-                  <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                    <h3 className="font-semibold text-gray-900">Dashboard CCS</h3>
+                  <div className={`flex items-center justify-between p-4 border-b transition-colors ${
+                    theme === 'dark'
+                      ? 'bg-gray-700/50 border-gray-600'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}>
+                    <h3 className={`font-semibold transition-colors ${
+                      theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+                    }`}>
+                      Dashboard CCS
+                    </h3>
                     <div className="flex space-x-2">
                       <div className="w-3 h-3 bg-red-400 rounded-full"></div>
                       <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
@@ -291,55 +349,85 @@ const LandingPage = () => {
                     <motion.img
                       src="/images/login-bg.jpg"
                       alt="Dashboard Preview"
-                      className="w-full h-full object-cover"
+                      className={`w-full h-full object-cover transition-opacity ${
+                        theme === 'dark' ? 'opacity-70' : 'opacity-100'
+                      }`}
                       initial={{ scale: 1.1 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 1.5 }}
                     />
-                    {/* Overlay gradient untuk efek premium */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/30 via-transparent to-transparent"></div>
+                    {/* Overlay gradient */}
+                    <div className={`absolute inset-0 ${
+                      theme === 'dark'
+                        ? 'bg-gradient-to-t from-gray-900/50 via-transparent to-transparent'
+                        : 'bg-gradient-to-t from-emerald-900/30 via-transparent to-transparent'
+                    }`}></div>
                     
-                    {/* Stats overlay di bagian bawah */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
+                    {/* Stats overlay */}
+                    <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6`}>
                       <div className="grid grid-cols-3 gap-4">
-                        {[
-                          { label: "Proyek Aktif", value: "24" },
-                          { label: "Tim Online", value: "12" },
-                          { label: "Progress", value: "87%" }
-                        ].map((stat, index) => (
-                          <motion.div 
-                            key={index} 
-                            className="text-center"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.5 + index * 0.1 }}
-                          >
-                            <div className="text-xl md:text-2xl font-bold text-white">{stat.value}</div>
-                            <div className="text-xs text-emerald-200">{stat.label}</div>
-                          </motion.div>
-                        ))}
-                      </div>
+                                              {[
+                                                { label: "Proyek Aktif", value: "24" },
+                                                { label: "Tim Online", value: "12" },
+                                                { label: "Progress", value: "87%" }
+                                              ].map((stat, index) => (
+                                                <motion.div 
+                                                  key={index} 
+                                                  className="text-center"
+                                                  initial={{ opacity: 0, y: 20 }}
+                                                  animate={{ opacity: 1, y: 0 }}
+                                                  transition={{ delay: 0.5 + index * 0.1 }}
+                                                >
+                                                  <div className="text-xl md:text-2xl font-bold text-white">{stat.value}</div>
+                                                  <div className="text-xs text-emerald-200">{stat.label}</div>
+                                                </motion.div>
+                                              ))}
+                                            </div>
                     </div>
                   </div>
                 </motion.div>
 
-                {/* Floating Cards */}
+                {/* Floating Cards - Theme adaptive */}
                 <motion.div
-                  className="absolute -top-4 -right-4 bg-white rounded-lg shadow-lg p-3 border border-gray-200 backdrop-blur-sm"
+                  className={`absolute -top-4 -right-4 rounded-lg shadow-lg p-3 border backdrop-blur-sm transition-colors ${
+                    theme === 'dark'
+                      ? 'bg-gray-800 border-gray-700'
+                      : 'bg-white border-gray-200'
+                  }`}
                   animate={{ y: [0, -10, 0] }}
                   transition={{ duration: 3, repeat: Infinity }}
                 >
-                  <div className="text-xs text-gray-600">Real-time Update</div>
-                  <div className="text-sm font-semibold text-green-600">+5 New Reports</div>
+                  <div className={`text-xs transition-colors ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Real-time Update
+                  </div>
+                  <div className={`text-sm font-semibold transition-colors ${
+                    theme === 'dark' ? 'text-emerald-400' : 'text-green-600'
+                  }`}>
+                    +5 New Reports
+                  </div>
                 </motion.div>
 
                 <motion.div
-                  className="absolute -bottom-4 -left-4 bg-white rounded-lg shadow-lg p-3 border border-gray-200 backdrop-blur-sm"
+                  className={`absolute -bottom-4 -left-4 rounded-lg shadow-lg p-3 border backdrop-blur-sm transition-colors ${
+                    theme === 'dark'
+                      ? 'bg-gray-800 border-gray-700'
+                      : 'bg-white border-gray-200'
+                  }`}
                   animate={{ y: [0, 10, 0] }}
                   transition={{ duration: 3, repeat: Infinity, delay: 1 }}
                 >
-                  <div className="text-xs text-gray-600">Blockchain Verified</div>
-                  <div className="text-sm font-semibold text-blue-600">100% Secure</div>
+                  <div className={`text-xs transition-colors ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Blockchain Verified
+                  </div>
+                  <div className={`text-sm font-semibold transition-colors ${
+                    theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
+                  }`}>
+                    100% Secure
+                  </div>
                 </motion.div>
               </div>
             </motion.div>
@@ -347,8 +435,12 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Stats Section - Kurangi padding */}
-      <section className="py-8 sm:py-12 md:py-16 bg-white">
+      {/* Stats Section - Theme adaptive */}
+      <section className={`py-8 sm:py-12 md:py-16 transition-colors ${
+        theme === 'dark'
+          ? 'bg-gray-900/50'
+          : 'bg-white'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             className="grid grid-cols-2 md:grid-cols-4 gap-8"
@@ -360,28 +452,51 @@ const LandingPage = () => {
             {stats.map((stat, index) => (
               <motion.div
                 key={index}
-                className="text-center group"
+                className={`text-center group rounded-2xl p-6 transition-all ${
+                  theme === 'dark'
+                    ? 'hover:bg-gray-800'
+                    : 'hover:bg-gray-50'
+                }`}
                 whileHover={{ scale: 1.05 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
                 <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:shadow-lg transition-shadow">
                   <stat.icon className="w-8 h-8 text-white" />
                 </div>
-                <div className="text-3xl font-bold text-gray-900 mb-2">{stat.value}</div>
-                <div className="text-gray-600">{stat.label}</div>
+                <div className={`text-3xl font-bold mb-2 transition-colors ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>
+                  {stat.value}
+                </div>
+                <div className={`transition-colors ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  {stat.label}
+                </div>
               </motion.div>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* Features Section - Kurangi padding */}
-      <section id="features" className="py-16 sm:py-24 md:py-32 bg-gradient-to-b from-white via-gray-50 to-white relative overflow-hidden">
-        {/* Animated Background Elements */}
+      {/* Features Section - Theme adaptive (simplified for brevity) */}
+      <section id="features" className={`py-16 sm:py-24 md:py-32 relative overflow-hidden transition-colors ${
+        theme === 'dark'
+          ? 'bg-gray-900'
+          : 'bg-gradient-to-b from-white via-gray-50 to-white'
+      }`}>
+        {/* Background blobs - theme adaptive */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200/20 rounded-full blur-3xl animate-float"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-cyan-200/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
+          <div className={`absolute top-20 left-10 w-72 h-72 rounded-full blur-3xl animate-float ${
+            theme === 'dark'
+              ? 'bg-emerald-500/10'
+              : 'bg-emerald-200/20'
+          }`}></div>
+          <div className={`absolute bottom-20 right-10 w-96 h-96 rounded-full blur-3xl animate-float ${
+            theme === 'dark'
+              ? 'bg-teal-500/10'
+              : 'bg-teal-200/20'
+          }`} style={{ animationDelay: '2s' }}></div>
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -393,38 +508,26 @@ const LandingPage = () => {
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <motion.div
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-100 to-teal-100 px-4 py-2 rounded-full mb-6"
-              initial={{ scale: 0.9, opacity: 0 }}
-              whileInView={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-semibold text-emerald-700">Teknologi Terdepan</span>
-            </motion.div>
-
-            <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-6 leading-tight">
+            <h2 className={`text-5xl md:text-6xl font-black mb-6 leading-tight transition-colors ${
+              theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>
               Teknologi{" "}
               <span className="relative inline-block">
                 <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
                   Blockchain
                 </span>
-                <motion.div
-                  className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full"
-                  initial={{ scaleX: 0 }}
-                  whileInView={{ scaleX: 1 }}
-                  transition={{ delay: 0.5, duration: 0.8 }}
-                />
               </span>
               <br />untuk Konservasi
             </h2>
             
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Sistem pencatatan data konservasi yang <span className="font-semibold text-emerald-600">transparan</span>, <span className="font-semibold text-teal-600">aman</span>, dan <span className="font-semibold text-cyan-600">tidak dapat diubah</span> menggunakan teknologi blockchain terdepan
+            <p className={`text-xl max-w-3xl mx-auto leading-relaxed transition-colors ${
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              Sistem pencatatan data konservasi yang <span className="font-semibold">transparan</span>, <span className="font-semibold">aman</span>, dan <span className="font-semibold">tidak dapat diubah</span> menggunakan teknologi blockchain terdepan
             </p>
           </motion.div>
 
-          {/* Features Grid */}
+          {/* Features Grid - Theme adaptive */}
           <div className="grid md:grid-cols-2 gap-8">
             {features.map((feature, index) => (
               <motion.div
@@ -435,42 +538,45 @@ const LandingPage = () => {
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 viewport={{ once: true }}
               >
-                {/* Card Background with Gradient Border */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50 rounded-3xl"></div>
+                <div className={`absolute inset-0 bg-gradient-to-br rounded-3xl transition-all duration-500 ${
+                  theme === 'dark'
+                    ? 'from-gray-800 to-gray-700/50'
+                    : 'from-white to-gray-50'
+                }`}></div>
                 <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 rounded-3xl transition-all duration-500`}></div>
                 
-                {/* Glow Effect on Hover */}
-                <motion.div
-                  className="absolute -inset-1 rounded-3xl opacity-0 group-hover:opacity-100 blur-xl transition-all duration-500"
-                  style={{ background: `radial-gradient(circle at center, ${feature.glowColor}, transparent)` }}
-                />
-
-                {/* Card Content */}
-                <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 border border-gray-200/50 group-hover:border-gray-300/50 transition-all duration-500 shadow-lg group-hover:shadow-2xl">
-                  {/* Icon with Animated Background */}
+                <div className={`relative rounded-3xl p-8 border transition-all duration-500 shadow-lg group-hover:shadow-2xl ${
+                  theme === 'dark'
+                    ? 'bg-gray-800/80 backdrop-blur-xl border-gray-700/50 group-hover:border-gray-600/50'
+                    : 'bg-white/80 backdrop-blur-xl border-gray-200/50 group-hover:border-gray-300/50'
+                }`}>
+                  {/* Content */}
                   <div className="flex items-start gap-6 mb-6">
                     <motion.div 
                       className="relative flex-shrink-0"
                       whileHover={{ scale: 1.1, rotate: 5 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
-                      <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-2xl blur-md opacity-50 group-hover:opacity-70 transition-opacity`}></div>
-                      <div className={`relative w-20 h-20 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center text-3xl shadow-xl`}>
+                      <div className={`w-20 h-20 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center text-3xl shadow-xl`}>
                         {feature.icon}
                       </div>
                     </motion.div>
                     
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-emerald-600 group-hover:to-teal-600 group-hover:bg-clip-text transition-all duration-300">
+                      <h3 className={`text-2xl font-bold mb-3 transition-colors ${
+                        theme === 'dark' ? 'text-white' : 'text-gray-900'
+                      }`}>
                         {feature.title}
                       </h3>
-                      <p className="text-gray-600 leading-relaxed">
+                      <p className={`leading-relaxed transition-colors ${
+                        theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                      }`}>
                         {feature.description}
                       </p>
                     </div>
                   </div>
                   
-                  {/* Benefits List */}
+                  {/* Benefits */}
                   <div className="space-y-3 mb-6">
                     {feature.benefits.map((benefit, i) => (
                       <motion.div
@@ -484,20 +590,14 @@ const LandingPage = () => {
                         <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${feature.gradient} flex items-center justify-center flex-shrink-0 shadow-md`}>
                           <FiCheck className="w-3 h-3 text-white" />
                         </div>
-                        <span className="text-sm font-medium text-gray-700">{benefit}</span>
+                        <span className={`text-sm font-medium transition-colors ${
+                          theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
+                        }`}>
+                          {benefit}
+                        </span>
                       </motion.div>
                     ))}
                   </div>
-                  
-                  {/* CTA Button */}
-                  <motion.button
-                    className={`w-full py-3 px-6 rounded-xl font-semibold text-white bg-gradient-to-r ${feature.gradient} shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 group/btn`}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <span>Pelajari Lebih Lanjut</span>
-                    <FiArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                  </motion.button>
                 </div>
               </motion.div>
             ))}
