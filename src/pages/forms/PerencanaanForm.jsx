@@ -102,24 +102,92 @@ const PerencanaanForm = () => {
       setSubmitting(true);
       
       try {
-        // ✅ 1. Save to backend first
-        const response = await api.post("/perencanaan", values);
-        const savedId = response.data?.id;
+        console.log('[PerencanaanForm] ========== FORM SUBMISSION START ==========');
+        console.log('[PerencanaanForm] Form data:', values);
         
-        setSuccess(true);
-        toast.success("✅ Data berhasil disimpan!");
+        // ✅ JANGAN GENERATE HASH DI FRONTEND - BIARKAN BACKEND
+        // Frontend hanya kirim form data, backend yang generate hash
+        
+        // ✅ GUNAKAN ENDPOINT YANG BENAR: POST /api/perencanaan
+        console.log('[PerencanaanForm] STEP 1: Submitting to POST /perencanaan...');
+        const response = await api.post('/perencanaan', values);
+        
+        console.log('[PerencanaanForm] API Response:', response.data);
+        
+        const createdData = response.data?.data || response.data;
+        console.log('[PerencanaanForm] Created data:', createdData);
 
+        // ✅ STEP 2: Check blockchain fields dari response
+        console.log('[PerencanaanForm] STEP 2: Checking blockchain fields from response...');
+        
+        // ✅ Backend akan return blockchain data sesuai format:
+        // { 
+        //   blockchain: { doc_hash, tx_hash, status },
+        //   atau langsung: blockchain_doc_hash, blockchain_tx_hash
+        // }
+        
+        const blockchainDocHash = createdData?.blockchain?.doc_hash || createdData?.blockchain_doc_hash;
+        const blockchainTxHash = createdData?.blockchain?.tx_hash || createdData?.blockchain_tx_hash;
+        
+        console.log('[PerencanaanForm] blockchain_doc_hash:', blockchainDocHash);
+        console.log('[PerencanaanForm] blockchain_tx_hash:', blockchainTxHash);
+        
+        if (blockchainTxHash) {
+          console.log('[PerencanaanForm] ✅ BLOCKCHAIN HASH FOUND!', {
+            id: createdData.id,
+            blockchain_tx_hash: blockchainTxHash,
+            blockchain_doc_hash: blockchainDocHash,
+          });
+          toast.success('✅ Data berhasil disimpan dengan blockchain verification!');
+        } else if (blockchainDocHash) {
+          console.log('[PerencanaanForm] ✅ DOC HASH FOUND (Pending TX)!', {
+            id: createdData.id,
+            blockchain_doc_hash: blockchainDocHash,
+          });
+          toast.success('✅ Data perencanaan berhasil disimpan (Pending blockchain confirmation)!');
+        } else {
+          console.warn('[PerencanaanForm] ⚠️ NO BLOCKCHAIN HASH IN RESPONSE');
+          console.warn('[PerencanaanForm] Response keys:', Object.keys(createdData || {}));
+          console.warn('[PerencanaanForm] Full response:', JSON.stringify(createdData, null, 2));
+          toast.success('✅ Data perencanaan berhasil disimpan!');
+        }
+
+        // Clear form
+        resetForm();
+        setSelectedLocation(null);
+        setSuccess(true);
+
+        // Redirect ke laporan page
         setTimeout(() => {
-          resetForm();
-          setSelectedLocation(null);
-          setSuccess(false);
-        }, 5000);
-      } catch (error) {
-        console.error("Error submitting form:", error);
-        toast.error("❌ Gagal menyimpan data!");
+          window.location.href = '/admin/laporan';
+        }, 1500);
+
+      } catch (err) {
+        console.error('[PerencanaanForm] ========== FORM SUBMISSION ERROR ==========');
+        console.error('[PerencanaanForm] Error:', err.message);
+        console.error('[PerencanaanForm] Response:', err.response?.data);
+        console.error('[PerencanaanForm] Status:', err.response?.status);
+        
+        // ✅ More detailed error logging
+        if (err.response?.data?.message) {
+          console.error('[PerencanaanForm] Backend message:', err.response.data.message);
+          
+          // KHUSUS: JSON_SORT_KEYS error
+          if (err.response.data.message.includes('JSON_SORT_KEYS')) {
+            console.error('[PerencanaanForm] ⚠️ Backend PHP error - inform admin to fix backend code');
+            toast.error('❌ Backend error: Hubungi admin untuk fix PHP constant');
+            return;
+          }
+        }
+        
+        const errorMsg = err.response?.data?.message || 
+                        err.response?.data?.error ||
+                        err.message || 
+                        'Gagal menyimpan data';
+        
+        toast.error('❌ ' + errorMsg);
       } finally {
         setSubmitting(false);
-        setSavingToBlockchain(false);
       }
     },
   });

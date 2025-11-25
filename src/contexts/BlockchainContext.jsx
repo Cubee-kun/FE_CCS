@@ -87,6 +87,66 @@ export function BlockchainProvider({ children }) {
     };
   };
 
+  // ✅ GET TRANSACTION - Fetch real tx dari Sepolia menggunakan provider
+  const getTransaction = async (txHash) => {
+    try {
+      if (!provider) {
+        throw new Error('Provider not initialized');
+      }
+
+      if (!txHash || txHash === '0x') {
+        throw new Error('Invalid transaction hash');
+      }
+
+      console.log('[BlockchainContext] Fetching transaction:', txHash);
+
+      // ✅ Get transaction dari blockchain
+      const tx = await provider.getTransaction(txHash);
+      
+      if (!tx) {
+        console.warn('[BlockchainContext] ⚠️ Transaction not found:', txHash);
+        return null;
+      }
+
+      console.log('[BlockchainContext] ✅ Transaction fetched:', tx);
+
+      // ✅ Get transaction receipt (konfirmasi blok)
+      const receipt = await provider.getTransactionReceipt(txHash);
+      
+      console.log('[BlockchainContext] ✅ Receipt fetched:', receipt);
+
+      return {
+        txHash: tx.hash,
+        from: tx.from,
+        to: tx.to,
+        value: ethers.formatEther(tx.value),
+        gasPrice: ethers.formatUnits(tx.gasPrice, 'gwei'),
+        gasLimit: tx.gasLimit.toString(),
+        data: tx.data,
+        nonce: tx.nonce,
+        blockNumber: receipt?.blockNumber || null,
+        blockHash: receipt?.blockHash || null,
+        transactionIndex: receipt?.transactionIndex || null,
+        gasUsed: receipt?.gasUsed?.toString() || null,
+        cumulativeGasUsed: receipt?.cumulativeGasUsed?.toString() || null,
+        contractAddress: receipt?.contractAddress || null,
+        status: receipt?.status === 1 ? 'success' : receipt?.status === 0 ? 'failed' : 'pending',
+        confirmations: receipt?.confirmations || 0,
+        timestamp: new Date().toISOString(),
+        verified: !!receipt, // ✅ Verified jika sudah ada receipt
+        explorerUrl: `https://sepolia.etherscan.io/tx/${txHash}`
+      };
+    } catch (error) {
+      console.error('[BlockchainContext] Get transaction error:', error);
+      return null;
+    }
+  };
+
+  // ✅ GET TRANSACTION PROOF - Alias untuk getTransaction
+  const getTransactionProof = async (txHash) => {
+    return getTransaction(txHash);
+  };
+
   // ✅ Store document hash ke blockchain
   const storeDocumentHash = async (docType, formData, metadata = {}) => {
     try {
@@ -209,6 +269,8 @@ export function BlockchainProvider({ children }) {
     storeDocumentHash,
     verifyDocumentHash,
     getExplorerUrl,
+    getTransaction,
+    getTransactionProof,
   };
 
   return (

@@ -9,14 +9,14 @@ const CONTRACT_ABI = [
   "event DocumentStored(uint256 indexed docId, string docType, string docHash, address indexed uploader, uint256 timestamp)"
 ];
 
+// ✅ RPC URL dari environment - PERBAIKI INI
+const RPC_URL = import.meta.env.VITE_SEPOLIA_RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com";
+
+// ✅ Private Key dari environment - PERBAIKI INI
+const PRIVATE_KEY = import.meta.env.VITE_WALLET_PRIVATE_KEY || "";
+
 // ✅ Contract Address dari environment
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || "";
-
-// ✅ Private Key dari environment - PENTING: Harus ada!
-const PRIVATE_KEY = import.meta.env.VITE_PRIVATE_KEY || "";
-
-// ✅ RPC URL dari environment
-const RPC_URL = import.meta.env.VITE_SEPOLIA_URL || "https://ethereum-sepolia-rpc.publicnode.com";
 
 class BlockchainService {
   constructor() {
@@ -55,20 +55,26 @@ class BlockchainService {
       if (!PRIVATE_KEY || PRIVATE_KEY.trim() === "") {
         console.error('[Blockchain] ❌ CONFIGURATION ERROR:', {
           issue: 'Private key not configured',
-          VITE_PRIVATE_KEY: import.meta.env.VITE_PRIVATE_KEY || '(not set)',
-          solution: 'Tambahkan private key Anda ke .env VITE_PRIVATE_KEY',
+          found: {
+            VITE_WALLET_PRIVATE_KEY: import.meta.env.VITE_WALLET_PRIVATE_KEY ? '✅ SET' : '❌ NOT SET',
+            VITE_SEPOLIA_RPC_URL: import.meta.env.VITE_SEPOLIA_RPC_URL ? '✅ SET' : '❌ NOT SET',
+            VITE_CONTRACT_ADDRESS: import.meta.env.VITE_CONTRACT_ADDRESS ? '✅ SET' : '❌ NOT SET',
+          },
+          solution: 'Pastikan .env sudah benar diisi',
           steps: [
-            '1. Buka MetaMask di browser',
-            '2. Klik Account menu (3 titik di kanan atas)',
-            '3. Pilih "Account details"',
-            '4. Klik "Show private key"',
-            '5. Masukkan password MetaMask Anda',
-            '6. Copy private key (tanpa 0x di depan)',
-            '7. Paste ke .env sebagai VITE_PRIVATE_KEY=...',
-            '8. Restart dev server'
+            '1. Buka file .env di root project',
+            '2. Isi VITE_WALLET_PRIVATE_KEY=your_private_key',
+            '3. Isi VITE_SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_KEY',
+            '4. Isi VITE_CONTRACT_ADDRESS=0x...',
+            '5. Restart dev server (Ctrl+C lalu npm run dev)',
+            '6. Check browser console untuk verifikasi'
           ],
-          warning: '⚠️ JANGAN pernah share private key ke siapapun!',
-          security: 'Private key memberikan akses penuh ke wallet Anda'
+          currentValues: {
+            VITE_WALLET_PRIVATE_KEY: import.meta.env.VITE_WALLET_PRIVATE_KEY || '(not set)',
+            VITE_SEPOLIA_RPC_URL: import.meta.env.VITE_SEPOLIA_RPC_URL || '(not set)',
+            VITE_CONTRACT_ADDRESS: import.meta.env.VITE_CONTRACT_ADDRESS || '(not set)',
+          },
+          warning: '⚠️ JANGAN pernah share private key ke siapapun!'
         });
         return false;
       }
