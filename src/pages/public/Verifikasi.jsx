@@ -663,35 +663,6 @@ export default function Verifikasi() {
               ) : null}
             </AnimatePresence>
 
-            {/* Manual Input Option */}
-            {useManualInput || !scannerReady ? (
-              <motion.form 
-                onSubmit={handleManualQRSubmit}
-                className="mb-6"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  📋 Input Manual QR Code atau ID Laporan
-                </label>
-                <div className="space-y-3">
-                  <textarea
-                    value={manualQRCode}
-                    onChange={(e) => setManualQRCode(e.target.value)}
-                    placeholder="Paste QR code data, JSON, atau ID laporan di sini..."
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
-                    rows="4"
-                  />
-                  <button
-                    type="submit"
-                    className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-medium shadow-lg transition-all"
-                  >
-                    Cari Laporan
-                  </button>
-                </div>
-              </motion.form>
-            ) : null}
-
             {/* File Upload */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
