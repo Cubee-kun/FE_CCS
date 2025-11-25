@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import api from "../../api/axios";
-import { FiCheckCircle, FiUpload, FiX, FiMapPin, FiAlertCircle } from "react-icons/fi";
+import { FiCheckCircle, FiUpload, FiX, FiMapPin, FiAlertCircle, FiCamera, FiFolder } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -38,6 +38,11 @@ const MonitoringForm = () => {
   const [existingLocations, setExistingLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [loading, setLoading] = useState(true);
+  // ✅ ADD NEW STATES FOR UPLOAD
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   const validationSchema = Yup.object({
     implementasi_id: Yup.string().required("Wajib pilih implementasi terlebih dahulu"),
@@ -102,19 +107,8 @@ const MonitoringForm = () => {
           formData.append("dokumentasi_count", values.dokumentasi.length);
         }
 
-        // Log form data untuk debug
         console.log('[Monitoring Form] Submitting:', {
           implementasi_id: values.implementasi_id,
-          daun_mengering: values.kondisi_daun.mengering,
-          daun_layu: values.kondisi_daun.layu,
-          daun_menguning: values.kondisi_daun.menguning,
-          bercak_daun: values.kondisi_daun.bercak,
-          daun_serangga: values.kondisi_daun.hama,
-          jumlah_bibit_ditanam: values.jumlah_bibit_ditanam,
-          jumlah_bibit_mati: values.jumlah_bibit_mati,
-          diameter_batang: values.diameter_batang,
-          jumlah_daun: values.jumlah_daun,
-          survival_rate: values.survival_rate,
           files: values.dokumentasi?.length || 0
         });
 
@@ -192,6 +186,75 @@ const MonitoringForm = () => {
     // Format geotagging as "lat,long"
     const geotagging = `${location.lat},${location.long}`;
     formik.setFieldValue("lokasi", geotagging);
+  };
+
+  // ✅ HANDLE DRAG AND DROP
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      processFiles(Array.from(files));
+    }
+  };
+
+  // ✅ PROCESS FILES
+  const processFiles = (files) => {
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length === 0) {
+      toast.error("❌ Silakan pilih file gambar!");
+      return;
+    }
+
+    const currentFiles = formik.values.dokumentasi || [];
+    const newFiles = [...currentFiles, ...imageFiles];
+    
+    formik.setFieldValue("dokumentasi", newFiles);
+    setShowUploadModal(false);
+    toast.success(`✅ ${imageFiles.length} gambar berhasil ditambahkan!`);
+  };
+
+  // ✅ HANDLE FILE INPUT
+  const handleFileSelect = (e) => {
+    const files = e.target.files;
+    if (files) {
+      processFiles(Array.from(files));
+    }
+  };
+
+  // ✅ HANDLE CAMERA
+  const handleCameraCapture = (e) => {
+    const files = e.target.files;
+    if (files) {
+      processFiles(Array.from(files));
+    }
+  };
+
+  // ✅ OPEN CAMERA
+  const openCamera = () => {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click();
+    }
+  };
+
+  // ✅ OPEN FILE PICKER
+  const openFilePicker = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   const renderRadioGroup = (name, label) => (
@@ -292,79 +355,261 @@ const MonitoringForm = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           <form onSubmit={formik.handleSubmit} className="p-8 md:p-12">
-            {/* ✅ SELECT IMPLEMENTASI DROPDOWN */}
+            
+            {/* ✅ SELECT LOCATION FROM MAP - PERTAMA */}
             <motion.div
               className="mb-10"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.1 }}
             >
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                Pilih Implementasi <span className="text-red-500">*</span>
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                <FiMapPin className="w-5 h-5 text-green-600 dark:text-green-400" />
+                Pilih Lokasi Implementasi untuk Monitoring
+                <span className="text-red-500">*</span>
               </label>
 
-              {loadingImplementasi ? (
-                <div className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>
-                  <span className="text-gray-600 dark:text-gray-400">Memuat data implementasi...</span>
+              {/* Info Box */}
+              <div className="mb-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <FiMapPin className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="font-bold text-green-900 dark:text-green-200 mb-2">
+                      📍 Pilih dari Lokasi Implementasi
+                    </h4>
+                    <p className="text-sm text-green-800 dark:text-green-300">
+                      Klik pada marker di peta untuk memilih lokasi implementasi yang akan dimonitor. 
+                      Hanya lokasi yang telah diimplementasikan yang dapat dipilih untuk monitoring.
+                    </p>
+                  </div>
                 </div>
-              ) : implementasis.length === 0 ? (
-                <div className="w-full px-4 py-3.5 rounded-xl border-2 border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20">
-                  <p className="text-amber-700 dark:text-amber-300">Tidak ada data implementasi. Silakan buat implementasi terlebih dahulu.</p>
+              </div>
+
+              {/* Map */}
+              {loading ? (
+                <div className="h-96 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-400">Memuat lokasi implementasi...</p>
+                  </div>
+                </div>
+              ) : existingLocations.length === 0 ? (
+                <div className="h-96 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-700 flex items-center justify-center">
+                  <div className="text-center p-8">
+                    <FiAlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-amber-900 dark:text-amber-200 mb-2">
+                      Belum Ada Lokasi Implementasi
+                    </h3>
+                    <p className="text-amber-700 dark:text-amber-300">
+                      Silakan lakukan implementasi terlebih dahulu untuk mendapatkan data lokasi monitoring.
+                    </p>
+                  </div>
                 </div>
               ) : (
-                <select
-                  id="implementasi_id"
-                  name="implementasi_id"
-                  value={formik.values.implementasi_id}
-                  onChange={(e) => {
-                    const selectedId = e.target.value;
-                    formik.setFieldValue("implementasi_id", selectedId);
-                    if (selectedId) {
-                      const implementasi = implementasis.find(i => String(i.id) === String(selectedId));
-                      if (implementasi) {
-                        handleImplementasiSelect(implementasi);
-                      }
-                    }
-                  }}
-                  onBlur={formik.handleBlur}
-                  className={`w-full px-4 py-3.5 rounded-xl border-2 bg-white dark:bg-gray-700 dark:text-gray-100 transition-all ${
-                    formik.touched.implementasi_id && formik.errors.implementasi_id
-                      ? "border-red-400 focus:ring-4 focus:ring-red-200"
-                      : "border-gray-200 dark:border-gray-600 focus:border-green-500 focus:ring-4 focus:ring-green-100"
-                  }`}
-                >
-                  <option value="">-- Pilih Implementasi --</option>
-                  {implementasis.map((impl) => (
-                    <option key={impl.id} value={impl.id}>
-                      {impl.nama_perusahaan || "N/A"} • {impl.pic_koorlap || "N/A"}
-                    </option>
-                  ))}
-                </select>
-              )}
-
-              {formik.touched.implementasi_id && formik.errors.implementasi_id && (
-                <p className="text-red-500 text-sm mt-2">{formik.errors.implementasi_id}</p>
-              )}
-
-              {/* Info dari implementasi terpilih */}
-              {selectedImplementasi && (
                 <motion.div
-                  className="mt-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-300 dark:border-green-700 rounded-xl p-4"
+                  className="rounded-2xl overflow-hidden border-2 border-green-200 dark:border-green-700 shadow-xl"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-green-600 dark:text-green-400 font-semibold">Perusahaan</p>
-                      <p className="text-sm font-bold text-green-900 dark:text-green-200">{selectedImplementasi.nama_perusahaan}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-green-600 dark:text-green-400 font-semibold">PIC Koorlap</p>
-                      <p className="text-sm font-bold text-green-900 dark:text-green-200">{selectedImplementasi.pic_koorlap}</p>
+                  <MapContainer
+                    center={
+                      existingLocations.length > 0
+                        ? [
+                            parseFloat(existingLocations[0].lat) || -2.5489,
+                            parseFloat(existingLocations[0].long) || 118.0149
+                          ]
+                        : [-2.5489, 118.0149]
+                    }
+                    zoom={13}
+                    style={{ height: "500px", width: "100%" }}
+                    className="z-0"
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    {existingLocations.map((location) => {
+                      const lat = parseFloat(location.lat);
+                      const lng = parseFloat(location.long);
+                      const isSelected = selectedLocation?.id === location.id;
+                      
+                      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+                        return null;
+                      }
+                      
+                      return (
+                        <Marker
+                          key={location.id}
+                          position={[lat, lng]}
+                          icon={isSelected ? selectedMarkerIcon : implementationMarkerIcon}
+                          eventHandlers={{
+                            click: () => handleLocationSelect(location),
+                          }}
+                        >
+                          <Popup>
+                            <div className="text-center">
+                              <p className="font-bold text-green-700">{location.nama_perusahaan}</p>
+                              <p className="text-xs text-gray-600 mb-1">
+                                Implementasi: {location.jenis_kegiatan}
+                              </p>
+                              <p className="text-xs text-gray-600 mb-3">
+                                Bibit: {location.jenis_bibit} ({location.jumlah_bibit} unit)
+                              </p>
+                              <button
+                                onClick={() => handleLocationSelect(location)}
+                                className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-colors font-semibold"
+                              >
+                                Pilih Lokasi Ini
+                              </button>
+                            </div>
+                          </Popup>
+                        </Marker>
+                      );
+                    })}
+                  </MapContainer>
+                </motion.div>
+              )}
+
+              {/* ✅ DETAIL LOKASI TERPILIH - DITAMPILKAN DI BAWAH MAPS */}
+              {selectedLocation && (
+                <motion.div
+                  className="mt-6 bg-gradient-to-br from-green-50 to-lime-50 dark:from-green-900/20 dark:to-lime-900/20 border-2 border-green-300 dark:border-green-700 rounded-2xl p-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <div className="flex items-start gap-4 mb-6">
+                    <motion.div
+                      className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-lg"
+                      whileHover={{ scale: 1.1, rotate: 10 }}
+                    >
+                      <FiCheckCircle className="w-6 h-6 text-white" />
+                    </motion.div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-green-900 dark:text-green-200 mb-1">
+                        Lokasi Implementasi Terpilih
+                      </h3>
+                      <p className="text-sm text-green-700 dark:text-green-300">
+                        Berikut adalah detail lokasi implementasi untuk monitoring
+                      </p>
                     </div>
                   </div>
+
+                  {/* Detail Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Perusahaan */}
+                    <motion.div
+                      className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-green-100 dark:border-green-800"
+                      whileHover={{ translateY: -2 }}
+                    >
+                      <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">
+                        Perusahaan
+                      </p>
+                      <p className="text-base font-bold text-gray-900 dark:text-gray-100 break-words">
+                        {selectedLocation.nama_perusahaan}
+                      </p>
+                    </motion.div>
+
+                    {/* Kegiatan */}
+                    <motion.div
+                      className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-green-100 dark:border-green-800"
+                      whileHover={{ translateY: -2 }}
+                    >
+                      <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">
+                        Jenis Kegiatan
+                      </p>
+                      <p className="text-base font-bold text-gray-900 dark:text-gray-100 break-words">
+                        {selectedLocation.jenis_kegiatan}
+                      </p>
+                    </motion.div>
+
+                    {/* PIC Koorlap */}
+                    <motion.div
+                      className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-green-100 dark:border-green-800"
+                      whileHover={{ translateY: -2 }}
+                    >
+                      <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">
+                        PIC Koorlap
+                      </p>
+                      <p className="text-base font-bold text-gray-900 dark:text-gray-100 break-words">
+                        {selectedLocation.pic_koorlap}
+                      </p>
+                    </motion.div>
+
+                    {/* Jenis Bibit */}
+                    <motion.div
+                      className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-green-100 dark:border-green-800"
+                      whileHover={{ translateY: -2 }}
+                    >
+                      <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">
+                        Jenis Bibit
+                      </p>
+                      <p className="text-base font-bold text-gray-900 dark:text-gray-100 break-words">
+                        {selectedLocation.jenis_bibit}
+                      </p>
+                    </motion.div>
+
+                    {/* Jumlah Bibit */}
+                    <motion.div
+                      className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-green-100 dark:border-green-800"
+                      whileHover={{ translateY: -2 }}
+                    >
+                      <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">
+                        Jumlah Bibit
+                      </p>
+                      <p className="text-base font-bold text-gray-900 dark:text-gray-100">
+                        {selectedLocation.jumlah_bibit} Unit
+                      </p>
+                    </motion.div>
+
+                    {/* Koordinat */}
+                    <motion.div
+                      className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-green-100 dark:border-green-800 md:col-span-2"
+                      whileHover={{ translateY: -2 }}
+                    >
+                      <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">
+                        Koordinat Lokasi
+                      </p>
+                      <p className="text-sm font-mono text-gray-900 dark:text-gray-100 bg-green-50 dark:bg-green-900/30 px-3 py-2 rounded-lg">
+                        Latitude: {selectedLocation.lat} | Longitude: {selectedLocation.long}
+                      </p>
+                    </motion.div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 mt-6 pt-6 border-t border-green-200 dark:border-green-700">
+                    <motion.button
+                      type="button"
+                      onClick={() => setSelectedLocation(null)}
+                      className="flex-1 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Pilih Lokasi Lain
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-medium transition-all shadow-md"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <FiCheckCircle className="w-4 h-4" />
+                      <span>Gunakan Lokasi Ini</span>
+                    </motion.button>
+                  </div>
                 </motion.div>
+              )}
+
+              {/* Validation Error */}
+              {formik.touched.lokasi && formik.errors.lokasi && (
+                <motion.p
+                  className="text-red-500 text-sm mt-3 flex items-center gap-1"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <span>⚠️</span>
+                  {formik.errors.lokasi}
+                </motion.p>
               )}
             </motion.div>
 
@@ -373,7 +618,7 @@ const MonitoringForm = () => {
               className="mb-10"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.2 }}
             >
               <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
                 📊 Data Monitoring
@@ -418,7 +663,7 @@ const MonitoringForm = () => {
               className="mb-10"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.3 }}
             >
               <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
                 🌱 Kondisi Kesehatan Bibit
@@ -432,53 +677,93 @@ const MonitoringForm = () => {
               </div>
             </motion.div>
 
-            {/* Upload Dokumentasi */}
+            {/* Upload Dokumentasi dengan Drag-Drop */}
             <motion.div
               className="mb-10"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.4 }}
             >
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                📸 Dokumentasi Monitoring <span className="text-red-500">*</span>
+                Dokumentasi Monitoring <span className="text-red-500">*</span>
               </label>
 
-              <div className="relative">
+              {/* ✅ DRAG DROP AREA */}
+              <div
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                className={`relative p-8 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 ${
+                  dragActive
+                    ? "border-green-500 bg-green-50 dark:bg-green-900/20 scale-105"
+                    : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-green-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                }`}
+              >
+                {/* Hidden File Inputs */}
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   multiple
-                  onChange={(event) => {
-                    const files = Array.from(event.currentTarget.files);
-                    formik.setFieldValue("dokumentasi", files);
-                  }}
+                  onChange={handleFileSelect}
                   className="sr-only"
-                  id="file-upload"
+                  id="file-input"
                 />
-                <label
-                  htmlFor="file-upload"
-                  className="flex flex-col items-center justify-center w-full p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all group"
+                
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleCameraCapture}
+                  className="sr-only"
+                  id="camera-input"
+                />
+
+                {/* Content */}
+                <motion.div
+                  className="flex flex-col items-center justify-center"
+                  animate={dragActive ? { scale: 1.05 } : { scale: 1 }}
+                  transition={{ duration: 0.2 }}
                 >
                   <motion.div
-                    whileHover={{ scale: 1.1 }}
                     className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4"
+                    animate={dragActive ? { rotate: 360 } : { rotate: 0 }}
+                    transition={{ duration: 0.5 }}
                   >
-                    <FiUpload className="w-8 h-8 text-green-600 dark:text-green-400" />
+                    <FiUpload className={`w-8 h-8 ${dragActive ? 'text-green-600' : 'text-green-600 dark:text-green-400'}`} />
                   </motion.div>
-                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Klik untuk upload gambar
+
+                  <p className="text-center mb-2">
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 block">
+                      {dragActive ? "🎯 Lepaskan gambar di sini" : "📸 Drag & Drop gambar di sini"}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 block mt-1">
+                      atau gunakan tombol di bawah
+                    </span>
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    PNG, JPG, JPEG (Max 5MB per file)
-                  </p>
-                </label>
+
+                  {/* Upload Buttons - ONLY SHOWN WHEN NOT DRAGGING */}
+                  {!dragActive && (
+                    <motion.button
+                      type="button"
+                      onClick={() => setShowUploadModal(true)}
+                      className="mt-4 px-6 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-medium shadow-lg transition-all"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Pilih Gambar
+                    </motion.button>
+                  )}
+                </motion.div>
               </div>
 
               {formik.touched.dokumentasi && formik.errors.dokumentasi && (
                 <p className="text-red-500 text-sm mt-2">{formik.errors.dokumentasi}</p>
               )}
 
-              {/* Preview Grid */}
+              {/* ✅ PREVIEW GRID */}
               {formik.values.dokumentasi && formik.values.dokumentasi.length > 0 && (
                 <motion.div
                   className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
@@ -525,169 +810,6 @@ const MonitoringForm = () => {
               )}
             </motion.div>
 
-            {/* ✅ Select Location Map - DARI IMPLEMENTASI */}
-            <motion.div
-              className="mb-10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                <FiMapPin className="w-5 h-5 text-green-600 dark:text-green-400" />
-                Pilih Lokasi Implementasi untuk Monitoring
-                <span className="text-red-500">*</span>
-              </label>
-
-              {/* Info Box */}
-              <div className="mb-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-xl p-4">
-                <div className="flex items-start gap-3">
-                  <FiMapPin className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <h4 className="font-bold text-green-900 dark:text-green-200 mb-2">
-                      📍 Pilih dari Lokasi Implementasi
-                    </h4>
-                    <p className="text-sm text-green-800 dark:text-green-300">
-                      Klik pada marker di peta untuk memilih lokasi implementasi yang akan dimonitor. 
-                      Hanya lokasi yang telah diimplementasikan yang dapat dipilih untuk monitoring.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Selected Location Display */}
-              {selectedLocation && (
-                <motion.div
-                  className="mb-4 bg-gradient-to-r from-green-50 to-lime-50 dark:from-green-900/20 dark:to-lime-900/20 border-2 border-green-300 dark:border-green-700 rounded-xl p-4"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                      <FiCheckCircle className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-green-900 dark:text-green-200 mb-1">
-                        Lokasi Implementasi Terpilih
-                      </h4>
-                      <p className="text-sm text-green-800 dark:text-green-300">
-                        <strong>Perusahaan:</strong> {selectedLocation.nama_perusahaan}
-                      </p>
-                      <p className="text-sm text-green-800 dark:text-green-300">
-                        <strong>Kegiatan:</strong> {selectedLocation.jenis_kegiatan}
-                      </p>
-                      <p className="text-xs text-green-700 dark:text-green-400 font-mono mt-1">
-                        Koordinat: {selectedLocation.lat}, {selectedLocation.long}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Map with Implementasi Locations */}
-              {loading ? (
-                <div className="h-96 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-                    <p className="text-gray-600 dark:text-gray-400">Memuat lokasi implementasi...</p>
-                  </div>
-                </div>
-              ) : existingLocations.length === 0 ? (
-                <div className="h-96 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-700 flex items-center justify-center">
-                  <div className="text-center p-8">
-                    <FiAlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-amber-900 dark:text-amber-200 mb-2">
-                      Belum Ada Lokasi Implementasi
-                    </h3>
-                    <p className="text-amber-700 dark:text-amber-300">
-                      Silakan lakukan implementasi terlebih dahulu untuk mendapatkan data lokasi monitoring.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <motion.div
-                  className="rounded-2xl overflow-hidden border-2 border-green-200 dark:border-green-700 shadow-xl"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                >
-                  <MapContainer
-                    center={
-                      selectedImplementasi
-                        ? [
-                            parseFloat(selectedImplementasi.lat) || -2.5489,
-                            parseFloat(selectedImplementasi.long) || 118.0149
-                          ]
-                        : existingLocations.length > 0
-                        ? [
-                            parseFloat(existingLocations[0].lat) || -2.5489,
-                            parseFloat(existingLocations[0].long) || 118.0149
-                          ]
-                        : [-2.5489, 118.0149]
-                    }
-                    zoom={13}
-                    style={{ height: "500px", width: "100%" }}
-                    className="z-0"
-                    key={selectedImplementasi?.id || 'default'}
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    {existingLocations.map((location) => {
-                      const lat = parseFloat(location.lat);
-                      const lng = parseFloat(location.long);
-                      const isSelected = selectedLocation?.id === location.id;
-                      
-                      // Skip invalid coordinates
-                      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-                        return null;
-                      }
-                      
-                      return (
-                        <Marker
-                          key={location.id}
-                          position={[lat, lng]}
-                          icon={isSelected ? selectedMarkerIcon : implementationMarkerIcon}
-                          eventHandlers={{
-                            click: () => handleLocationSelect(location),
-                          }}
-                        >
-                          <Popup>
-                            <div className="text-center">
-                              <p className="font-bold text-green-700">{location.nama_perusahaan}</p>
-                              <p className="text-xs text-gray-600 mb-1">
-                                Implementasi: {location.jenis_kegiatan}
-                              </p>
-                              <p className="text-xs text-gray-600 mb-3">
-                                Bibit: {location.jenis_bibit} ({location.jumlah_bibit} unit)
-                              </p>
-                              <button
-                                onClick={() => handleLocationSelect(location)}
-                                className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-colors font-semibold"
-                              >
-                                Pilih Lokasi Ini
-                              </button>
-                            </div>
-                          </Popup>
-                        </Marker>
-                      );
-                    })}
-                  </MapContainer>
-                </motion.div>
-              )}
-
-              {/* Validation Error */}
-              {formik.touched.lokasi && formik.errors.lokasi && (
-                <motion.p
-                  className="text-red-500 text-sm mt-3 flex items-center gap-1"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <span>⚠️</span>
-                  {formik.errors.lokasi}
-                </motion.p>
-              )}
-            </motion.div>
-
             {/* Submit Button */}
             <motion.button
               type="submit"
@@ -700,11 +822,110 @@ const MonitoringForm = () => {
               whileHover={!submitting ? { scale: 1.02, boxShadow: "0 20px 60px -10px rgba(34, 197, 94, 0.5)" } : {}}
               whileTap={!submitting ? { scale: 0.98 } : {}}
             >
-              {submitting ? "⏳ Menyimpan..." : "💾 Simpan Data Monitoring"}
+              {submitting ? "⏳ Menyimpan..." : "Simpan Data Monitoring"}
             </motion.button>
           </form>
         </motion.div>
       </div>
+
+      {/* ✅ MODAL UPLOAD OPTIONS */}
+      <AnimatePresence>
+        {showUploadModal && (
+          <>
+            <motion.div
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowUploadModal(false)}
+            />
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 relative">
+                <button
+                  onClick={() => setShowUploadModal(false)}
+                  className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+
+                <div className="text-center mb-6">
+                  <motion.div
+                    className="w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-4"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                  >
+                    <FiUpload className="w-7 h-7 text-white" />
+                  </motion.div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                    Upload Dokumentasi
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Pilih sumber gambar untuk dokumentasi
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Camera Option */}
+                  <motion.button
+                    type="button"
+                    onClick={openCamera}
+                    className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-xl border-2 border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40 text-green-700 dark:text-green-300 font-semibold transition-all"
+                    whileHover={{ scale: 1.02, translateY: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <motion.div
+                      className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center"
+                      whileHover={{ rotate: 10 }}
+                    >
+                      <FiCamera className="w-5 h-5 text-white" />
+                    </motion.div>
+                    <div className="text-left">
+                      <p className="font-semibold">Ambil Foto</p>
+                      <p className="text-xs opacity-80">Gunakan kamera perangkat</p>
+                    </div>
+                  </motion.button>
+
+                  {/* File Picker Option */}
+                  <motion.button
+                    type="button"
+                    onClick={openFilePicker}
+                    className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-xl border-2 border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-semibold transition-all"
+                    whileHover={{ scale: 1.02, translateY: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <motion.div
+                      className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center"
+                      whileHover={{ rotate: -10 }}
+                    >
+                      <FiFolder className="w-5 h-5 text-white" />
+                    </motion.div>
+                    <div className="text-left">
+                      <p className="font-semibold">Pilih dari Galeri</p>
+                      <p className="text-xs opacity-80">Pilih dari file tersimpan</p>
+                    </div>
+                  </motion.button>
+                </div>
+
+                <motion.button
+                  type="button"
+                  onClick={() => setShowUploadModal(false)}
+                  className="w-full mt-4 px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium transition-all"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Batal
+                </motion.button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
