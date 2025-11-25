@@ -193,47 +193,37 @@ export default function LaporanPage() {
     }
   };
 
-  // ✅ Update bagian blockchain ke backend-driven
+  // ✅ Generate QR Code dengan blockchain data
   const generateBlockchainQRCode = async (item) => {
     setSelectedLaporan(item);
     setLoadingBlockchain(true);
     
     try {
-      // ✅ Fetch blockchain verification dari backend
-      const token = localStorage.getItem('token');
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/blockchain/document/${item.id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      let blockchainData = null;
-      if (response.ok) {
-        blockchainData = await response.json();
-      }
-
+      const blockchainVerified = !!item.blockchain_doc_hash;
+      
       const qrData = {
         type: 'PERENCANAAN_BLOCKCHAIN',
         timestamp: new Date().toISOString(),
         verification: {
-          blockchainVerified: !!blockchainData?.docHash,
-          docHash: blockchainData?.docHash || null,
-          txHash: blockchainData?.txHash || null,
-          verificationUrl: blockchainData?.docHash 
-            ? `https://3treesify-ccs.netlify.app/verify/${blockchainData.docHash}`
+          blockchainVerified: blockchainVerified,
+          docHash: item.blockchain_doc_hash || null,
+          txHash: item.blockchain_tx_hash || null,
+          verificationUrl: item.blockchain_doc_hash 
+            ? `https://3treesify-ccs.netlify.app/verify/${item.blockchain_doc_hash}`
             : null,
-          source: blockchainData ? "BLOCKCHAIN" : "DATABASE"
+          source: item.source || "DATABASE"
         },
         data: {
           id: item.id,
           nama_perusahaan: item.nama_perusahaan,
+          nama_pic: item.nama_pic,
+          narahubung: item.narahubung,
           jenis_kegiatan: item.jenis_kegiatan,
+          jenis_bibit: item.jenis_bibit,
           jumlah_bibit: item.jumlah_bibit,
           lokasi: item.lokasi,
+          tanggal_pelaksanaan: item.tanggal_pelaksanaan,
+          is_implemented: item.is_implemented,
         },
       };
 
@@ -241,7 +231,7 @@ export default function LaporanPage() {
         width: 400,
         margin: 2,
         color: {
-          dark: blockchainData?.docHash ? '#10b981' : '#3b82f6',
+          dark: blockchainVerified ? '#10b981' : '#3b82f6',
           light: '#ffffff'
         },
         errorCorrectionLevel: 'H'
@@ -250,13 +240,13 @@ export default function LaporanPage() {
       setQrCodeData({
         url: qrUrl,
         data: qrData,
-        verified: !!blockchainData?.docHash
+        verified: blockchainVerified
       });
       
       setQrModalOpen(true);
-      toast.success(blockchainData?.docHash 
-        ? "🔗 QR Code dari Blockchain!" 
-        : "📱 QR Code dari Database");
+      toast.success(blockchainVerified 
+        ? "🔗 QR Code dari Blockchain berhasil dibuat!" 
+        : "📱 QR Code dengan data database berhasil dibuat!");
       
     } catch (err) {
       console.error('[LaporanPage] QR generation error:', err);
