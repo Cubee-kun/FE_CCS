@@ -1,11 +1,12 @@
 import { useBlockchain } from '../contexts/BlockchainContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiAlertCircle, FiCheck, FiWifi, FiWifiOff } from 'react-icons/fi';
+import { FiX, FiAlertCircle, FiCheck, FiWifi, FiWifiOff, FiServer } from 'react-icons/fi';
 import { useState } from 'react';
 
 export default function BlockchainDebug() {
-  const { isConnected, isReady, account, chainId, error, connectWallet, reconnect } = useBlockchain();
+  const { isConnected, isReady, blockchainStatus, walletAddress, error, getBlockchainStatus } = useBlockchain();
   const [isOpen, setIsOpen] = useState(false);
+  const status = getBlockchainStatus();
 
   if (!isReady) {
     return null;
@@ -38,7 +39,7 @@ export default function BlockchainDebug() {
                     ? 'text-green-900 dark:text-green-200'
                     : 'text-amber-900 dark:text-amber-200'
                 }`}>
-                  {isConnected ? '✅ Blockchain Connected' : '⚠️ Not Connected'}
+                  {isConnected ? '✅ Blockchain: Connected' : '⚠️ Blockchain: Disconnected'}
                 </h3>
               </div>
               <button
@@ -52,31 +53,32 @@ export default function BlockchainDebug() {
             {/* Status Info */}
             <div className="space-y-2 text-sm mb-4">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Status:</span>
+                <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                  <FiServer className="w-3 h-3" />
+                  Backend Status:
+                </span>
                 <span className={`font-mono font-semibold ${
                   isConnected ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
                 }`}>
-                  {isConnected ? 'Connected' : 'Disconnected'}
+                  {blockchainStatus}
                 </span>
               </div>
               
-              {account && (
+              {walletAddress && (
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Account:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Wallet Address:</span>
                   <span className="font-mono text-xs text-gray-700 dark:text-gray-300">
-                    {account.slice(0, 6)}...{account.slice(-4)}
+                    {walletAddress.slice(0, 10)}...{walletAddress.slice(-8)}
                   </span>
                 </div>
               )}
 
-              {chainId && (
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Chain ID:</span>
-                  <span className="font-mono text-xs text-gray-700 dark:text-gray-300">
-                    {chainId === 11155111 ? '🔗 Sepolia (11155111)' : `❌ Unknown (${chainId})`}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Chain:</span>
+                <span className="font-mono text-xs text-gray-700 dark:text-gray-300">
+                  🔗 Sepolia (11155111)
+                </span>
+              </div>
             </div>
 
             {/* Error Message */}
@@ -89,28 +91,9 @@ export default function BlockchainDebug() {
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              {!isConnected ? (
-                <button
-                  onClick={connectWallet}
-                  className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-xs font-semibold transition-all"
-                >
-                  Connect Wallet
-                </button>
-              ) : (
-                <button
-                  onClick={reconnect}
-                  className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white text-xs font-semibold transition-all"
-                >
-                  Reconnect
-                </button>
-              )}
-            </div>
-
             {/* Info Text */}
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-              Ensure MetaMask is installed and set to Sepolia testnet
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              💼 Backend-powered blockchain • 🔐 Auto transactions
             </p>
           </div>
         </motion.div>
@@ -120,7 +103,11 @@ export default function BlockchainDebug() {
       {!isOpen && (
         <motion.button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg flex items-center justify-center"
+          className={`fixed bottom-4 right-4 z-50 w-12 h-12 rounded-full text-white shadow-lg flex items-center justify-center transition-all ${
+            isConnected
+              ? 'bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700'
+              : 'bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700'
+          }`}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           title="Blockchain Status"

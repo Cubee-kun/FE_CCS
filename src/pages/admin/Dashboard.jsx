@@ -20,6 +20,7 @@ import {
   FiFileText,
   FiMonitor,
 } from "react-icons/fi";
+import WalletIndicator from '../../components/WalletIndicator';
 
 const defaultStats = {
   total_perencanaan: 0,
@@ -258,7 +259,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons - UPDATED */}
               <div className="flex gap-3">
                 <motion.button
                   onClick={handleRefresh}
@@ -270,14 +271,8 @@ export default function Dashboard() {
                   <FiRefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                   <span className="hidden sm:inline">Refresh</span>
                 </motion.button>
-                <motion.button
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-medium transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/30"
-                  whileHover={{ scale: 1.05, boxShadow: "0 10px 40px -10px rgba(16, 185, 129, 0.6)" }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <FiDownload className="w-4 h-4" />
-                  <span className="hidden sm:inline">Export</span>
-                </motion.button>
+                {/* ✅ Replace Export with Wallet Indicator */}
+                <WalletIndicator />
               </div>
             </div>
           </div>
