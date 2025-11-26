@@ -14,9 +14,10 @@ import { toast } from "react-toastify";
 import JSZip from "jszip";
 import { ethers } from 'ethers';
 
-// ✅ GLOBAL THROTTLE: Prevent rate limiting (429)
+// ✅ GLOBAL THROTTLE & TIMEOUT CONFIG
 let lastEnrichmentTime = 0;
-const MIN_ENRICHMENT_INTERVAL = 30000; // Min 30s between full enrichments
+const MIN_ENRICHMENT_INTERVAL = 60000; // 60 detik (dari 30s) - KURANGI intensity
+const POLL_TIMEOUT = 5000; // 5 detik timeout (dari 10s default)
 
 export default function LaporanPage() {
   const [laporan, setLaporan] = useState([]);
@@ -555,17 +556,33 @@ export default function LaporanPage() {
     console.log(`[LaporanPage] 🔄 Lightweight poll: ${pendingItems.length} pending...`);
     let hasUpdates = false;
     
-    // Batch with rate limiting: 3 items per batch, 1s delay
-    const batchSize = 3;
+    // ✅ REDUCED: Batch size dari 5 ke 2 items (less concurrent requests)
+    const batchSize = 2;
     for (let i = 0; i < pendingItems.length; i += batchSize) {
       const batch = pendingItems.slice(i, i + batchSize);
       
       try {
+        // ✅ ADD TIMEOUT per request
         const promises = batch.map(item => 
-          api.get(`/perencanaan/${item.id}`).catch(err => {
-            if (err.response?.status === 429) {
-              console.warn('⚠️ Rate limited, slowing down...');
+          Promise.race([
+            api.get(`/perencanaan/${item.id}`),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Request timeout')), POLL_TIMEOUT)
+            )
+          ]).catch(err => {
+            if (err.message === 'Request timeout') {
+              console.warn(`[LaporanPage] ⏱️ Timeout for item ${item.id}, skipping...`);
+              return null;
             }
+            if (err.response?.status === 429) {
+              console.warn('[LaporanPage] ⚠️ Rate limited (429), slowing down...');
+              return null;
+            }
+            if (err.response?.status === 500) {
+              console.warn(`[LaporanPage] ⚠️ Server error (500) for item ${item.id}`);
+              return null;
+            }
+            console.warn(`[LaporanPage] Error for item ${item.id}:`, err.message);
             return null;
           })
         );
@@ -574,33 +591,38 @@ export default function LaporanPage() {
         
         for (let j = 0; j < responses.length; j++) {
           if (!responses[j]) continue;
-          const updatedData = responses[j].data?.data || responses[j].data;
-          const item = batch[j];
-          const txHash = updatedData.blockchain?.tx_hash || updatedData.blockchain_tx_hash;
           
-          if (txHash && txHash !== item.blockchain_tx_hash) {
-            console.log(`✅ Item ${item.id}: txHash confirmed!`);
-            toast.success(`✅ ${updatedData.nama_perusahaan} blockchain verified!`);
-            hasUpdates = true;
+          try {
+            const updatedData = responses[j].data?.data || responses[j].data;
+            const item = batch[j];
+            const txHash = updatedData.blockchain?.tx_hash || updatedData.blockchain_tx_hash;
             
-            // Update in-place
-            const idx = laporan.findIndex(l => l.id === item.id);
-            if (idx >= 0) {
-              laporan[idx] = {
-                ...laporan[idx],
-                blockchain_tx_hash: txHash,
-                blockchain_status: updatedData.blockchain?.status || 'confirmed'
-              };
+            if (txHash && txHash !== item.blockchain_tx_hash) {
+              console.log(`✅ Item ${item.id}: txHash confirmed!`);
+              toast.success(`✅ ${updatedData.nama_perusahaan} blockchain verified!`);
+              hasUpdates = true;
+              
+              // Update in-place
+              const idx = laporan.findIndex(l => l.id === item.id);
+              if (idx >= 0) {
+                laporan[idx] = {
+                  ...laporan[idx],
+                  blockchain_tx_hash: txHash,
+                  blockchain_status: updatedData.blockchain?.status || 'confirmed'
+                };
+              }
             }
+          } catch (parseErr) {
+            console.warn(`[LaporanPage] Error parsing response:`, parseErr.message);
           }
         }
       } catch (err) {
-        console.warn('Poll batch error:', err.message);
+        console.warn('[LaporanPage] Poll batch error:', err.message);
       }
       
-      // Delay between batches to avoid rate limit
+      // ✅ INCREASED: Delay dari 1.2s ke 3s between batches
       if (i + batchSize < pendingItems.length) {
-        await new Promise(r => setTimeout(r, 1200));
+        await new Promise(r => setTimeout(r, 3000));
       }
     }
     
@@ -608,18 +630,27 @@ export default function LaporanPage() {
     return hasUpdates;
   };
 
-  // ✅ POLLING: Lightweight - check pending items only (reduced from 10s/30s to 20s)
+  // ✅ POLLING: Increased interval dari 20s ke 45s (MUCH less aggressive)
   useEffect(() => {
     if (!isReady || laporan.length === 0) return;
 
     const hasPendingItems = laporan.some(l => !l.blockchain_tx_hash && l.blockchain_doc_hash);
-    if (!hasPendingItems) return;
+    if (!hasPendingItems) {
+      console.log('[LaporanPage] ℹ️ No pending items, polling disabled');
+      return;
+    }
 
+    console.log('[LaporanPage] ✅ Polling ENABLED (45s interval, low intensity)');
     const pollInterval = setInterval(() => {
-      pollPendingStatusOnly().catch(err => console.warn('Poll error:', err.message));
-    }, 20000); // 20 seconds - much less aggressive
+      pollPendingStatusOnly().catch(err => {
+        console.warn('[LaporanPage] Poll error:', err.message);
+      });
+    }, 45000); // 45 seconds - MUCH less aggressive
 
-    return () => clearInterval(pollInterval);
+    return () => {
+      clearInterval(pollInterval);
+      console.log('[LaporanPage] Polling cleared');
+    };
   }, [isReady, laporan.length]);
 
   // ✅ Generate mock data dengan GUARANTEED blockchain data
