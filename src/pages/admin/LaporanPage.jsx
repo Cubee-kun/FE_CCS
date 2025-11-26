@@ -14,6 +14,10 @@ import { toast } from "react-toastify";
 import JSZip from "jszip";
 import { ethers } from 'ethers';
 
+// ✅ GLOBAL THROTTLE: Prevent rate limiting (429)
+let lastEnrichmentTime = 0;
+const MIN_ENRICHMENT_INTERVAL = 30000; // Min 30s between full enrichments
+
 export default function LaporanPage() {
   const [laporan, setLaporan] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +46,14 @@ export default function LaporanPage() {
   // ✅ Fetch blockchain transaction hashes setelah data loaded
   useEffect(() => {
     if (isReady && laporan.length > 0) {
-      enrichLaporanWithBlockchainData();
+      // ✅ THROTTLE: Only call full enrichment every 30 seconds
+      const now = Date.now();
+      if (now - lastEnrichmentTime > MIN_ENRICHMENT_INTERVAL) {
+        lastEnrichmentTime = now;
+        enrichLaporanWithBlockchainData();
+      } else {
+        console.log('[LaporanPage] Skipping enrichment (throttled)');
+      }
     }
   }, [isReady, laporan.length]);
 
@@ -156,7 +167,30 @@ export default function LaporanPage() {
           // Try secondary endpoint
           try {
             console.log('[LaporanPage] Trying /forms/perencanaan...');
-            const response = await api.get("/forms/perencanaan");
+            
+            // ✅ Add retry logic for rate limiting
+            let retryCount = 0;
+            let response;
+            while (retryCount < 3) {
+              try {
+                response = await api.get("/forms/perencanaan");
+                break; // Success
+              } catch (retryErr) {
+                if (retryErr.response?.status === 429) {
+                  retryCount++;
+                  if (retryCount < 3) {
+                    const delayMs = Math.pow(2, retryCount) * 2000; // 2s, 4s, 8s
+                    console.warn(`⏱️ Rate limited (429), retrying in ${delayMs}ms...`);
+                    await new Promise(r => setTimeout(r, delayMs));
+                  } else {
+                    throw retryErr;
+                  }
+                } else {
+                  throw retryErr;
+                }
+              }
+            }
+            
             const data = response.data?.data || response.data;
             
             const transformedData = (Array.isArray(data) ? data : []).map(item => ({
@@ -399,9 +433,16 @@ export default function LaporanPage() {
 
         let blockchainData = null;
 
-        // ✅ PRIORITY 1: Jika ada blockchain_tx_hash, fetch dari Sepolia
+        // ✅ PRIORITY 1: Jika ada blockchain_tx_hash, fetch dari Sepolia (ONLY on page load, not on polling)
         if (item.blockchain_tx_hash) {
           try {
+            // ⚠️ REDUCED: Skip Sepolia fetching on subsequent enrichments to avoid 429
+            // Only fetch if blockchainData not cached
+            if (cache[item.id]?.txHash) {
+              console.log(`[LaporanPage] Item ${item.id}: Using cached Sepolia data`);
+              return { ...item, blockchainData: cache[item.id] };
+            }
+            
             console.log(`[LaporanPage] Item ${item.id}: Fetching TX from Sepolia...`);
             
             const txData = await fetchTransactionFromSepolia(item.blockchain_tx_hash, 3);
@@ -504,37 +545,79 @@ export default function LaporanPage() {
     });
   };
 
-  // ✅ POLLING: Auto-refresh blockchain data setiap 30 detik
-  useEffect(() => {
-    if (!isReady || laporan.length === 0) return;
+  // ✅ LIGHTWEIGHT POLLING: Only check pending status (NO Sepolia calls to avoid 429)
+  const pollPendingStatusOnly = async () => {
+    if (laporan.length === 0) return false;
 
-    const pollInterval = setInterval(() => {
-      console.log('[LaporanPage] Auto-polling blockchain data...');
-      enrichLaporanWithBlockchainData();
-    }, 30000); // 30 seconds
+    const pendingItems = laporan.filter(l => !l.blockchain_tx_hash && l.blockchain_doc_hash);
+    if (pendingItems.length === 0) return false;
 
-    return () => clearInterval(pollInterval);
-  }, [isReady, laporan.length]);
-
-  // ✅ POLLING: Auto-refresh blockchain data setiap 10 detik untuk PENDING items
-  useEffect(() => {
-    if (!isReady || laporan.length === 0) return;
-
-    // ✅ Cek apakah ada PENDING items
-    const hasPendingItems = laporan.some(l => 
-      l.blockchain_doc_hash && !l.blockchain_tx_hash
-    );
-
-    if (!hasPendingItems) {
-      console.log('[LaporanPage] No pending items, skipping poll');
-      return;
+    console.log(`[LaporanPage] 🔄 Lightweight poll: ${pendingItems.length} pending...`);
+    let hasUpdates = false;
+    
+    // Batch with rate limiting: 3 items per batch, 1s delay
+    const batchSize = 3;
+    for (let i = 0; i < pendingItems.length; i += batchSize) {
+      const batch = pendingItems.slice(i, i + batchSize);
+      
+      try {
+        const promises = batch.map(item => 
+          api.get(`/perencanaan/${item.id}`).catch(err => {
+            if (err.response?.status === 429) {
+              console.warn('⚠️ Rate limited, slowing down...');
+            }
+            return null;
+          })
+        );
+        
+        const responses = await Promise.all(promises);
+        
+        for (let j = 0; j < responses.length; j++) {
+          if (!responses[j]) continue;
+          const updatedData = responses[j].data?.data || responses[j].data;
+          const item = batch[j];
+          const txHash = updatedData.blockchain?.tx_hash || updatedData.blockchain_tx_hash;
+          
+          if (txHash && txHash !== item.blockchain_tx_hash) {
+            console.log(`✅ Item ${item.id}: txHash confirmed!`);
+            toast.success(`✅ ${updatedData.nama_perusahaan} blockchain verified!`);
+            hasUpdates = true;
+            
+            // Update in-place
+            const idx = laporan.findIndex(l => l.id === item.id);
+            if (idx >= 0) {
+              laporan[idx] = {
+                ...laporan[idx],
+                blockchain_tx_hash: txHash,
+                blockchain_status: updatedData.blockchain?.status || 'confirmed'
+              };
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Poll batch error:', err.message);
+      }
+      
+      // Delay between batches to avoid rate limit
+      if (i + batchSize < pendingItems.length) {
+        await new Promise(r => setTimeout(r, 1200));
+      }
     }
+    
+    if (hasUpdates) setLaporan([...laporan]);
+    return hasUpdates;
+  };
 
-    // ✅ Poll lebih sering untuk PENDING items (10 detik vs 30 detik)
+  // ✅ POLLING: Lightweight - check pending items only (reduced from 10s/30s to 20s)
+  useEffect(() => {
+    if (!isReady || laporan.length === 0) return;
+
+    const hasPendingItems = laporan.some(l => !l.blockchain_tx_hash && l.blockchain_doc_hash);
+    if (!hasPendingItems) return;
+
     const pollInterval = setInterval(() => {
-      console.log('[LaporanPage] 🔄 Auto-polling blockchain data (PENDING items detected)...');
-      enrichLaporanWithBlockchainData();
-    }, 10000); // 10 seconds untuk PENDING
+      pollPendingStatusOnly().catch(err => console.warn('Poll error:', err.message));
+    }, 20000); // 20 seconds - much less aggressive
 
     return () => clearInterval(pollInterval);
   }, [isReady, laporan.length]);
