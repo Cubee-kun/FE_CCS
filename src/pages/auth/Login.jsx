@@ -436,20 +436,18 @@ export default function Login() {
               </motion.div>
 
                             {/* Submit */}
-                            <motion.div
+                            <motion.button
+                              type="submit"
+                              disabled={loading}
+                              className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 dark:from-emerald-700 dark:to-teal-600 dark:hover:from-emerald-800 dark:hover:to-teal-700 text-white font-semibold py-2.5 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.7 }}
+                              whileHover={!loading ? { scale: 1.02, boxShadow: "0 10px 35px -5px rgba(16, 185, 129, 0.4)" } : {}}
+                              whileTap={!loading ? { scale: 0.98 } : {}}
                               onHoverStart={() => setIsHovering(true)}
                               onHoverEnd={() => setIsHovering(false)}
                             >
-                              <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 dark:from-emerald-700 dark:to-teal-600 dark:hover:from-emerald-800 dark:hover:to-teal-700 text-white font-semibold py-2.5 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                whileHover={!loading ? { scale: 1.02, boxShadow: "0 10px 35px -5px rgba(16, 185, 129, 0.4)" } : {}}
-                                whileTap={!loading ? { scale: 0.98 } : {}}
-                              >
                                 {loading ? (
                                   <>
                                     <ArrowPathIcon className="h-5 w-5 animate-spin" />
@@ -458,8 +456,7 @@ export default function Login() {
                                 ) : (
                                   <span>Masuk</span>
                                 )}
-                              </button>
-                            </motion.div>
+                            </motion.button>
               
                             {/* Sign Up Link */}
                             <motion.p 
