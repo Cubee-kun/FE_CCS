@@ -26,6 +26,13 @@ export default defineConfig({
     host: true,
     open: true,
     middlewareMode: false,
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5173,
+      usePolling: true,
+      interval: 100,
+    },
   },
   build: {
     outDir: 'dist',

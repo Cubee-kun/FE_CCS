@@ -343,13 +343,49 @@ export default function LaporanPage() {
 
     console.log('[LaporanPage] Starting blockchain enrichment...');
     
+    // ✅ STEP 1: Re-fetch dari API untuk get latest blockchain_status & tx_hash
+    // Ini penting karena blockchain service mungkin sudah selesai broadcast
+    console.log('[LaporanPage] STEP 1: Re-fetching data from API to get latest blockchain status...');
     const cache = { ...blockchainCache };
     let enrichedCount = 0;
     let onChainCount = 0;
     let pendingCount = 0;
     const enrichedLaporanArray = [];
 
-    // ✅ Process dengan batches untuk avoid rate limiting
+    // ✅ Re-fetch PENDING items dari API untuk check apakah txHash sudah tersedia
+    const pendingItems = laporan.filter(l => !l.blockchain_tx_hash);
+    if (pendingItems.length > 0) {
+      console.log(`[LaporanPage] Found ${pendingItems.length} pending items, re-fetching from API...`);
+      
+      for (const item of pendingItems) {
+        try {
+          const response = await api.get(`/perencanaan/${item.id}`);
+          const updatedData = response.data?.data || response.data;
+          
+          const updatedItem = {
+            ...updatedData,
+            blockchain_doc_hash: updatedData.blockchain?.doc_hash || updatedData.blockchain_doc_hash,
+            blockchain_tx_hash: updatedData.blockchain?.tx_hash || updatedData.blockchain_tx_hash,
+            blockchain_status: updatedData.blockchain?.status || 'pending',
+          };
+          
+          if (updatedItem.blockchain_tx_hash && updatedItem.blockchain_tx_hash !== item.blockchain_tx_hash) {
+            console.log(`[LaporanPage] ✅ Item ${item.id}: txHash now available!`, updatedItem.blockchain_tx_hash);
+            toast.success(`✅ Item ${updatedItem.nama_perusahaan} blockchain verification complete!`);
+          }
+          
+          // Update laporan array dengan latest data
+          const idx = laporan.findIndex(l => l.id === item.id);
+          if (idx >= 0) {
+            laporan[idx] = updatedItem;
+          }
+        } catch (err) {
+          console.warn(`[LaporanPage] Error re-fetching item ${item.id}:`, err.message);
+        }
+      }
+    }
+
+    // Process dengan batches untuk avoid rate limiting
     const batchSize = 5;
     for (let i = 0; i < laporan.length; i += batchSize) {
       const batch = laporan.slice(i, i + batchSize);

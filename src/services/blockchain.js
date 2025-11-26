@@ -85,6 +85,46 @@ class BlockchainService {
         return false;
       }
 
+      // ✅ TEST RPC CONNECTION PERTAMA KALI
+      console.log('[Blockchain] Testing RPC connection...');
+      try {
+        const testResponse = await fetch(RPC_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'eth_blockNumber',
+            params: [],
+            id: 1,
+          }),
+        });
+
+        const testData = await testResponse.json();
+        
+        if (testData.result) {
+          const blockNumber = parseInt(testData.result, 16);
+          console.log('[Blockchain] ✅ RPC Connection successful!', {
+            blockNumber: blockNumber,
+            blockHex: testData.result,
+            rpcUrl: RPC_URL.substring(0, 50) + '...',
+          });
+        } else if (testData.error) {
+          throw new Error(`RPC Error: ${testData.error.message}`);
+        }
+      } catch (rpcTestErr) {
+        console.error('[Blockchain] ❌ RPC Connection Failed:', {
+          error: rpcTestErr.message,
+          rpcUrl: RPC_URL,
+          possibleCauses: [
+            'Invalid RPC URL',
+            'Network unreachable',
+            'CORS issues',
+            'API Key invalid/rate limited'
+          ]
+        });
+        return false;
+      }
+
       // ✅ Create provider dengan RPC URL
       this.provider = new ethers.JsonRpcProvider(RPC_URL);
       console.log('[Blockchain] ✅ Provider created');
@@ -275,6 +315,159 @@ class BlockchainService {
   // ✅ Get blockchain explorer URL
   getExplorerUrl(txHash) {
     return `https://sepolia.etherscan.io/tx/${txHash}`;
+  }
+
+  // ✅ REAL-TIME: Fetch transaction data dari Sepolia RPC dengan PROPER JSON
+  async fetchTransactionFromSepolia(txHash, retries = 3) {
+    try {
+      console.log('[Blockchain] ========== FETCH TX DEBUG ==========');
+      console.log('[Blockchain] TX Hash Input:', txHash);
+      console.log('[Blockchain] TX Hash Length:', txHash?.length);
+      console.log('[Blockchain] TX Hash Format Valid:', /^0x[a-fA-F0-9]{64}$/.test(txHash));
+      
+      // ✅ Validate TX hash format FIRST
+      if (!txHash || !/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
+        console.error('[Blockchain] ❌ INVALID TX HASH FORMAT!', {
+          txHash,
+          length: txHash?.length,
+          shouldBe: 66
+        });
+        return null;
+      }
+
+      const rpcUrl = import.meta.env.VITE_SEPOLIA_RPC_URL;
+      
+      console.log('[Blockchain] RPC URL:', rpcUrl);
+      console.log('[Blockchain] RPC URL Valid:', !!rpcUrl);
+      
+      if (!rpcUrl) {
+        console.error('[Blockchain] ❌ RPC URL NOT CONFIGURED!');
+        return null;
+      }
+
+      console.log(`[Blockchain] Attempt 1/${retries}: Fetching TX from Sepolia...`);
+
+      // ✅ Retry logic dengan proper JSON
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          console.log(`[Blockchain] ⏳ Attempt ${attempt}/${retries}...`);
+          
+          // ✅ BUILD REQUEST BODY PROPERLY
+          const requestBody = {
+            jsonrpc: '2.0',
+            method: 'eth_getTransactionByHash',
+            params: [txHash], // ✅ MUST BE ARRAY!
+            id: 1,
+          };
+          
+          // ✅ VALIDATE JSON BEFORE SENDING
+          const jsonString = JSON.stringify(requestBody);
+          console.log('[Blockchain] Request Body (validated):', jsonString);
+          
+          // ✅ Verify it's valid JSON
+          try {
+            JSON.parse(jsonString); // ✅ Parse check
+            console.log('[Blockchain] ✅ JSON is valid');
+          } catch (jsonErr) {
+            console.error('[Blockchain] ❌ INVALID JSON BODY!', jsonErr.message);
+            throw new Error('Invalid JSON in request body');
+          }
+
+          // ✅ SEND with proper headers
+          const response = await fetch(rpcUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json', // ✅ CRITICAL!
+              'Accept': 'application/json', // ✅ GOOD TO HAVE
+            },
+            body: jsonString, // ✅ Use pre-stringified version
+          });
+
+          console.log('[Blockchain] Response Status:', response.status);
+          console.log('[Blockchain] Response Headers:', {
+            contentType: response.headers.get('content-type'),
+            contentLength: response.headers.get('content-length'),
+          });
+          
+          // ✅ PARSE response carefully
+          let data;
+          try {
+            const responseText = await response.text();
+            console.log('[Blockchain] Raw Response Text:', responseText.substring(0, 200));
+            
+            if (!responseText) {
+              console.error('[Blockchain] ❌ Empty response body');
+              if (attempt < retries) {
+                console.log('[Blockchain] Retrying in 2 seconds...');
+                await new Promise(r => setTimeout(r, 2000));
+              }
+              continue;
+            }
+            
+            data = JSON.parse(responseText);
+            console.log('[Blockchain] Parsed Response:', data);
+          } catch (parseErr) {
+            console.error('[Blockchain] ❌ Failed to parse response:', parseErr.message);
+            if (attempt < retries) {
+              console.log('[Blockchain] Retrying in 2 seconds...');
+              await new Promise(r => setTimeout(r, 2000));
+            }
+            continue;
+          }
+
+          // ✅ CHECK FOR RPC ERRORS
+          if (data.error) {
+            console.error(`[Blockchain] ❌ RPC ERROR (attempt ${attempt}):`, data.error);
+            
+            if (attempt < retries) {
+              console.log('[Blockchain] Retrying in 2 seconds...');
+              await new Promise(r => setTimeout(r, 2000));
+            }
+            continue;
+          }
+
+          // ✅ SUCCESS: TX found
+          if (data.result) {
+            console.log(`[Blockchain] ✅ TX FOUND (attempt ${attempt}):`, data.result);
+            
+            const tx = data.result;
+            const blockNumber = tx.blockNumber ? parseInt(tx.blockNumber, 16) : null;
+            
+            // ... rest of parsing logic
+            return {
+              txHash: tx.hash,
+              from: tx.from,
+              to: tx.to,
+              blockNumber: blockNumber,
+              status: 'success',
+              verified: true,
+              explorerUrl: `https://sepolia.etherscan.io/tx/${txHash}`,
+              fetchedAt: new Date().toISOString()
+            };
+          } else {
+            console.warn(`[Blockchain] ⚠️ TX not found (attempt ${attempt})`);
+            
+            if (attempt < retries) {
+              console.log('[Blockchain] Retrying in 2 seconds...');
+              await new Promise(r => setTimeout(r, 2000));
+            }
+          }
+        } catch (err) {
+          console.error(`[Blockchain] ❌ Fetch error (attempt ${attempt}):`, err.message);
+          if (attempt < retries) {
+            await new Promise(r => setTimeout(r, 2000));
+          }
+        }
+      }
+
+      console.error(`[Blockchain] ❌ Could not fetch TX after ${retries} attempts:`, txHash);
+      console.log('[Blockchain] ========== FETCH TX DEBUG END ==========');
+      return null;
+      
+    } catch (err) {
+      console.error('[Blockchain] ❌ Fatal error in fetchTransactionFromSepolia:', err);
+      return null;
+    }
   }
 }
 
