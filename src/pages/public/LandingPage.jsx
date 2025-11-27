@@ -85,10 +85,11 @@ const LandingPage = () => {
   ];
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
-    return () => clearInterval(interval);
+    // ✅ POLLING DISABLED: Testimonial auto-rotate turned off
+    // const interval = setInterval(() => {
+    //   setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
+    // }, 5000);
+    // return () => clearInterval(interval);
   }, []);
 
   const scrollToSection = (sectionId) => {
