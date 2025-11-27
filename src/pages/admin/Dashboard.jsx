@@ -104,11 +104,12 @@ export default function Dashboard() {
     };
 
     fetchStats();
-    pollingRef.current = setInterval(fetchStats, 30000);
+    // ✅ POLLING DISABLED: Auto-refresh turned off for better UX
+    // pollingRef.current = setInterval(fetchStats, 30000);
 
     return () => {
       isMounted = false;
-      clearInterval(pollingRef.current);
+      // clearInterval(pollingRef.current);
     };
   }, [navigate]);
 

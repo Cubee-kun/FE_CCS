@@ -58,189 +58,82 @@ export default function LaporanPage() {
     }
   }, [isReady, laporan.length]);
 
-  // ✅ MAIN: Fetch laporan dari API - HANDLE PAGINATION
+  // ✅ Transform blockchain data dari API response
+  const transformBlockchainData = (item) => {
+    return {
+      ...item,
+      blockchain_doc_hash: item.blockchain?.doc_hash || item.blockchain_doc_hash,
+      blockchain_tx_hash: item.blockchain?.tx_hash || item.blockchain_tx_hash,
+      blockchain_status: item.blockchain?.status || 'pending',
+    };
+  };
+
+  // ✅ MAIN: Fetch laporan dari API
   const fetchLaporan = async () => {
     try {
       setLoading(true);
       setError(null);
-      let allLaporanList = [];
 
-      console.log('[LaporanPage] ========== FETCH START ==========');
-
-      // ✅ Fetch with pagination - get ALL data not just first 15
-      try {
-        console.log('[LaporanPage] Fetching from /perencanaan with pagination...');
-        let page = 1;
-        let hasMore = true;
-        let pageCount = 0;
-        
-        while (hasMore && pageCount < 100) { // Safety limit
-          try {
-            const response = await api.get(`/perencanaan?page=${page}&per_page=50`);
-            const data = response.data?.data || response.data;
-            
-            console.log(`[LaporanPage] Page ${page} response:`, {
-              dataType: typeof data,
-              isArray: Array.isArray(data),
-              length: Array.isArray(data) ? data.length : 'N/A',
-              rawResponse: response.data
-            });
-
-            // ✅ Handle paginated response
-            if (response.data?.data && Array.isArray(response.data.data)) {
-              // Laravel pagination format
-              // ✅ PENTING: Transform blockchain field format
-              const transformedData = response.data.data.map(item => ({
-                ...item,
-                // ✅ MAP backend format ke frontend format
-                blockchain_doc_hash: item.blockchain?.doc_hash || item.blockchain_doc_hash,
-                blockchain_tx_hash: item.blockchain?.tx_hash || item.blockchain_tx_hash,
-                blockchain_status: item.blockchain?.status || 'pending',
-              }));
-              
-              allLaporanList = [...allLaporanList, ...transformedData];
-              console.log(`[LaporanPage] Page ${page} added ${transformedData.length} items (transformed)`);
-              
-              // Check if there are more pages
-              if (response.data.last_page && page >= response.data.last_page) {
-                hasMore = false;
-                console.log('[LaporanPage] Reached last page');
-              } else if (response.data.data.length < 50) {
-                hasMore = false;
-                console.log('[LaporanPage] Received less than 50 items, assuming last page');
-              } else {
-                page++;
-              }
-            } else if (Array.isArray(data)) {
-              // Direct array response
-              const transformedData = data.map(item => ({
-                ...item,
-                blockchain_doc_hash: item.blockchain?.doc_hash || item.blockchain_doc_hash,
-                blockchain_tx_hash: item.blockchain?.tx_hash || item.blockchain_tx_hash,
-                blockchain_status: item.blockchain?.status || 'pending',
-              }));
-              
-              allLaporanList = [...allLaporanList, ...transformedData];
-              console.log(`[LaporanPage] Page ${page} added ${transformedData.length} items (transformed)`);
-              
-              if (data.length < 50) {
-                hasMore = false;
-              } else {
-                page++;
-              }
-            } else {
-              hasMore = false;
-            }
-
-            pageCount++;
-          } catch (pageErr) {
-            console.warn(`[LaporanPage] Error fetching page ${page}:`, pageErr.response?.status);
-            hasMore = false;
-          }
-        }
-
-        console.log('[LaporanPage] ✅ Total from pagination:', allLaporanList.length);
-      } catch (paginationErr) {
-        console.warn('[LaporanPage] Pagination fetch failed:', paginationErr.message);
-      }
-
-      // ✅ Fallback: if pagination didn't work, try simple fetch
-      if (allLaporanList.length === 0) {
-        try {
-          console.log('[LaporanPage] Trying simple fetch from /perencanaan...');
-          const response = await api.get("/perencanaan");
-          const data = response.data?.data || response.data;
-          
-          // ✅ Transform data format
-          const transformedData = (Array.isArray(data) ? data : []).map(item => ({
-            ...item,
-            blockchain_doc_hash: item.blockchain?.doc_hash || item.blockchain_doc_hash,
-            blockchain_tx_hash: item.blockchain?.tx_hash || item.blockchain_tx_hash,
-            blockchain_status: item.blockchain?.status || 'pending',
-          }));
-          
-          allLaporanList = transformedData;
-          
-          console.log('[LaporanPage] ✅ Simple fetch got:', allLaporanList.length);
-        } catch (err1) {
-          console.warn('[LaporanPage] Simple fetch failed:', err1.response?.status, err1.message);
-          
-          // Try secondary endpoint
-          try {
-            console.log('[LaporanPage] Trying /forms/perencanaan...');
-            
-            // ✅ Add retry logic for rate limiting
-            let retryCount = 0;
-            let response;
-            while (retryCount < 3) {
-              try {
-                response = await api.get("/forms/perencanaan");
-                break; // Success
-              } catch (retryErr) {
-                if (retryErr.response?.status === 429) {
-                  retryCount++;
-                  if (retryCount < 3) {
-                    const delayMs = Math.pow(2, retryCount) * 2000; // 2s, 4s, 8s
-                    console.warn(`⏱️ Rate limited (429), retrying in ${delayMs}ms...`);
-                    await new Promise(r => setTimeout(r, delayMs));
-                  } else {
-                    throw retryErr;
-                  }
-                } else {
-                  throw retryErr;
-                }
-              }
-            }
-            
-            const data = response.data?.data || response.data;
-            
-            const transformedData = (Array.isArray(data) ? data : []).map(item => ({
-              ...item,
-              blockchain_doc_hash: item.blockchain?.doc_hash || item.blockchain_doc_hash,
-              blockchain_tx_hash: item.blockchain?.tx_hash || item.blockchain_tx_hash,
-              blockchain_status: item.blockchain?.status || 'pending',
-            }));
-            
-            allLaporanList = transformedData;
-            
-            console.log('[LaporanPage] ✅ /forms/perencanaan got:', allLaporanList.length);
-          } catch (err2) {
-            console.warn('[LaporanPage] Both endpoints failed, using mock data');
-            
-            // Generate mock data
-            allLaporanList = generateMockData(20);
-            console.log('[LaporanPage] Generated mock data:', allLaporanList.length);
-          }
-        }
-      }
+      console.log('[LaporanPage] Fetching laporan...');
       
-      console.log('[LaporanPage] ========== FINAL FETCH RESULT ==========');
-      console.log('[LaporanPage] Total laporan loaded:', allLaporanList.length);
-      console.log('[LaporanPage] Data IDs:', allLaporanList.map(l => l.id).join(', '));
-      console.log('[LaporanPage] First item blockchain fields:', {
-        blockchain_tx_hash: allLaporanList[0]?.blockchain_tx_hash,
-        blockchain_doc_hash: allLaporanList[0]?.blockchain_doc_hash,
-        blockchain_status: allLaporanList[0]?.blockchain_status,
+      const response = await api.get("/perencanaan?per_page=100");
+      const laporanList = response.data?.data || [];
+      
+      // ✅ Transform semua items
+      const transformedList = laporanList.map(transformBlockchainData);
+
+      console.log('[LaporanPage] Loaded:', {
+        total: transformedList.length,
+        withBlockchain: transformedList.filter(l => l.blockchain_tx_hash).length,
+        pending: transformedList.filter(l => l.blockchain_doc_hash && !l.blockchain_tx_hash).length,
       });
+
+      setLaporan(transformedList);
       
-      setLaporan(allLaporanList);
-      setCurrentPage(1);
-      
-      if (allLaporanList.length > 0) {
-        toast.success(`📊 ${allLaporanList.length} laporan berhasil dimuat`);
-      } else {
-        setError('Belum ada data laporan');
-        toast.warning('⚠️ Tidak ada data laporan ditemukan');
+      if (transformedList.length > 0) {
+        toast.success(`📊 ${transformedList.length} laporan dimuat`);
       }
-      
     } catch (err) {
-      console.error("[LaporanPage] Fetch error:", err);
-      setError("Gagal mengambil data laporan");
-      toast.error("❌ Gagal memuat laporan");
+      console.error('[LaporanPage] Fetch error:', err);
+      setError('Gagal memuat laporan');
+      toast.error('❌ Gagal memuat laporan');
     } finally {
       setLoading(false);
     }
   };
+
+  // ✅ Polling: Re-fetch pending items setiap 30 detik
+  useEffect(() => {
+    if (laporan.length === 0) return;
+
+    const pendingItems = laporan.filter(l => l.blockchain_doc_hash && !l.blockchain_tx_hash);
+    if (pendingItems.length === 0) return;
+
+    console.log(`[LaporanPage] Starting polling for ${pendingItems.length} pending items...`);
+
+    const pollInterval = setInterval(async () => {
+      try {
+        for (const item of pendingItems) {
+          const response = await api.get(`/perencanaan/${item.id}`);
+          const updated = transformBlockchainData(response.data?.data || response.data);
+
+          if (updated.blockchain_tx_hash && !item.blockchain_tx_hash) {
+            console.log(`✅ Item ${item.id}: txHash now available!`);
+            toast.success(`✅ ${updated.nama_perusahaan} blockchain verified!`);
+
+            // Update laporan array
+            setLaporan(prev => 
+              prev.map(l => l.id === item.id ? updated : l)
+            );
+          }
+        }
+      } catch (err) {
+        console.warn('[LaporanPage] Poll error:', err.message);
+      }
+    }, 30000); // 30 detik
+
+    return () => clearInterval(pollInterval);
+  }, [laporan]);
 
   // ✅ HELPER: Generate sample Sepolia transaction hashes untuk demo
   const generateSampleSepoliaHash = (itemId) => {
@@ -494,25 +387,83 @@ export default function LaporanPage() {
 
         } else if (item.blockchain_doc_hash) {
           // ✅ PRIORITY 2: Ada docHash tapi belum txHash
-          console.log(`[LaporanPage] Item ${item.id}: Has docHash, no txHash yet`);
+          console.log(`[LaporanPage] Item ${item.id}: Has docHash, fetching real blockchain data...`);
           
-          // ❌ JANGAN GENERATE HASH DI FRONTEND!
-          // ❌ GUNAKAN hash yang sudah ada dari backend
+          try {
+            // ✅ Fetch real blockchain data from backend API
+            const verifyResponse = await api.get(`/blockchain/verify/${encodeURIComponent(item.blockchain_doc_hash)}`);
+            
+            if (verifyResponse.data?.success && verifyResponse.data?.verified) {
+              const realBlockchainData = verifyResponse.data?.data;
+              
+              console.log(`[LaporanPage] ✅ Item ${item.id}: Found on blockchain!`, {
+                docHash: realBlockchainData.docHash,
+                docId: realBlockchainData.docId,
+                uploader: realBlockchainData.uploader,
+                timestamp: realBlockchainData.timestamp,
+              });
+
+              blockchainData = {
+                docHash: realBlockchainData.docHash,  // ✅ REAL from blockchain
+                docId: realBlockchainData.docId,      // ✅ Document ID on chain
+                docType: realBlockchainData.docType,  // ✅ Type from smart contract
+                txHash: null,                          // Will be updated when txHash arrives
+                timestamp: realBlockchainData.timestamp,
+                verified: realBlockchainData.verified,
+                uploader: realBlockchainData.uploader,
+                metadata: realBlockchainData.metadata,
+                explorerUrl: null,
+                status: 'CONFIRMED_NO_TX',              // ✅ On blockchain, but txHash pending
+              };
+              enrichedCount++;
+              onChainCount++;
+              
+              console.log(`[LaporanPage] Item ${item.id}: Real blockchain data stored`, blockchainData);
+            } else {
+              // Not yet on blockchain
+              console.log(`[LaporanPage] Item ${item.id}: Not yet on blockchain (404)`);
+              blockchainData = {
+                docHash: item.blockchain_doc_hash,
+                txHash: null,
+                timestamp: item.created_at,
+                verified: false,
+                explorerUrl: null,
+                status: 'PENDING_BLOCKCHAIN',  // Still waiting to be broadcast
+              };
+              pendingCount++;
+            }
+          } catch (err) {
+            console.warn(`[LaporanPage] Error verifying item ${item.id} on blockchain:`, {
+              message: err.message,
+              status: err.response?.status,
+              errorType: err.response?.data?.error || 'unknown'
+            });
+            
+            // ✅ Handle different error types
+            const errorStatus = err.response?.status;
+            const isServiceUnavailable = errorStatus === 503 || err.response?.data?.message?.includes('unavailable');
+            
+            // Fallback to backend data if verification fails
+            blockchainData = {
+              docHash: item.blockchain_doc_hash,
+              txHash: null,
+              timestamp: item.created_at,
+              verified: false,
+              explorerUrl: null,
+              status: isServiceUnavailable ? 'SERVICE_UNAVAILABLE' : 'VERIFY_ERROR',
+              error: err.message,
+            };
+            
+            // Count as pending if service is down (might succeed later)
+            // Count as error if other issues
+            if (isServiceUnavailable) {
+              pendingCount++;
+            } else {
+              pendingCount++;
+            }
+          }
           
-          blockchainData = {
-            docHash: item.blockchain_doc_hash,  // ✅ GUNAKAN dari backend, JANGAN generate!
-            txHash: null,
-            timestamp: item.created_at,
-            verified: false,
-            explorerUrl: null,
-            status: 'PENDING_TX'
-          };
           cache[item.id] = blockchainData;
-          pendingCount++;
-          
-          console.log(`[LaporanPage] Item ${item.id}: Using docHash from backend:`, item.blockchain_doc_hash);
-          
-          // ✅ PENTING: RETURN item dengan blockchainData!
           return { ...item, blockchainData };
         } else {
           // ✅ PRIORITY 3: Tidak ada data blockchain
@@ -630,28 +581,28 @@ export default function LaporanPage() {
     return hasUpdates;
   };
 
-  // ✅ POLLING: Increased interval dari 20s ke 45s (MUCH less aggressive)
-  useEffect(() => {
-    if (!isReady || laporan.length === 0) return;
-
-    const hasPendingItems = laporan.some(l => !l.blockchain_tx_hash && l.blockchain_doc_hash);
-    if (!hasPendingItems) {
-      console.log('[LaporanPage] ℹ️ No pending items, polling disabled');
-      return;
-    }
-
-    console.log('[LaporanPage] ✅ Polling ENABLED (45s interval, low intensity)');
-    const pollInterval = setInterval(() => {
-      pollPendingStatusOnly().catch(err => {
-        console.warn('[LaporanPage] Poll error:', err.message);
-      });
-    }, 45000); // 45 seconds - MUCH less aggressive
-
-    return () => {
-      clearInterval(pollInterval);
-      console.log('[LaporanPage] Polling cleared');
-    };
-  }, [isReady, laporan.length]);
+  // ✅ POLLING: DISABLED - Auto-refresh turned off for better UX
+  // useEffect(() => {
+  //   if (!isReady || laporan.length === 0) return;
+  //
+  //   const hasPendingItems = laporan.some(l => !l.blockchain_tx_hash && l.blockchain_doc_hash);
+  //   if (!hasPendingItems) {
+  //     console.log('[LaporanPage] ℹ️ No pending items, polling disabled');
+  //     return;
+  //   }
+  //
+  //   console.log('[LaporanPage] ✅ Polling ENABLED (45s interval, low intensity)');
+  //   const pollInterval = setInterval(() => {
+  //     pollPendingStatusOnly().catch(err => {
+  //       console.warn('[LaporanPage] Poll error:', err.message);
+  //     });
+  //   }, 45000); // 45 seconds - MUCH less aggressive
+  //
+  //   return () => {
+  //     clearInterval(pollInterval);
+  //     console.log('[LaporanPage] Polling cleared');
+  //   };
+  // }, [isReady, laporan.length]);
 
   // ✅ Generate mock data dengan GUARANTEED blockchain data
   const generateMockData = (count) => {
