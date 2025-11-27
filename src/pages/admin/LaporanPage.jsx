@@ -16,8 +16,8 @@ import { ethers } from 'ethers';
 
 // ✅ GLOBAL THROTTLE & TIMEOUT CONFIG
 let lastEnrichmentTime = 0;
-const MIN_ENRICHMENT_INTERVAL = 60000; // 60 detik (dari 30s) - KURANGI intensity
-const POLL_TIMEOUT = 5000; // 5 detik timeout (dari 10s default)
+const MIN_ENRICHMENT_INTERVAL = 60000; // 60 detik
+const POLL_TIMEOUT = 5000; // 5 detik timeout
 
 export default function LaporanPage() {
   const [laporan, setLaporan] = useState([]);
@@ -30,7 +30,6 @@ export default function LaporanPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [qrCodeData, setQrCodeData] = useState(null);
-  const [blockchainVerified, setBlockchainVerified] = useState(false);
   const [downloadingZip, setDownloadingZip] = useState(false);
   const [blockchainCache, setBlockchainCache] = useState({});
   
@@ -40,11 +39,11 @@ export default function LaporanPage() {
   
   const { 
     isReady, 
-    getAllDocuments, 
     verifyDocumentHash,
     getTransactionProof 
   } = useBlockchain();
 
+  // ✅ Initial fetch on mount
   useEffect(() => {
     fetchLaporan();
   }, []);
@@ -52,7 +51,7 @@ export default function LaporanPage() {
   // ✅ Fetch blockchain transaction hashes setelah data loaded
   useEffect(() => {
     if (isReady && laporan.length > 0) {
-      // ✅ THROTTLE: Only call full enrichment every 30 seconds
+      // ✅ THROTTLE: Only call full enrichment every 60 seconds
       const now = Date.now();
       if (now - lastEnrichmentTime > MIN_ENRICHMENT_INTERVAL) {
         lastEnrichmentTime = now;
@@ -64,24 +63,19 @@ export default function LaporanPage() {
   }, [isReady, laporan.length]);
 
   // ✅ MAIN: Fetch laporan dari API dengan INCREASED TIMEOUT & RETRY
-  const fetchLaporan = async (retries = 3, page = 1, perPage = 50) => {
+  const fetchLaporan = async (retries = 3, page = 1, perPage = 25) => {
     try {
       setLoading(true);
       setError(null);
 
       console.log(`[LaporanPage] Fetching laporan (page ${page}, ${perPage} per page)...`);
       
-      // ✅ INCREASED: Timeout dari 10s ke 30s untuk large datasets
       const response = await api.get(
         `/perencanaan?page=${page}&per_page=${perPage}`,
-        {
-          timeout: 30000, // 30 detik timeout
-        }
+        { timeout: 30000 }
       );
 
       const rawData = response.data?.data || [];
-      
-      // ✅ Transform semua items
       const transformedList = rawData.map(transformBlockchainData);
 
       console.log('[LaporanPage] Loaded:', {
@@ -97,7 +91,7 @@ export default function LaporanPage() {
         toast.success(`📊 ${transformedList.length} laporan dimuat`);
       }
     } catch (err) {
-      console.error('[LaporanPage] Fetch error (attempt):', {
+      console.error('[LaporanPage] Fetch error:', {
         message: err.message,
         timeout: err.code === 'ECONNABORTED',
         retries
@@ -108,10 +102,7 @@ export default function LaporanPage() {
         console.warn(`[LaporanPage] Timeout! Retrying with smaller batch (${retries} left)...`);
         toast.warning(`⏳ API lambat, coba loading dengan data lebih sedikit...`, { autoClose: 3000 });
         
-        // ✅ BACKOFF: Wait sebelum retry
         await new Promise(r => setTimeout(r, 2000));
-        
-        // ✅ REDUCE per_page dari 50 ke 25
         return fetchLaporan(retries - 1, page, Math.floor(perPage / 2));
       }
 
@@ -119,7 +110,6 @@ export default function LaporanPage() {
       setError('⏱️ API timeout - loading dari cache atau minimal data');
       toast.error('❌ Timeout: Backend lambat. Silakan refresh atau tunggu beberapa saat.');
       
-      // ✅ Try fallback with very small batch
       if (retries === 0) {
         try {
           console.log('[LaporanPage] Fallback: Fetching minimal data (10 items only)...');
@@ -139,64 +129,7 @@ export default function LaporanPage() {
     }
   };
 
-  useEffect(() => {
-    // ✅ Start with smaller page size (25 items) to avoid timeout
-    fetchLaporan(3, 1, 25);
-  }, []);
-
-  // ✅ Fetch blockchain transaction hashes setelah data loaded
-  useEffect(() => {
-    if (isReady && laporan.length > 0) {
-      // ✅ THROTTLE: Only call full enrichment every 30 seconds
-      const now = Date.now();
-      if (now - lastEnrichmentTime > MIN_ENRICHMENT_INTERVAL) {
-        lastEnrichmentTime = now;
-        enrichLaporanWithBlockchainData();
-      } else {
-        console.log('[LaporanPage] Skipping enrichment (throttled)');
-      }
-    }
-  }, [isReady, laporan.length]);
-
-  // ✅ Fetch laporan dari backend
-  const fetchLaporanBackend = async (retries = 3, page = 1, perPage = 50) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log(`[LaporanPage] Fetching laporan (page ${page}, ${perPage} per page)...`);
-      
-      const response = await api.get(
-        `/perencanaan?page=${page}&per_page=${perPage}`,
-        {
-          timeout: 30000,
-        }
-      );
-
-      const laporanList = response.data?.data || [];
-      const transformedList = laporanList.map(transformBlockchainData);
-
-      console.log('[LaporanPage] Loaded:', {
-        total: transformedList.length,
-        withBlockchain: transformedList.filter(l => l.blockchain_tx_hash).length,
-        pending: transformedList.filter(l => l.blockchain_doc_hash && !l.blockchain_tx_hash).length,
-      });
-
-      setLaporan(transformedList);
-      
-      if (transformedList.length > 0) {
-        toast.success(`📊 ${transformedList.length} laporan dimuat`);
-      }
-    } catch (err) {
-      console.error('[LaporanPage] Fetch error:', err);
-      setError('Gagal memuat laporan');
-      toast.error('❌ Gagal memuat laporan');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ✅ Polling: Re-fetch pending items setiap 30 detik
+  // ✅ Polling: Re-fetch pending items setiap 20 detik (REDUCED from 30s)
   useEffect(() => {
     if (laporan.length === 0) return;
 
@@ -207,24 +140,38 @@ export default function LaporanPage() {
 
     const pollInterval = setInterval(async () => {
       try {
-        for (const item of pendingItems) {
-          const response = await api.get(`/perencanaan/${item.id}`);
-          const updated = transformBlockchainData(response.data?.data || response.data);
+        // ✅ Process in small batches to avoid 429 rate limit
+        const batchSize = 3;
+        for (let i = 0; i < pendingItems.length; i += batchSize) {
+          const batch = pendingItems.slice(i, i + batchSize);
+          
+          for (const item of batch) {
+            try {
+              const response = await api.get(`/perencanaan/${item.id}`);
+              const updated = transformBlockchainData(response.data?.data || response.data);
 
-          if (updated.blockchain_tx_hash && !item.blockchain_tx_hash) {
-            console.log(`✅ Item ${item.id}: blockchain confirmed!`, updated.blockchain_tx_hash);
-            toast.success(`🔗 ${updated.nama_perusahaan} blockchain verified!`);
+              if (updated.blockchain_tx_hash && !item.blockchain_tx_hash) {
+                console.log(`✅ Item ${item.id}: blockchain confirmed!`, updated.blockchain_tx_hash);
+                toast.success(`🔗 ${updated.nama_perusahaan} blockchain verified!`);
 
-            // ✅ Update laporan array
-            setLaporan(prev => 
-              prev.map(l => l.id === item.id ? updated : l)
-            );
+                setLaporan(prev => 
+                  prev.map(l => l.id === item.id ? updated : l)
+                );
+              }
+            } catch (err) {
+              console.warn(`[LaporanPage] Poll error for item ${item.id}:`, err.message);
+            }
+          }
+          
+          // ✅ Delay between batches to avoid rate limiting
+          if (i + batchSize < pendingItems.length) {
+            await new Promise(r => setTimeout(r, 1200));
           }
         }
       } catch (err) {
         console.warn('[LaporanPage] Poll error:', err.message);
       }
-    }, 15000); // Check setiap 15 detik
+    }, 20000); // Check setiap 20 detik (REDUCED from 15s to avoid 429)
 
     return () => clearInterval(pollInterval);
   }, [laporan]);
@@ -362,7 +309,7 @@ export default function LaporanPage() {
   // ✅ ENRICHMENT: Fetch real blockchain tx hashes dari Sepolia dengan parallel processing
   // filepath: c:\Xampp\htdocs\CCS-project\FE_CCS\src\pages\admin\LaporanPage.jsx
 
-  // ✅ ENRICHMENT: Modified to handle 503 gracefully
+  // ✅ ENRICHMENT: Modified to handle rate limiting gracefully
   const enrichLaporanWithBlockchainData = async () => {
     if (laporan.length === 0 || !isReady) return;
 
@@ -370,49 +317,58 @@ export default function LaporanPage() {
     
     const cache = { ...blockchainCache };
     let enrichedCount = 0;
-    let onChainCount = 0;
+    let errorCount = 0;
     
-    // Create mutable copy for updates
     let updatedLaporan = [...laporan];
-    
-    // ✅ Process in smaller batches to avoid overwhelming the blockchain
-    const batchSize = 5; // Even smaller batches for direct blockchain calls
+    const batchSize = 3;
     
     for (let i = 0; i < updatedLaporan.length; i += batchSize) {
       const batch = updatedLaporan.slice(i, i + batchSize);
       
       const promises = batch.map(async (item) => {
-        // Skip if cached
-        if (cache[item.id]) {
-          return { ...item, blockchainData: cache[item.id] };
+        const cacheKey = item.id;
+        const cachedData = cache[cacheKey];
+        const cacheAge = cachedData?.timestamp ? Date.now() - new Date(cachedData.timestamp).getTime() : Infinity;
+        
+        if (cachedData && cacheAge < 300000) { // 5 minutes cache
+          return { ...item, blockchainData: cachedData };
         }
 
         let blockchainData = null;
 
-        // ✅ Try blockchain verification using frontend service
         if (item.blockchain_doc_hash) {
           try {
             console.log(`[LaporanPage] Verifying item ${item.id} on blockchain...`);
             
-            const verificationResult = await verifyDocumentHash(item.blockchain_doc_hash);
+            const verificationResult = await Promise.race([
+              verifyDocumentHash(item.blockchain_doc_hash),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Verification timeout')), 10000)
+              )
+            ]);
 
             if (verificationResult.verified) {
-              // Success - real blockchain data
               blockchainData = {
                 docHash: item.blockchain_doc_hash,
                 docId: verificationResult.docId,
-                txHash: null, // Will be filled by transaction lookup
+                txHash: null,
                 verified: true,
                 status: 'CONFIRMED',
-                timestamp: verificationResult.timestampISO,
+                timestamp: new Date().toISOString(),
+                timestampISO: verificationResult.timestampISO,
                 uploader: verificationResult.uploader,
                 metadata: verificationResult.metadata
               };
               
-              // ✅ Also try to get transaction proof if we have tx hash
               if (item.blockchain_tx_hash) {
                 try {
-                  const txProof = await getTransactionProof(item.blockchain_tx_hash);
+                  const txProof = await Promise.race([
+                    getTransactionProof(item.blockchain_tx_hash),
+                    new Promise((_, reject) => 
+                      setTimeout(() => reject(new Error('TX proof timeout')), 8000)
+                    )
+                  ]);
+                  
                   if (txProof) {
                     blockchainData = {
                       ...blockchainData,
@@ -421,40 +377,43 @@ export default function LaporanPage() {
                       gasUsed: txProof.gasUsed,
                       gasPrice: txProof.gasPrice,
                       confirmations: txProof.confirmations,
-                      explorerUrl: txProof.explorerUrl
+                      explorerUrl: txProof.explorerUrl,
+                      status: 'VERIFIED'
                     };
                   }
                 } catch (txErr) {
-                  console.warn(`[LaporanPage] Could not fetch tx proof for ${item.blockchain_tx_hash}:`, txErr.message);
+                  console.warn(`[LaporanPage] TX proof failed for ${item.blockchain_tx_hash}:`, txErr.message);
                 }
               }
               
               enrichedCount++;
-              console.log(`[LaporanPage] ✅ Item ${item.id}: Blockchain verified`);
+              console.log(`[LaporanPage] ✅ Item ${item.id}: Blockchain ${blockchainData.status.toLowerCase()}`);
             } else {
-              // Not found on blockchain
               blockchainData = {
                 docHash: item.blockchain_doc_hash,
                 verified: false,
                 status: 'PENDING_BLOCKCHAIN',
+                timestamp: new Date().toISOString(),
                 error: verificationResult.error
               };
             }
           } catch (err) {
             console.warn(`[LaporanPage] Error verifying item ${item.id}:`, err.message);
+            errorCount++;
+            
             blockchainData = {
               docHash: item.blockchain_doc_hash,
               verified: false,
-              status: 'ERROR',
+              status: err.message.includes('timeout') ? 'TIMEOUT' : 'ERROR',
+              timestamp: new Date().toISOString(),
               error: err.message
             };
           }
           
-          cache[item.id] = blockchainData;
+          cache[cacheKey] = blockchainData;
           return { ...item, blockchainData };
         } else {
-          // No blockchain data
-          cache[item.id] = null;
+          cache[cacheKey] = null;
           return { ...item, blockchainData: null };
         }
       });
@@ -462,10 +421,11 @@ export default function LaporanPage() {
       const batchResults = await Promise.all(promises);
       updatedLaporan.splice(i, batchSize, ...batchResults);
       
-      // ✅ Longer delay between batches for blockchain calls
+      // ✅ Progressive delay - shorter for smaller batches
       if (i + batchSize < updatedLaporan.length) {
-        console.log(`[LaporanPage] Waiting 3s before next batch (blockchain rate limiting)...`);
-        await new Promise(r => setTimeout(r, 3000));
+        const delay = Math.min(2000 + (errorCount * 500), 5000); // 2s base + 0.5s per error, max 5s
+        console.log(`[LaporanPage] Waiting ${delay}ms before next batch (errors: ${errorCount})...`);
+        await new Promise(r => setTimeout(r, delay));
       }
     }
 
@@ -476,10 +436,15 @@ export default function LaporanPage() {
     console.log(`[LaporanPage] ✅ Blockchain enrichment complete:`, {
       total: updatedLaporan.length,
       verified: enrichedCount,
+      errors: errorCount,
     });
 
+    // ✅ Show appropriate toast messages
     if (enrichedCount > 0) {
       toast.success(`✅ ${enrichedCount} documents verified on blockchain`);
+    }
+    if (errorCount > 0) {
+      toast.warning(`⚠️ ${errorCount} verification errors (akan dicoba lagi)`);
     }
   };
 
@@ -575,37 +540,16 @@ export default function LaporanPage() {
 
     setLoadingBlockchain(true);
     try {
-      // ✅ Fetch dari blockchain contract
-      const response = await api.get(`/blockchain/document/${item.blockchain_doc_hash}`);
-      const blockchainInfo = response.data?.data || {};
+      const verificationResult = await verifyDocumentHash(item.blockchain_doc_hash);
       
-      setBlockchainData({
-        docId: blockchainInfo.docId,
-        docHash: blockchainInfo.docHash,
-        txHash: item.blockchain_tx_hash,
-        timestamp: blockchainInfo.timestamp,
-        verified: true,
-        status: "✅ Terverifikasi di Blockchain"
-      });
-      
-      toast.success("🔗 Data blockchain berhasil diambil");
+      if (verificationResult.verified) {
+        toast.success("🔗 Data blockchain berhasil diverifikasi");
+      } else {
+        toast.warning("⚠️ Document tidak ditemukan di blockchain");
+      }
     } catch (err) {
       console.error("Blockchain fetch error:", err);
-      
-      if (item.blockchain_doc_hash) {
-        // ✅ Tetap tampilkan data yang ada meskipun gagal fetch
-        setBlockchainData({
-          docHash: item.blockchain_doc_hash,
-          txHash: item.blockchain_tx_hash,
-          timestamp: item.created_at,
-          verified: true,
-          status: "✅ Tersimpan di Blockchain"
-        });
-        toast.info("📋 Menampilkan data blockchain dari cache");
-      } else {
-        setBlockchainData(null);
-        toast.warning("⚠️ Dokumen belum tersimpan di blockchain");
-      }
+      toast.error("❌ Gagal verifikasi blockchain: " + err.message);
     } finally {
       setLoadingBlockchain(false);
     }
@@ -632,14 +576,12 @@ export default function LaporanPage() {
     }
   };
 
-
   // ✅ Generate PDF dari Laporan
   const generatePDF = async (item) => {
     try {
       toast.info("📄 Membuat PDF...", { autoClose: 2000 });
       
-      // Gunakan library html2pdf atau axios untuk fetch dari API
-      const { PDFDocument, PDFPage, rgb } = await import('pdf-lib');
+      const { PDFDocument, rgb } = await import('pdf-lib');
       
       const pdfDoc = await PDFDocument.create();
       const page = pdfDoc.addPage([600, 800]);
@@ -647,7 +589,6 @@ export default function LaporanPage() {
       
       let yPosition = height - 50;
       
-      // ✅ Header
       page.drawText('LAPORAN PERENCANAAN KEGIATAN', {
         x: 50,
         y: yPosition,
@@ -664,7 +605,6 @@ export default function LaporanPage() {
       });
       yPosition -= 20;
       
-      // ✅ Content
       const details = [
         `Perusahaan: ${item.nama_perusahaan}`,
         `PIC: ${item.nama_pic}`,
@@ -712,7 +652,6 @@ export default function LaporanPage() {
     link.href = qrCodeData.url;
     link.click();
     
-    // Also download JSON data
     const jsonLink = document.createElement('a');
     jsonLink.download = `QR-DATA-${selectedLaporan?.id}.json`;
     jsonLink.href = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(qrCodeData.data, null, 2))}`;
@@ -728,14 +667,12 @@ export default function LaporanPage() {
       const zip = new JSZip();
       const itemsToZip = filteredItems || currentItems;
       
-      // Create folder structure
       const laporan_folder = zip.folder('Laporan');
       const qr_folder = zip.folder('QR_Codes');
       const json_folder = zip.folder('JSON_Data');
       
       toast.info(`📦 Membuat ZIP dengan ${itemsToZip.length} file...`, { autoClose: 2000 });
       
-      // ✅ Generate untuk setiap laporan
       for (const item of itemsToZip) {
         // 1. Create PDF
         try {
@@ -808,19 +745,16 @@ export default function LaporanPage() {
             }
           });
           
-          // Convert data URL to blob
           const qrBase64 = qrDataURL.split(',')[1];
           const qrBlob = new Blob([Buffer.from(qrBase64, 'base64')], { type: 'image/png' });
           qr_folder.file(`${item.id}-QR.png`, qrBlob);
           
-          // Also save JSON
           json_folder.file(`${item.id}-data.json`, JSON.stringify(qrData, null, 2));
         } catch (err) {
           console.warn(`Gagal membuat QR untuk item ${item.id}:`, err);
         }
       }
       
-      // ✅ Generate ZIP file
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(zipBlob);
       const link = document.createElement('a');
@@ -838,9 +772,7 @@ export default function LaporanPage() {
     }
   };
 
-  // Duplicate toggleImplementasiStatus removed — function is declared earlier in the file.
-
-  // ✅ Filter dan search - TETAP PRESERVE blockchainData
+  // ✅ Filter dan search
   const filteredLaporan = laporan.filter(item => {
     const matchSearch = 
       item.nama_perusahaan.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -992,12 +924,12 @@ export default function LaporanPage() {
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">ID: {item.id}</p>
                   </div>
 
-                  {/* ✅ Hash Transaksi Blockchain - DETAILED VIEW */}
+                  {/* ✅ Hash Transaksi Blockchain - UPDATED DISPLAY */}
                   <div className="md:col-span-5">
                     {item.blockchainData ? (
                       <>
-                        {item.blockchainData?.txHash ? (
-                          // ✅ Ada txHash - tampilkan detail lengkap
+                        {item.blockchainData?.verified && item.blockchainData?.status === 'VERIFIED' ? (
+                          // ✅ VERIFIED: Full blockchain verification with tx hash
                           <motion.div 
                             className="space-y-2 group"
                             whileHover={{ scale: 1.02 }}
@@ -1005,113 +937,164 @@ export default function LaporanPage() {
                             {/* Status Indicator */}
                             <div className="flex items-center gap-2">
                               <motion.div
-                                className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                                  item.blockchainData?.status === 'success'
-                                    ? 'bg-green-500 animate-pulse' 
-                                    : item.blockchainData?.status === 'failed'
-                                    ? 'bg-red-500'
-                                    : 'bg-yellow-500'
-                                }`}
-                                animate={item.blockchainData?.status === 'success' ? { scale: [1, 1.2, 1] } : {}}
+                                className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-green-500"
+                                animate={{ scale: [1, 1.2, 1] }}
                                 transition={{ duration: 2, repeat: Infinity }}
                               ></motion.div>
-                              <span className={`text-xs font-bold ${
-                                item.blockchainData?.status === 'success'
-                                  ? 'text-green-600 dark:text-green-400'
-                                  : item.blockchainData?.status === 'failed'
-                                  ? 'text-red-600 dark:text-red-400'
-                                  : 'text-yellow-600 dark:text-yellow-400'
-                              }`}>
-                                {item.blockchainData?.status?.toUpperCase() || 'PENDING'}
+                              <span className="text-xs font-bold text-green-600 dark:text-green-400">
+                                ✅ VERIFIED ON BLOCKCHAIN
                               </span>
                             </div>
 
-                            {/* TX Hash */}
+                            {/* TX Hash Display */}
                             <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2">
                               <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
-                                🔗 TX Hash
+                                🔗 Transaction Hash
                               </p>
                               <code className="text-xs font-mono text-emerald-700 dark:text-emerald-300 break-all flex items-center gap-2">
-                                {item.blockchainData.txHash.substring(0, 30)}...
-                                <motion.a
-                                  href={item.blockchainData?.explorerUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 flex-shrink-0"
-                                  whileHover={{ scale: 1.2 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  title="View on Etherscan"
-                                >
-                                  <FiExternalLink className="w-3.5 h-3.5" />
-                                </motion.a>
+                                {item.blockchainData.txHash ? (
+                                  <>
+                                    {item.blockchainData.txHash.substring(0, 30)}...
+                                    <motion.a
+                                      href={item.blockchainData.explorerUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 flex-shrink-0"
+                                      whileHover={{ scale: 1.2 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      title="View on Etherscan"
+                                    >
+                                      <FiExternalLink className="w-3.5 h-3.5" />
+                                    </motion.a>
+                                  </>
+                                ) : (
+                                  <span className="text-yellow-600">⏳ TX Hash pending...</span>
+                                )}
                               </code>
                             </div>
 
-                            {/* Block & Gas Info - Grid 2 kolom */}
+                            {/* Document Hash Display */}
+                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2">
+                              <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
+                                📝 Document Hash
+                              </p>
+                              <code className="text-xs font-mono text-blue-700 dark:text-blue-300 break-all">
+                                {item.blockchainData.docHash.substring(0, 30)}...
+                              </code>
+                            </div>
+
+                            {/* Blockchain Details Grid */}
                             <div className="grid grid-cols-2 gap-2">
                               {/* Block Number */}
-                              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2">
+                              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2">
                                 <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-0.5">
                                   📦 Block
                                 </p>
-                                <p className="text-sm font-mono font-bold text-blue-700 dark:text-blue-300">
+                                <p className="text-sm font-mono font-bold text-purple-700 dark:text-purple-300">
                                   {item.blockchainData?.blockNumber 
                                     ? `#${item.blockchainData.blockNumber.toLocaleString()}` 
                                     : '⏳ Pending'}
                                 </p>
                               </div>
 
-                              {/* Confirmations */}
-                              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2">
+                              {/* Document ID */}
+                              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2">
                                 <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-0.5">
-                                  ✓ Confirmations
+                                  🆔 Doc ID
                                 </p>
-                                <p className="text-sm font-mono font-bold text-purple-700 dark:text-purple-300">
-                                  {item.blockchainData?.confirmations || 0}
+                                <p className="text-sm font-mono font-bold text-orange-700 dark:text-orange-300">
+                                  {item.blockchainData?.docId || 'N/A'}
                                 </p>
                               </div>
 
                               {/* Gas Used */}
-                              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2">
-                                <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-0.5">
-                                  ⛽ Gas Used
-                                </p>
-                                <p className="text-sm font-mono font-bold text-orange-700 dark:text-orange-300">
-                                  {item.blockchainData?.gasUsed 
-                                    ? `${(item.blockchainData.gasUsed / 1000).toFixed(1)}K` 
-                                    : '-'}
-                                </p>
-                              </div>
+                              {item.blockchainData?.gasUsed && (
+                                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2">
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-0.5">
+                                    ⛽ Gas Used
+                                  </p>
+                                  <p className="text-sm font-mono font-bold text-amber-700 dark:text-amber-300">
+                                    {(item.blockchainData.gasUsed / 1000).toFixed(1)}K
+                                  </p>
+                                </div>
+                              )}
 
-                              {/* Gas Price */}
-                              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2">
-                                <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-0.5">
-                                  💰 Gas Price
-                                </p>
-                                <p className="text-sm font-mono font-bold text-amber-700 dark:text-amber-300">
-                                  {item.blockchainData?.gasPrice 
-                                    ? `${item.blockchainData.gasPrice} gwei` 
-                                    : '-'}
-                                </p>
-                              </div>
+                              {/* Confirmations */}
+                              {item.blockchainData?.confirmations !== undefined && (
+                                <div className="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg p-2">
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-0.5">
+                                    ✓ Confirmations
+                                  </p>
+                                  <p className="text-sm font-mono font-bold text-cyan-700 dark:text-cyan-300">
+                                    {item.blockchainData.confirmations}
+                                  </p>
+                                </div>
+                              )}
                             </div>
 
                             {/* Verified Badge */}
-                            {item.blockchainData?.verified && (
-                              <motion.div
-                                className="flex items-center gap-2 bg-green-100 dark:bg-green-900/30 rounded-lg p-2 border border-green-200 dark:border-green-700"
-                                initial={{ scale: 0.9 }}
-                                animate={{ scale: 1 }}
-                              >
-                                <FiCheck className="w-4 h-4 text-green-700 dark:text-green-300 flex-shrink-0" />
-                                <span className="text-xs font-bold text-green-700 dark:text-green-300">
-                                  ✅ Verified on Sepolia
-                                </span>
-                              </motion.div>
-                            )}
+                            <motion.div
+                              className="flex items-center gap-2 bg-green-100 dark:bg-green-900/30 rounded-lg p-2 border border-green-200 dark:border-green-700"
+                              initial={{ scale: 0.9 }}
+                              animate={{ scale: 1 }}
+                            >
+                              <FiCheck className="w-4 h-4 text-green-700 dark:text-green-300 flex-shrink-0" />
+                              <span className="text-xs font-bold text-green-700 dark:text-green-300">
+                                ✅ Document verified on Sepolia blockchain
+                              </span>
+                            </motion.div>
                           </motion.div>
-                        ) : item.blockchainData?.docHash ? (
-                          // ✅ Ada docHash tapi belum txHash - tampilkan pending state
+                        ) : item.blockchainData?.verified && item.blockchainData?.status === 'CONFIRMED' ? (
+                          // ✅ CONFIRMED: Document found on blockchain but no tx details yet
+                          <motion.div 
+                            className="space-y-2"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <motion.div
+                                className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0"
+                                animate={{ scale: [1, 1.1, 1] }}
+                                transition={{ duration: 1.5, repeat: Infinity }}
+                              ></motion.div>
+                              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                ✅ CONFIRMED ON BLOCKCHAIN
+                              </span>
+                            </div>
+                            
+                            {/* Document Hash Display */}
+                            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3 space-y-2">
+                              <div>
+                                <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
+                                  📝 Document Hash (Verified ✅)
+                                </p>
+                                <code className="text-xs font-mono text-emerald-700 dark:text-emerald-300 break-all block bg-white dark:bg-gray-800 p-2 rounded">
+                                  {item.blockchainData.docHash}
+                                </code>
+                              </div>
+
+                              {/* Blockchain Info */}
+                              {item.blockchainData.docId && (
+                                <div className="pt-2 border-t border-emerald-200 dark:border-emerald-700">
+                                  <p className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold">
+                                    🔗 Blockchain Document ID: {item.blockchainData.docId}
+                                  </p>
+                                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                                    📅 Verified: {new Date(item.blockchainData.timestampISO).toLocaleString()}
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {/* Status Info */}
+                              <div className="pt-2 border-t border-emerald-200 dark:border-emerald-700">
+                                <p className="text-xs text-emerald-700 dark:text-emerald-300 italic">
+                                  💡 <strong>Status:</strong> Document successfully stored and verified on blockchain
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ) : item.blockchainData?.docHash && !item.blockchainData?.verified ? (
+                          // ✅ PENDING: Doc hash exists but not yet verified on blockchain
                           <motion.div 
                             className="space-y-2"
                             initial={{ opacity: 0 }}
@@ -1124,7 +1107,7 @@ export default function LaporanPage() {
                                 transition={{ duration: 2, repeat: Infinity }}
                               ></motion.div>
                               <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400">
-                                ⏳ MENUNGGU KONFIRMASI BLOCKCHAIN
+                                ⏳ PENDING BLOCKCHAIN VERIFICATION
                               </span>
                             </div>
                             
@@ -1132,7 +1115,7 @@ export default function LaporanPage() {
                             <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 space-y-2">
                               <div>
                                 <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
-                                  📝 Document Hash (Tersimpan di DB)
+                                  📝 Document Hash (Waiting for verification)
                                 </p>
                                 <code className="text-xs font-mono text-gray-700 dark:text-gray-300 break-all block bg-white dark:bg-gray-800 p-2 rounded">
                                   {item.blockchainData.docHash}
@@ -1142,66 +1125,72 @@ export default function LaporanPage() {
                               {/* Status Info */}
                               <div className="pt-2 border-t border-yellow-200 dark:border-yellow-700">
                                 <p className="text-xs text-yellow-700 dark:text-yellow-300 italic">
-                                  💡 <strong>Status:</strong> Menunggu untuk di-broadcast ke blockchain Sepolia
+                                  💡 <strong>Status:</strong> Document hash generated, waiting for blockchain verification
                                 </p>
                                 <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                                  ⏱️ Biasanya membutuhkan waktu beberapa menit hingga beberapa jam
+                                  ⏱️ This usually takes a few seconds to complete
                                 </p>
                               </div>
-                              
-                              {/* Help Info */}
-                              <div className="pt-2 border-t border-yellow-200 dark:border-yellow-700 text-left">
-                                <p className="text-xs text-yellow-700 dark:text-yellow-300 font-semibold mb-1">
-                                  ℹ️ Apa itu PENDING?
-                                </p>
-                                <ul className="text-xs text-yellow-600 dark:text-yellow-400 space-y-0.5 list-disc list-inside">
-                                  <li>✅ Data tersimpan di database</li>
-                                  <li>✅ Document Hash sudah di-generate</li>
-                                  <li>⏳ Menunggu TX Hash dari blockchain</li>
-                                  <li>🔄 Refresh halaman untuk update status</li>
-                                </ul>
-                              </div>
+
+                              {/* Error Info (if any) */}
+                              {item.blockchainData.error && (
+                                <div className="pt-2 border-t border-yellow-200 dark:border-yellow-700">
+                                  <p className="text-xs text-red-600 dark:text-red-400">
+                                    ⚠️ Error: {item.blockchainData.error}
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           </motion.div>
                         ) : (
-                          // ✅ Tidak ada txHash dan docHash
+                          // ✅ ERROR or UNKNOWN state
                           <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                             <FiAlertCircle className="w-4 h-4 flex-shrink-0" />
-                            <span className="text-xs">⚠️ No blockchain data</span>
+                            <span className="text-xs">❓ Unknown blockchain status</span>
                           </div>
                         )}
                       </>
                     ) : (
-                      // ✅ blockchainData adalah null atau undefined
+                      // ✅ No blockchain data
                       <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500">
                         <FiAlertCircle className="w-4 h-4 flex-shrink-0" />
-                        <span className="text-xs">Not on blockchain</span>
+                        <span className="text-xs">📋 Not on blockchain</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Status */}
+                  {/* Status - UPDATED */}
                   <div className="md:col-span-3">
-                    <div className="flex gap-2 flex-wrap">
-                      {/* ✅ PERBAIKAN: Status berdasarkan actual blockchain data */}
-                      {item.blockchainData?.txHash ? (
-                        // ✅ Ada txHash - berarti sudah di blockchain
+                    <div className="flex gap-2 flex-wrap items-center">
+                      {/* ✅ UPDATED: Status badges berdasarkan verification result */}
+                      {item.blockchainData?.verified && item.blockchainData?.status === 'VERIFIED' ? (
+                        // Full verification with TX hash
                         <motion.span 
                           className="px-2 py-1 rounded text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 flex items-center gap-1"
                           initial={{ scale: 0.8 }}
                           animate={{ scale: 1 }}
                         >
                           <FiCheck className="w-3 h-3" />
-                          {item.blockchainData?.verified ? 'Verified' : 'On-Chain'}
+                          Verified + TX
+                        </motion.span>
+                      ) : item.blockchainData?.verified && item.blockchainData?.status === 'CONFIRMED' ? (
+                        // Document confirmed on blockchain
+                        <motion.span 
+                          className="px-2 py-1 rounded text-xs font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 flex items-center gap-1"
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                        >
+                          <FiShield className="w-3 h-3" />
+                          Blockchain ✓
                         </motion.span>
                       ) : item.blockchainData?.docHash ? (
-                        // ✅ Ada docHash tapi belum txHash - pending blockchain
+                        // Pending verification
                         <span className="px-2 py-1 rounded text-xs font-bold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 flex items-center gap-1">
                           <FiRefreshCw className="w-3 h-3 animate-spin" />
-                          Pending
+                          Verifying...
                         </span>
                       ) : (
-                        // ✅ Tidak ada blockchainData = belum di blockchain
+                        // Database only
                         <span className="px-2 py-1 rounded text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
                           📋 Database Only
                         </span>
@@ -1213,6 +1202,106 @@ export default function LaporanPage() {
                           ✅ Implemented
                         </span>
                       )}
+
+                      {/* ✅ FIXED: Action Buttons Row */}
+                      <div className="flex gap-1 mt-2 w-full">
+                        {/* QR Code Generation Button */}
+                        <motion.button
+                          onClick={() => generateBlockchainQRCode(item)}
+                          disabled={loadingBlockchain && selectedLaporan?.id === item.id}
+                          className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-all ${
+                            item.blockchainData?.verified
+                              ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200'
+                              : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200'
+                          } ${loadingBlockchain && selectedLaporan?.id === item.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          whileHover={loadingBlockchain && selectedLaporan?.id === item.id ? {} : { scale: 1.05 }}
+                          whileTap={loadingBlockchain && selectedLaporan?.id === item.id ? {} : { scale: 0.95 }}
+                          title={item.blockchainData?.verified ? "Generate blockchain-verified QR" : "Generate QR from database"}
+                        >
+                          {loadingBlockchain && selectedLaporan?.id === item.id ? (
+                            <motion.div
+                              className="w-3 h-3 border-2 border-current border-t-transparent rounded-full"
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            />
+                          ) : (
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                            </svg>
+                          )}
+                          <span>QR</span>
+                        </motion.button>
+
+                        {/* PDF Generation Button */}
+                        <motion.button
+                          onClick={() => generatePDF(item)}
+                          className="px-2 py-1 rounded text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 flex items-center gap-1 transition-all"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          title="Download PDF report"
+                        >
+                          <FiDownload className="w-3 h-3" />
+                          <span>PDF</span>
+                        </motion.button>
+
+                        {/* Blockchain Explorer Link (if tx_hash exists) */}
+                        {item.blockchain_tx_hash && (
+                          <motion.a
+                            href={`https://sepolia.etherscan.io/tx/${item.blockchain_tx_hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2 py-1 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 flex items-center gap-1 transition-all"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            title="View on Etherscan"
+                          >
+                            <FiExternalLink className="w-3 h-3" />
+                            <span>Explorer</span>
+                          </motion.a>
+                        )}
+
+                        {/* Blockchain Verification Button (if doc_hash exists but not verified) */}
+                        {item.blockchain_doc_hash && !item.blockchainData?.verified && (
+                          <motion.button
+                            onClick={() => fetchBlockchainData(item)}
+                            disabled={loadingBlockchain}
+                            className="px-2 py-1 rounded text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200 flex items-center gap-1 transition-all"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            title="Verify on blockchain"
+                          >
+                            <FiShield className="w-3 h-3" />
+                            <span>Verify</span>
+                          </motion.button>
+                        )}
+
+                        {/* Implementation Status Toggle */}
+                        <motion.button
+                          onClick={() => toggleImplementasiStatus(item.id, item.is_implemented)}
+                          disabled={updatingStatus === item.id}
+                          className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-all ${
+                            item.is_implemented 
+                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200'
+                              : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200'
+                          } ${updatingStatus === item.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          whileHover={updatingStatus === item.id ? {} : { scale: 1.05 }}
+                          whileTap={updatingStatus === item.id ? {} : { scale: 0.95 }}
+                          title={item.is_implemented ? "Mark as planning" : "Mark as implemented"}
+                        >
+                          {updatingStatus === item.id ? (
+                            <motion.div
+                              className="w-3 h-3 border-2 border-current border-t-transparent rounded-full"
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            />
+                          ) : item.is_implemented ? (
+                            <FiX className="w-3 h-3" />
+                          ) : (
+                            <FiCheck className="w-3 h-3" />
+                          )}
+                          <span>{item.is_implemented ? 'Undo' : 'Done'}</span>
+                        </motion.button>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -1353,92 +1442,92 @@ export default function LaporanPage() {
             </motion.button>
           </motion.div>
         )}
-      </div>
 
-      {/* ✅ QR Code Modal */}
-      <AnimatePresence>
-        {qrModalOpen && qrCodeData && (
-          <>
-            <motion.div
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setQrModalOpen(false)}
-            />
-            <motion.div
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-            >
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
-                <button
-                  onClick={() => setQrModalOpen(false)}
-                  className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <FiX className="w-5 h-5" />
-                </button>
-
-                <div className="text-center mb-6">
-                  <motion.div
-                    className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                      qrCodeData.verified
-                        ? 'bg-gradient-to-br from-green-500 to-emerald-500'
-                        : 'bg-gradient-to-br from-blue-500 to-cyan-500'
-                    }`}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 200 }}
+        {/* ✅ QR Code Modal - FIXED */}
+        <AnimatePresence>
+          {qrModalOpen && qrCodeData && (
+            <>
+              <motion.div
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setQrModalOpen(false)}
+              />
+              <motion.div
+                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+              >
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+                  <button
+                    onClick={() => setQrModalOpen(false)}
+                    className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                    </svg>
-                  </motion.div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                    QR Code Blockchain
-                  </h2>
-                  <p className={`text-sm font-semibold ${
-                    qrCodeData.verified
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-blue-600 dark:text-blue-400'
-                  }`}>
-                    {qrCodeData.verified ? '✅ Verified dari Blockchain' : '📱 Data dari Database'}
-                  </p>
-                </div>
+                    <FiX className="w-5 h-5" />
+                  </button>
 
-                {/* QR Display */}
-                <div className="bg-white p-6 rounded-xl shadow-inner mb-6 flex items-center justify-center border-4 border-gray-100">
-                  <motion.img 
-                    src={qrCodeData.url} 
-                    alt="QR Code" 
-                    className="w-64 h-64 object-contain"
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                  />
-                </div>
+                  <div className="text-center mb-6">
+                    <motion.div
+                      className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                        qrCodeData.verified
+                          ? 'bg-gradient-to-br from-green-500 to-emerald-500'
+                          : 'bg-gradient-to-br from-blue-500 to-cyan-500'
+                      }`}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200 }}
+                    >
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                      </svg>
+                    </motion.div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                      QR Code Blockchain
+                    </h2>
+                    <p className={`text-sm font-semibold ${
+                      qrCodeData.verified
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-blue-600 dark:text-blue-400'
+                    }`}>
+                      {qrCodeData.verified ? '✅ Verified dari Blockchain' : '📱 Data dari Database'}
+                    </p>
+                  </div>
 
-                {/* Download Button */}
-                <motion.button
-                  onClick={downloadQRCode}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-medium shadow-lg transition-all"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <FiDownload className="w-5 h-5" />
-                  <span>Download QR & Data JSON</span>
-                </motion.button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                  {/* QR Display */}
+                  <div className="bg-white p-6 rounded-xl shadow-inner mb-6 flex items-center justify-center border-4 border-gray-100">
+                    <motion.img 
+                      src={qrCodeData.url} 
+                      alt="QR Code" 
+                      className="w-64 h-64 object-contain"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                    />
+                  </div>
+
+                  {/* Download Button */}
+                  <motion.button
+                    onClick={downloadQRCode}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-medium shadow-lg transition-all"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <FiDownload className="w-5 h-5" />
+                    <span>Download QR & Data JSON</span>
+                  </motion.button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
 
-// ✅ NEW: Transform blockchain data dari backend response
+// ✅ Transform blockchain data dari backend response
 const transformBlockchainData = (item) => {
   return {
     ...item,
