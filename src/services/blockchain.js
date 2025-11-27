@@ -1,11 +1,16 @@
 import { ethers } from 'ethers';
 import { toast } from 'react-toastify';
 
-// ✅ Smart Contract ABI untuk menyimpan dokumen hash
+// ✅ IMPROVED: Enhanced Smart Contract ABI dengan error handling
 const CONTRACT_ABI = [
-  "function storeDocument(string memory _docType, string memory _docHash, string memory _metadata) public returns (uint256)",
-  "function getDocument(uint256 _docId) public view returns (string memory docType, string memory docHash, string memory metadata, address uploader, uint256 timestamp)",
+  // Read functions (view/pure)
   "function getDocumentCount() public view returns (uint256)",
+  "function getDocument(uint256 _docId) public view returns (string memory docType, string memory docHash, string memory metadata, address uploader, uint256 timestamp)",
+
+  // Write functions
+  "function storeDocument(string memory _docType, string memory _docHash, string memory _metadata) public returns (uint256)",
+
+  // Events
   "event DocumentStored(uint256 indexed docId, string docType, string docHash, address indexed uploader, uint256 timestamp)"
 ];
 
@@ -35,57 +40,54 @@ class BlockchainService {
         return true;
       }
 
-      // ✅ STEP 1: Validasi Contract Address
+      // ✅ STEP 1: Validate Contract Address Format
       if (!CONTRACT_ADDRESS || CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000") {
-        console.error('[Blockchain] ❌ CONFIGURATION ERROR:', {
-          issue: 'Contract address not configured',
-          VITE_CONTRACT_ADDRESS: import.meta.env.VITE_CONTRACT_ADDRESS,
-          solution: 'Paste deployed contract address di .env VITE_CONTRACT_ADDRESS',
-          steps: [
-            '1. Deploy contract ke Remix (https://remix.ethereum.org)',
-            '2. Copy contract address setelah deploy',
-            '3. Paste ke .env file sebagai VITE_CONTRACT_ADDRESS',
+        console.error('[Blockchain] ❌ CONTRACT ADDRESS INVALID:', {
+          value: CONTRACT_ADDRESS,
+          error: 'Contract not configured or is zero address',
+          solution: [
+            '1. Deploy contract to Remix (https://remix.ethereum.org)',
+            '2. Copy contract address after deployment',
+            '3. Set VITE_CONTRACT_ADDRESS in .env',
             '4. Restart dev server (Ctrl+C then npm run dev)'
           ]
         });
         return false;
       }
 
-      // ✅ STEP 2: Validasi Private Key - INI YANG ERROR ANDA
-      if (!PRIVATE_KEY || PRIVATE_KEY.trim() === "") {
-        console.error('[Blockchain] ❌ CONFIGURATION ERROR:', {
-          issue: 'Private key not configured',
-          found: {
-            VITE_WALLET_PRIVATE_KEY: import.meta.env.VITE_WALLET_PRIVATE_KEY ? '✅ SET' : '❌ NOT SET',
-            VITE_SEPOLIA_RPC_URL: import.meta.env.VITE_SEPOLIA_RPC_URL ? '✅ SET' : '❌ NOT SET',
-            VITE_CONTRACT_ADDRESS: import.meta.env.VITE_CONTRACT_ADDRESS ? '✅ SET' : '❌ NOT SET',
-          },
-          solution: 'Pastikan .env sudah benar diisi',
-          steps: [
-            '1. Buka file .env di root project',
-            '2. Isi VITE_WALLET_PRIVATE_KEY=your_private_key',
-            '3. Isi VITE_SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_KEY',
-            '4. Isi VITE_CONTRACT_ADDRESS=0x...',
-            '5. Restart dev server (Ctrl+C lalu npm run dev)',
-            '6. Check browser console untuk verifikasi'
-          ],
-          currentValues: {
-            VITE_WALLET_PRIVATE_KEY: import.meta.env.VITE_WALLET_PRIVATE_KEY || '(not set)',
-            VITE_SEPOLIA_RPC_URL: import.meta.env.VITE_SEPOLIA_RPC_URL || '(not set)',
-            VITE_CONTRACT_ADDRESS: import.meta.env.VITE_CONTRACT_ADDRESS || '(not set)',
-          },
-          warning: '⚠️ JANGAN pernah share private key ke siapapun!'
+      // ✅ Validate address format (must be 42 chars starting with 0x)
+      if (!/^0x[a-fA-F0-9]{40}$/.test(CONTRACT_ADDRESS)) {
+        console.error('[Blockchain] ❌ CONTRACT ADDRESS FORMAT INVALID:', {
+          value: CONTRACT_ADDRESS,
+          expected: '0x + 40 hex characters',
+          length: CONTRACT_ADDRESS.length
         });
         return false;
       }
 
-      // ✅ STEP 3: Validasi RPC URL
-      if (!RPC_URL) {
-        console.error('[Blockchain] ❌ RPC URL not configured');
+      // ✅ STEP 2: Validate Private Key
+      if (!PRIVATE_KEY || PRIVATE_KEY.trim() === "") {
+        console.error('[Blockchain] ❌ PRIVATE KEY NOT SET');
         return false;
       }
 
-      // ✅ TEST RPC CONNECTION PERTAMA KALI
+      // ✅ Validate private key format (64 hex chars, optionally with 0x prefix)
+      const cleanKey = PRIVATE_KEY.startsWith('0x') ? PRIVATE_KEY : `0x${PRIVATE_KEY}`;
+      if (!/^0x[a-fA-F0-9]{64}$/.test(cleanKey)) {
+        console.error('[Blockchain] ❌ PRIVATE KEY FORMAT INVALID:', {
+          error: 'Must be 64 hex characters (or 66 with 0x prefix)',
+          length: cleanKey.length
+        });
+        return false;
+      }
+
+      // ✅ STEP 3: Validate RPC URL
+      if (!RPC_URL) {
+        console.error('[Blockchain] ❌ RPC URL NOT CONFIGURED');
+        return false;
+      }
+
+      // ✅ STEP 4: Test RPC Connection
       console.log('[Blockchain] Testing RPC connection...');
       try {
         const testResponse = await fetch(RPC_URL, {
@@ -101,45 +103,69 @@ class BlockchainService {
 
         const testData = await testResponse.json();
         
-        if (testData.result) {
-          const blockNumber = parseInt(testData.result, 16);
-          console.log('[Blockchain] ✅ RPC Connection successful!', {
-            blockNumber: blockNumber,
-            blockHex: testData.result,
-            rpcUrl: RPC_URL.substring(0, 50) + '...',
-          });
-        } else if (testData.error) {
+        if (testData.error) {
           throw new Error(`RPC Error: ${testData.error.message}`);
         }
-      } catch (rpcTestErr) {
-        console.error('[Blockchain] ❌ RPC Connection Failed:', {
-          error: rpcTestErr.message,
-          rpcUrl: RPC_URL,
-          possibleCauses: [
-            'Invalid RPC URL',
-            'Network unreachable',
-            'CORS issues',
-            'API Key invalid/rate limited'
-          ]
-        });
+        
+        if (testData.result) {
+          const blockNumber = parseInt(testData.result, 16);
+          console.log('[Blockchain] ✅ RPC Connection OK - Block:', blockNumber);
+        } else {
+          throw new Error('No result from RPC');
+        }
+      } catch (rpcErr) {
+        console.error('[Blockchain] ❌ RPC Connection Failed:', rpcErr.message);
         return false;
       }
 
-      // ✅ Create provider dengan RPC URL
+      // ✅ STEP 5: Create provider
       this.provider = new ethers.JsonRpcProvider(RPC_URL);
       console.log('[Blockchain] ✅ Provider created');
 
-      // ✅ Create wallet dari private key
-      const wallet = new ethers.Wallet(PRIVATE_KEY, this.provider);
-      this.signer = wallet;
-      this.walletAddress = wallet.address;
-      console.log('[Blockchain] ✅ Wallet created from private key');
+      // ✅ STEP 6: Create wallet
+      try {
+        const wallet = new ethers.Wallet(cleanKey, this.provider);
+        this.signer = wallet;
+        this.walletAddress = wallet.address;
+        console.log('[Blockchain] ✅ Wallet created:', this.walletAddress);
+      } catch (walletErr) {
+        console.error('[Blockchain] ❌ Wallet creation failed:', walletErr.message);
+        return false;
+      }
 
-      // ✅ Connect to contract
-      this.contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
-      console.log('[Blockchain] ✅ Contract connected');
+      // ✅ STEP 7: Connect to contract with validation
+      try {
+        this.contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer);
+        console.log('[Blockchain] ✅ Contract instance created');
+        
+        // ✅ TEST: Call getDocumentCount to validate contract
+        console.log('[Blockchain] Testing contract connection with getDocumentCount()...');
+        
+        let documentCount;
+        try {
+          documentCount = await this.contract.getDocumentCount();
+          console.log('[Blockchain] ✅ Contract test successful - Document count:', documentCount.toString());
+        } catch (contractErr) {
+          console.error('[Blockchain] ❌ CONTRACT TEST FAILED:', {
+            error: contractErr.message,
+            code: contractErr.code,
+            method: 'getDocumentCount',
+            solutions: [
+              '1. Check if contract is deployed to Sepolia',
+              '2. Verify CONTRACT_ADDRESS matches deployed contract',
+              '3. Verify CONTRACT_ABI matches deployed contract functions',
+              '4. Check if wallet has balance for gas (even for read-only calls)',
+              '5. Redeploy contract and update VITE_CONTRACT_ADDRESS'
+            ]
+          });
+          throw contractErr;
+        }
+      } catch (contractErr) {
+        console.error('[Blockchain] ❌ Contract connection failed:', contractErr.message);
+        return false;
+      }
 
-      // ✅ Test connection
+      // ✅ STEP 8: Get network info
       const network = await this.provider.getNetwork();
       const balance = await this.provider.getBalance(this.walletAddress);
 
@@ -148,14 +174,15 @@ class BlockchainService {
         network: network.name,
         chainId: network.chainId,
         balance: ethers.formatEther(balance),
-        contractAddress: CONTRACT_ADDRESS
+        contractAddress: CONTRACT_ADDRESS,
+        rpcUrl: RPC_URL.substring(0, 50) + '...'
       });
 
       this.isReady = true;
       return true;
+
     } catch (error) {
-      console.error('[Blockchain] ❌ Initialization error:', error.message);
-      console.error('[Blockchain] Full error:', error);
+      console.error('[Blockchain] ❌ Initialization failed:', error.message);
       this.isReady = false;
       return false;
     }
@@ -756,23 +783,68 @@ class BlockchainService {
     }
   }
 
-  // ✅ ENHANCED: Verify document with detailed blockchain proof
+  // ✅ ENHANCED: Verify document on blockchain dengan better error handling & skip invalid IDs
   async verifyDocumentOnBlockchain(docHash) {
     try {
       if (!this.isReady) {
-        throw new Error('Blockchain service not initialized');
+        throw new Error('Blockchain service not ready. Call initialize() first.');
+      }
+
+      if (!docHash || typeof docHash !== 'string') {
+        throw new Error(`Invalid document hash: ${docHash}`);
       }
 
       console.log('[Blockchain] Verifying document hash:', docHash);
 
-      const totalDocs = await this.contract.getDocumentCount();
-      console.log(`[Blockchain] Searching through ${totalDocs} documents...`);
+      // ✅ Get total count dengan error handling
+      let totalDocs;
+      try {
+        totalDocs = await this.contract.getDocumentCount();
+        totalDocs = Number(totalDocs);
+        console.log(`[Blockchain] Found ${totalDocs} total documents on chain`);
+        
+        if (totalDocs === 0) {
+          console.warn('[Blockchain] ⚠️ No documents stored on blockchain yet');
+          return {
+            verified: false,
+            error: 'No documents found on blockchain',
+            docHash
+          };
+        }
+      } catch (countErr) {
+        console.error('[Blockchain] ❌ Failed to get document count:', {
+          error: countErr.message,
+          code: countErr.code
+        });
+        
+        // ✅ Provide helpful debugging info
+        if (countErr.code === 'BAD_DATA') {
+          console.error('[Blockchain] 🔴 CONTRACT ERROR - Likely causes:');
+          console.error('  - Contract address is wrong');
+          console.error('  - Contract is not deployed to this network');
+          console.error('  - Contract ABI does not match deployed contract');
+        }
+        
+        throw countErr;
+      }
 
-      // Search through all documents to find matching hash
-      for (let i = 0; i < Number(totalDocs); i++) {
+      // ✅ IMPROVED: Search through documents with error handling
+      console.log(`[Blockchain] Searching through ${totalDocs} documents...`);
+      const failedIds = [];
+      const errors = [];
+
+      for (let i = 0; i < totalDocs; i++) {
         try {
           const doc = await this.contract.getDocument(i);
           
+          // ✅ Validate document object
+          if (!doc || !doc[1]) {
+            console.warn(`[Blockchain] Document ${i} returned empty/invalid data, skipping...`);
+            failedIds.push(i);
+            continue;
+          }
+          
+          // ✅ Compare hash
           if (doc[1].toLowerCase() === docHash.toLowerCase()) {
             console.log(`[Blockchain] ✅ Document found at index ${i}!`);
             
@@ -788,24 +860,59 @@ class BlockchainService {
               blockchainProof: true
             };
           }
-        } catch (err) {
-          // Continue searching
+        } catch (docErr) {
+          // ✅ Log error but continue searching
+          const errorMsg = docErr.message || String(docErr);
+          
+          if (errorMsg.includes('Invalid document ID')) {
+            console.warn(`[Blockchain] ⏭️ Document ${i}: Invalid ID (contract says this ID doesn't exist), skipping...`);
+            failedIds.push(i);
+          } else if (errorMsg.includes('reverted')) {
+            console.warn(`[Blockchain] ⏭️ Document ${i}: Contract reverted, skipping... (${errorMsg.substring(0, 50)})`);
+            failedIds.push(i);
+          } else {
+            console.warn(`[Blockchain] ⚠️ Error reading document ${i}:`, errorMsg.substring(0, 100));
+            errors.push({ id: i, error: errorMsg });
+          }
+          
+          // Continue searching other documents
           continue;
         }
       }
 
+      // ✅ Summary if search completed without finding document
       console.log('[Blockchain] ❌ Document hash not found on blockchain');
+      console.log('[Blockchain] Search summary:', {
+        totalDocumentsOnChain: totalDocs,
+        searchedSuccessfully: totalDocs - failedIds.length,
+        skippedInvalidIds: failedIds,
+        otherErrors: errors.length
+      });
+      
       return {
         verified: false,
-        error: 'Document not found on blockchain',
-        docHash
+        error: `Document hash not found in ${totalDocs} documents on blockchain`,
+        docHash,
+        searchedDocuments: totalDocs,
+        searchSummary: {
+          totalOnChain: totalDocs,
+          searched: totalDocs - failedIds.length,
+          failed: failedIds.length,
+          invalidIds: failedIds
+        }
       };
 
     } catch (error) {
-      console.error('[Blockchain] Verification error:', error);
+      console.error('[Blockchain] ❌ Verification error:', {
+        message: error.message,
+        code: error.code,
+        docHash
+      });
+      
       return {
         verified: false,
         error: error.message,
+        code: error.code,
         docHash
       };
     }

@@ -318,6 +318,7 @@ export default function LaporanPage() {
     const cache = { ...blockchainCache };
     let enrichedCount = 0;
     let errorCount = 0;
+    let skipCount = 0;
     
     let updatedLaporan = [...laporan];
     const batchSize = 3;
@@ -348,6 +349,7 @@ export default function LaporanPage() {
             ]);
 
             if (verificationResult.verified) {
+              // ✅ Verified on blockchain
               blockchainData = {
                 docHash: item.blockchain_doc_hash,
                 docId: verificationResult.docId,
@@ -360,6 +362,7 @@ export default function LaporanPage() {
                 metadata: verificationResult.metadata
               };
               
+              // ✅ Try to get TX proof if available
               if (item.blockchain_tx_hash) {
                 try {
                   const txProof = await Promise.race([
@@ -389,13 +392,24 @@ export default function LaporanPage() {
               enrichedCount++;
               console.log(`[LaporanPage] ✅ Item ${item.id}: Blockchain ${blockchainData.status.toLowerCase()}`);
             } else {
+              // ✅ Not verified yet
               blockchainData = {
                 docHash: item.blockchain_doc_hash,
                 verified: false,
-                status: 'PENDING_BLOCKCHAIN',
+                status: verificationResult.error?.includes('not found') ? 'NOT_FOUND' : 'PENDING_BLOCKCHAIN',
                 timestamp: new Date().toISOString(),
-                error: verificationResult.error
+                error: verificationResult.error,
+                searchSummary: verificationResult.searchSummary
               };
+              
+              // ✅ Don't count as error if just not found yet
+              if (!verificationResult.error?.includes('not found')) {
+                errorCount++;
+              } else {
+                skipCount++;
+              }
+              
+              console.log(`[LaporanPage] ℹ️ Item ${item.id}: ${blockchainData.status}`);
             }
           } catch (err) {
             console.warn(`[LaporanPage] Error verifying item ${item.id}:`, err.message);
@@ -421,10 +435,10 @@ export default function LaporanPage() {
       const batchResults = await Promise.all(promises);
       updatedLaporan.splice(i, batchSize, ...batchResults);
       
-      // ✅ Progressive delay - shorter for smaller batches
+      // ✅ Progressive delay
       if (i + batchSize < updatedLaporan.length) {
-        const delay = Math.min(2000 + (errorCount * 500), 5000); // 2s base + 0.5s per error, max 5s
-        console.log(`[LaporanPage] Waiting ${delay}ms before next batch (errors: ${errorCount})...`);
+        const delay = Math.min(2000 + (errorCount * 500), 5000);
+        console.log(`[LaporanPage] Waiting ${delay}ms before next batch (errors: ${errorCount}, skipped: ${skipCount})...`);
         await new Promise(r => setTimeout(r, delay));
       }
     }
@@ -437,14 +451,18 @@ export default function LaporanPage() {
       total: updatedLaporan.length,
       verified: enrichedCount,
       errors: errorCount,
+      notFoundYet: skipCount,
     });
 
     // ✅ Show appropriate toast messages
     if (enrichedCount > 0) {
       toast.success(`✅ ${enrichedCount} documents verified on blockchain`);
     }
+    if (skipCount > 0) {
+      toast.info(`ℹ️ ${skipCount} documents not yet on blockchain`);
+    }
     if (errorCount > 0) {
-      toast.warning(`⚠️ ${errorCount} verification errors (akan dicoba lagi)`);
+      toast.warning(`⚠️ ${errorCount} verification errors`);
     }
   };
 
