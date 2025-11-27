@@ -38,7 +38,12 @@ export default function LaporanPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   
-  const { isReady, getTransactionProof } = useBlockchain();
+  const { 
+    isReady, 
+    getAllDocuments, 
+    verifyDocumentHash,
+    getTransactionProof 
+  } = useBlockchain();
 
   useEffect(() => {
     fetchLaporan();
@@ -58,28 +63,117 @@ export default function LaporanPage() {
     }
   }, [isReady, laporan.length]);
 
-  // ✅ Transform blockchain data dari API response
-  const transformBlockchainData = (item) => {
-    return {
-      ...item,
-      blockchain_doc_hash: item.blockchain?.doc_hash || item.blockchain_doc_hash,
-      blockchain_tx_hash: item.blockchain?.tx_hash || item.blockchain_tx_hash,
-      blockchain_status: item.blockchain?.status || 'pending',
-    };
-  };
-
-  // ✅ MAIN: Fetch laporan dari API
-  const fetchLaporan = async () => {
+  // ✅ MAIN: Fetch laporan dari API dengan INCREASED TIMEOUT & RETRY
+  const fetchLaporan = async (retries = 3, page = 1, perPage = 50) => {
     try {
       setLoading(true);
       setError(null);
 
-      console.log('[LaporanPage] Fetching laporan...');
+      console.log(`[LaporanPage] Fetching laporan (page ${page}, ${perPage} per page)...`);
       
-      const response = await api.get("/perencanaan?per_page=100");
-      const laporanList = response.data?.data || [];
+      // ✅ INCREASED: Timeout dari 10s ke 30s untuk large datasets
+      const response = await api.get(
+        `/perencanaan?page=${page}&per_page=${perPage}`,
+        {
+          timeout: 30000, // 30 detik timeout
+        }
+      );
+
+      const rawData = response.data?.data || [];
       
       // ✅ Transform semua items
+      const transformedList = rawData.map(transformBlockchainData);
+
+      console.log('[LaporanPage] Loaded:', {
+        total: transformedList.length,
+        withTxHash: transformedList.filter(l => l.blockchain_tx_hash).length,
+        withDocHash: transformedList.filter(l => l.blockchain_doc_hash).length,
+        pending: transformedList.filter(l => l.blockchain_doc_hash && !l.blockchain_tx_hash).length,
+      });
+
+      setLaporan(transformedList);
+      
+      if (transformedList.length > 0) {
+        toast.success(`📊 ${transformedList.length} laporan dimuat`);
+      }
+    } catch (err) {
+      console.error('[LaporanPage] Fetch error (attempt):', {
+        message: err.message,
+        timeout: err.code === 'ECONNABORTED',
+        retries
+      });
+
+      // ✅ RETRY LOGIC: Jika timeout, tunggu & retry dengan smaller batch
+      if (err.code === 'ECONNABORTED' && retries > 0) {
+        console.warn(`[LaporanPage] Timeout! Retrying with smaller batch (${retries} left)...`);
+        toast.warning(`⏳ API lambat, coba loading dengan data lebih sedikit...`, { autoClose: 3000 });
+        
+        // ✅ BACKOFF: Wait sebelum retry
+        await new Promise(r => setTimeout(r, 2000));
+        
+        // ✅ REDUCE per_page dari 50 ke 25
+        return fetchLaporan(retries - 1, page, Math.floor(perPage / 2));
+      }
+
+      // ✅ FALLBACK: Show error & load minimal data
+      setError('⏱️ API timeout - loading dari cache atau minimal data');
+      toast.error('❌ Timeout: Backend lambat. Silakan refresh atau tunggu beberapa saat.');
+      
+      // ✅ Try fallback with very small batch
+      if (retries === 0) {
+        try {
+          console.log('[LaporanPage] Fallback: Fetching minimal data (10 items only)...');
+          const fallbackResponse = await api.get('/perencanaan?per_page=10', {
+            timeout: 15000,
+          });
+          const minimalList = (fallbackResponse.data?.data || []).map(transformBlockchainData);
+          setLaporan(minimalList);
+          toast.info(`💡 Loaded minimal data (${minimalList.length} items)`, { autoClose: 2000 });
+        } catch (fallbackErr) {
+          console.error('[LaporanPage] Fallback also failed:', fallbackErr.message);
+          setLaporan([]);
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // ✅ Start with smaller page size (25 items) to avoid timeout
+    fetchLaporan(3, 1, 25);
+  }, []);
+
+  // ✅ Fetch blockchain transaction hashes setelah data loaded
+  useEffect(() => {
+    if (isReady && laporan.length > 0) {
+      // ✅ THROTTLE: Only call full enrichment every 30 seconds
+      const now = Date.now();
+      if (now - lastEnrichmentTime > MIN_ENRICHMENT_INTERVAL) {
+        lastEnrichmentTime = now;
+        enrichLaporanWithBlockchainData();
+      } else {
+        console.log('[LaporanPage] Skipping enrichment (throttled)');
+      }
+    }
+  }, [isReady, laporan.length]);
+
+  // ✅ Fetch laporan dari backend
+  const fetchLaporanBackend = async (retries = 3, page = 1, perPage = 50) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log(`[LaporanPage] Fetching laporan (page ${page}, ${perPage} per page)...`);
+      
+      const response = await api.get(
+        `/perencanaan?page=${page}&per_page=${perPage}`,
+        {
+          timeout: 30000,
+        }
+      );
+
+      const laporanList = response.data?.data || [];
       const transformedList = laporanList.map(transformBlockchainData);
 
       console.log('[LaporanPage] Loaded:', {
@@ -109,7 +203,7 @@ export default function LaporanPage() {
     const pendingItems = laporan.filter(l => l.blockchain_doc_hash && !l.blockchain_tx_hash);
     if (pendingItems.length === 0) return;
 
-    console.log(`[LaporanPage] Starting polling for ${pendingItems.length} pending items...`);
+    console.log(`[LaporanPage] Starting polling for ${pendingItems.length} pending blockchain items...`);
 
     const pollInterval = setInterval(async () => {
       try {
@@ -118,10 +212,10 @@ export default function LaporanPage() {
           const updated = transformBlockchainData(response.data?.data || response.data);
 
           if (updated.blockchain_tx_hash && !item.blockchain_tx_hash) {
-            console.log(`✅ Item ${item.id}: txHash now available!`);
-            toast.success(`✅ ${updated.nama_perusahaan} blockchain verified!`);
+            console.log(`✅ Item ${item.id}: blockchain confirmed!`, updated.blockchain_tx_hash);
+            toast.success(`🔗 ${updated.nama_perusahaan} blockchain verified!`);
 
-            // Update laporan array
+            // ✅ Update laporan array
             setLaporan(prev => 
               prev.map(l => l.id === item.id ? updated : l)
             );
@@ -130,7 +224,7 @@ export default function LaporanPage() {
       } catch (err) {
         console.warn('[LaporanPage] Poll error:', err.message);
       }
-    }, 30000); // 30 detik
+    }, 15000); // Check setiap 15 detik
 
     return () => clearInterval(pollInterval);
   }, [laporan]);
@@ -266,387 +360,210 @@ export default function LaporanPage() {
   };
 
   // ✅ ENRICHMENT: Fetch real blockchain tx hashes dari Sepolia dengan parallel processing
-  const enrichLaporanWithBlockchainData = async () => {
-    if (laporan.length === 0) return;
+  // filepath: c:\Xampp\htdocs\CCS-project\FE_CCS\src\pages\admin\LaporanPage.jsx
 
-    console.log('[LaporanPage] Starting blockchain enrichment...');
+  // ✅ ENRICHMENT: Modified to handle 503 gracefully
+  const enrichLaporanWithBlockchainData = async () => {
+    if (laporan.length === 0 || !isReady) return;
+
+    console.log('[LaporanPage] Starting blockchain enrichment via frontend service...');
     
-    // ✅ STEP 1: Re-fetch dari API untuk get latest blockchain_status & tx_hash
-    // Ini penting karena blockchain service mungkin sudah selesai broadcast
-    console.log('[LaporanPage] STEP 1: Re-fetching data from API to get latest blockchain status...');
     const cache = { ...blockchainCache };
     let enrichedCount = 0;
     let onChainCount = 0;
-    let pendingCount = 0;
-    const enrichedLaporanArray = [];
-
-    // ✅ Re-fetch PENDING items dari API untuk check apakah txHash sudah tersedia
-    const pendingItems = laporan.filter(l => !l.blockchain_tx_hash);
-    if (pendingItems.length > 0) {
-      console.log(`[LaporanPage] Found ${pendingItems.length} pending items, re-fetching from API...`);
-      
-      for (const item of pendingItems) {
-        try {
-          const response = await api.get(`/perencanaan/${item.id}`);
-          const updatedData = response.data?.data || response.data;
-          
-          const updatedItem = {
-            ...updatedData,
-            blockchain_doc_hash: updatedData.blockchain?.doc_hash || updatedData.blockchain_doc_hash,
-            blockchain_tx_hash: updatedData.blockchain?.tx_hash || updatedData.blockchain_tx_hash,
-            blockchain_status: updatedData.blockchain?.status || 'pending',
-          };
-          
-          if (updatedItem.blockchain_tx_hash && updatedItem.blockchain_tx_hash !== item.blockchain_tx_hash) {
-            console.log(`[LaporanPage] ✅ Item ${item.id}: txHash now available!`, updatedItem.blockchain_tx_hash);
-            toast.success(`✅ Item ${updatedItem.nama_perusahaan} blockchain verification complete!`);
-          }
-          
-          // Update laporan array dengan latest data
-          const idx = laporan.findIndex(l => l.id === item.id);
-          if (idx >= 0) {
-            laporan[idx] = updatedItem;
-          }
-        } catch (err) {
-          console.warn(`[LaporanPage] Error re-fetching item ${item.id}:`, err.message);
-        }
-      }
-    }
-
-    // Process dengan batches untuk avoid rate limiting
-    const batchSize = 5;
-    for (let i = 0; i < laporan.length; i += batchSize) {
-      const batch = laporan.slice(i, i + batchSize);
+    
+    // Create mutable copy for updates
+    let updatedLaporan = [...laporan];
+    
+    // ✅ Process in smaller batches to avoid overwhelming the blockchain
+    const batchSize = 5; // Even smaller batches for direct blockchain calls
+    
+    for (let i = 0; i < updatedLaporan.length; i += batchSize) {
+      const batch = updatedLaporan.slice(i, i + batchSize);
       
       const promises = batch.map(async (item) => {
-        // ✅ Skip jika sudah di-cache
-        if (item.blockchainData && cache[item.id]) {
-          console.log(`[LaporanPage] Item ${item.id} already cached, skipping`);
+        // Skip if cached
+        if (cache[item.id]) {
           return { ...item, blockchainData: cache[item.id] };
         }
 
         let blockchainData = null;
 
-        // ✅ PRIORITY 1: Jika ada blockchain_tx_hash, fetch dari Sepolia (ONLY on page load, not on polling)
-        if (item.blockchain_tx_hash) {
+        // ✅ Try blockchain verification using frontend service
+        if (item.blockchain_doc_hash) {
           try {
-            // ⚠️ REDUCED: Skip Sepolia fetching on subsequent enrichments to avoid 429
-            // Only fetch if blockchainData not cached
-            if (cache[item.id]?.txHash) {
-              console.log(`[LaporanPage] Item ${item.id}: Using cached Sepolia data`);
-              return { ...item, blockchainData: cache[item.id] };
-            }
+            console.log(`[LaporanPage] Verifying item ${item.id} on blockchain...`);
             
-            console.log(`[LaporanPage] Item ${item.id}: Fetching TX from Sepolia...`);
-            
-            const txData = await fetchTransactionFromSepolia(item.blockchain_tx_hash, 3);
-            
-            if (txData) {
-              console.log(`[LaporanPage] ✅ Item ${item.id}: TX data received`, {
-                blockNumber: txData.blockNumber,
-                status: txData.status,
-                confirmations: txData.confirmations
-              });
-              onChainCount++;
-              if (txData.verified || txData.confirmations > 0) enrichedCount++;
-            } else {
-              console.warn(`[LaporanPage] ⚠️ Item ${item.id}: TX not found on Sepolia`);
-              onChainCount++;
-            }
+            const verificationResult = await verifyDocumentHash(item.blockchain_doc_hash);
 
-            blockchainData = {
-              docHash: item.blockchain_doc_hash,
-              txHash: txData?.txHash || item.blockchain_tx_hash,
-              blockNumber: txData?.blockNumber || null,
-              blockHash: txData?.blockHash || null,
-              status: txData?.status || 'PENDING',
-              gasUsed: txData?.gasUsed || null,
-              confirmations: txData?.confirmations || 0,
-              timestamp: txData?.fetchedAt || item.created_at,
-              verified: (txData?.verified && txData?.confirmations > 0) || false,
-              explorerUrl: txData?.explorerUrl || `https://sepolia.etherscan.io/tx/${item.blockchain_tx_hash}`,
-            };
-            cache[item.id] = blockchainData;
-
-          } catch (err) {
-            console.warn(`[LaporanPage] Error for item ${item.id}:`, err.message);
-            
-            blockchainData = {
-              docHash: item.blockchain_doc_hash,
-              txHash: item.blockchain_tx_hash,
-              timestamp: item.created_at,
-              verified: false,
-              explorerUrl: `https://sepolia.etherscan.io/tx/${item.blockchain_tx_hash}`,
-              status: 'PENDING'
-            };
-            cache[item.id] = blockchainData;
-            onChainCount++;
-          }
-
-          return { ...item, blockchainData };
-
-        } else if (item.blockchain_doc_hash) {
-          // ✅ PRIORITY 2: Ada docHash tapi belum txHash
-          console.log(`[LaporanPage] Item ${item.id}: Has docHash, fetching real blockchain data...`);
-          
-          try {
-            // ✅ Fetch real blockchain data from backend API
-            const verifyResponse = await api.get(`/blockchain/verify/${encodeURIComponent(item.blockchain_doc_hash)}`);
-            
-            if (verifyResponse.data?.success && verifyResponse.data?.verified) {
-              const realBlockchainData = verifyResponse.data?.data;
-              
-              console.log(`[LaporanPage] ✅ Item ${item.id}: Found on blockchain!`, {
-                docHash: realBlockchainData.docHash,
-                docId: realBlockchainData.docId,
-                uploader: realBlockchainData.uploader,
-                timestamp: realBlockchainData.timestamp,
-              });
-
-              blockchainData = {
-                docHash: realBlockchainData.docHash,  // ✅ REAL from blockchain
-                docId: realBlockchainData.docId,      // ✅ Document ID on chain
-                docType: realBlockchainData.docType,  // ✅ Type from smart contract
-                txHash: null,                          // Will be updated when txHash arrives
-                timestamp: realBlockchainData.timestamp,
-                verified: realBlockchainData.verified,
-                uploader: realBlockchainData.uploader,
-                metadata: realBlockchainData.metadata,
-                explorerUrl: null,
-                status: 'CONFIRMED_NO_TX',              // ✅ On blockchain, but txHash pending
-              };
-              enrichedCount++;
-              onChainCount++;
-              
-              console.log(`[LaporanPage] Item ${item.id}: Real blockchain data stored`, blockchainData);
-            } else {
-              // Not yet on blockchain
-              console.log(`[LaporanPage] Item ${item.id}: Not yet on blockchain (404)`);
+            if (verificationResult.verified) {
+              // Success - real blockchain data
               blockchainData = {
                 docHash: item.blockchain_doc_hash,
-                txHash: null,
-                timestamp: item.created_at,
-                verified: false,
-                explorerUrl: null,
-                status: 'PENDING_BLOCKCHAIN',  // Still waiting to be broadcast
+                docId: verificationResult.docId,
+                txHash: null, // Will be filled by transaction lookup
+                verified: true,
+                status: 'CONFIRMED',
+                timestamp: verificationResult.timestampISO,
+                uploader: verificationResult.uploader,
+                metadata: verificationResult.metadata
               };
-              pendingCount++;
+              
+              // ✅ Also try to get transaction proof if we have tx hash
+              if (item.blockchain_tx_hash) {
+                try {
+                  const txProof = await getTransactionProof(item.blockchain_tx_hash);
+                  if (txProof) {
+                    blockchainData = {
+                      ...blockchainData,
+                      txHash: item.blockchain_tx_hash,
+                      blockNumber: txProof.blockNumber,
+                      gasUsed: txProof.gasUsed,
+                      gasPrice: txProof.gasPrice,
+                      confirmations: txProof.confirmations,
+                      explorerUrl: txProof.explorerUrl
+                    };
+                  }
+                } catch (txErr) {
+                  console.warn(`[LaporanPage] Could not fetch tx proof for ${item.blockchain_tx_hash}:`, txErr.message);
+                }
+              }
+              
+              enrichedCount++;
+              console.log(`[LaporanPage] ✅ Item ${item.id}: Blockchain verified`);
+            } else {
+              // Not found on blockchain
+              blockchainData = {
+                docHash: item.blockchain_doc_hash,
+                verified: false,
+                status: 'PENDING_BLOCKCHAIN',
+                error: verificationResult.error
+              };
             }
           } catch (err) {
-            console.warn(`[LaporanPage] Error verifying item ${item.id} on blockchain:`, {
-              message: err.message,
-              status: err.response?.status,
-              errorType: err.response?.data?.error || 'unknown'
-            });
-            
-            // ✅ Handle different error types
-            const errorStatus = err.response?.status;
-            const isServiceUnavailable = errorStatus === 503 || err.response?.data?.message?.includes('unavailable');
-            
-            // Fallback to backend data if verification fails
+            console.warn(`[LaporanPage] Error verifying item ${item.id}:`, err.message);
             blockchainData = {
               docHash: item.blockchain_doc_hash,
-              txHash: null,
-              timestamp: item.created_at,
               verified: false,
-              explorerUrl: null,
-              status: isServiceUnavailable ? 'SERVICE_UNAVAILABLE' : 'VERIFY_ERROR',
-              error: err.message,
+              status: 'ERROR',
+              error: err.message
             };
-            
-            // Count as pending if service is down (might succeed later)
-            // Count as error if other issues
-            if (isServiceUnavailable) {
-              pendingCount++;
-            } else {
-              pendingCount++;
-            }
           }
           
           cache[item.id] = blockchainData;
           return { ...item, blockchainData };
         } else {
-          // ✅ PRIORITY 3: Tidak ada data blockchain
-          console.log(`[LaporanPage] Item ${item.id}: No blockchain data`);
-          blockchainData = null;
+          // No blockchain data
           cache[item.id] = null;
-          return { ...item, blockchainData };
+          return { ...item, blockchainData: null };
         }
       });
 
-      // ✅ Wait untuk batch selesai sebelum next batch
       const batchResults = await Promise.all(promises);
-      enrichedLaporanArray.push(...batchResults);
+      updatedLaporan.splice(i, batchSize, ...batchResults);
       
-      // Small delay between batches untuk avoid rate limiting
-      if (i + batchSize < laporan.length) {
-        await new Promise(r => setTimeout(r, 500));
-      }
-    }
-
-    // ✅ Update state
-    setBlockchainCache(cache);
-    setLaporan(enrichedLaporanArray);
-    
-    console.log(`[LaporanPage] ✅ Enrichment complete:`, {
-      total: enrichedLaporanArray.length,
-      onChain: onChainCount,
-      verified: enrichedCount,
-      pending: pendingCount,
-      databaseOnly: enrichedLaporanArray.length - onChainCount - pendingCount
-    });
-  };
-
-  // ✅ LIGHTWEIGHT POLLING: Only check pending status (NO Sepolia calls to avoid 429)
-  const pollPendingStatusOnly = async () => {
-    if (laporan.length === 0) return false;
-
-    const pendingItems = laporan.filter(l => !l.blockchain_tx_hash && l.blockchain_doc_hash);
-    if (pendingItems.length === 0) return false;
-
-    console.log(`[LaporanPage] 🔄 Lightweight poll: ${pendingItems.length} pending...`);
-    let hasUpdates = false;
-    
-    // ✅ REDUCED: Batch size dari 5 ke 2 items (less concurrent requests)
-    const batchSize = 2;
-    for (let i = 0; i < pendingItems.length; i += batchSize) {
-      const batch = pendingItems.slice(i, i + batchSize);
-      
-      try {
-        // ✅ ADD TIMEOUT per request
-        const promises = batch.map(item => 
-          Promise.race([
-            api.get(`/perencanaan/${item.id}`),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Request timeout')), POLL_TIMEOUT)
-            )
-          ]).catch(err => {
-            if (err.message === 'Request timeout') {
-              console.warn(`[LaporanPage] ⏱️ Timeout for item ${item.id}, skipping...`);
-              return null;
-            }
-            if (err.response?.status === 429) {
-              console.warn('[LaporanPage] ⚠️ Rate limited (429), slowing down...');
-              return null;
-            }
-            if (err.response?.status === 500) {
-              console.warn(`[LaporanPage] ⚠️ Server error (500) for item ${item.id}`);
-              return null;
-            }
-            console.warn(`[LaporanPage] Error for item ${item.id}:`, err.message);
-            return null;
-          })
-        );
-        
-        const responses = await Promise.all(promises);
-        
-        for (let j = 0; j < responses.length; j++) {
-          if (!responses[j]) continue;
-          
-          try {
-            const updatedData = responses[j].data?.data || responses[j].data;
-            const item = batch[j];
-            const txHash = updatedData.blockchain?.tx_hash || updatedData.blockchain_tx_hash;
-            
-            if (txHash && txHash !== item.blockchain_tx_hash) {
-              console.log(`✅ Item ${item.id}: txHash confirmed!`);
-              toast.success(`✅ ${updatedData.nama_perusahaan} blockchain verified!`);
-              hasUpdates = true;
-              
-              // Update in-place
-              const idx = laporan.findIndex(l => l.id === item.id);
-              if (idx >= 0) {
-                laporan[idx] = {
-                  ...laporan[idx],
-                  blockchain_tx_hash: txHash,
-                  blockchain_status: updatedData.blockchain?.status || 'confirmed'
-                };
-              }
-            }
-          } catch (parseErr) {
-            console.warn(`[LaporanPage] Error parsing response:`, parseErr.message);
-          }
-        }
-      } catch (err) {
-        console.warn('[LaporanPage] Poll batch error:', err.message);
-      }
-      
-      // ✅ INCREASED: Delay dari 1.2s ke 3s between batches
-      if (i + batchSize < pendingItems.length) {
+      // ✅ Longer delay between batches for blockchain calls
+      if (i + batchSize < updatedLaporan.length) {
+        console.log(`[LaporanPage] Waiting 3s before next batch (blockchain rate limiting)...`);
         await new Promise(r => setTimeout(r, 3000));
       }
     }
+
+    // Update state
+    setBlockchainCache(cache);
+    setLaporan(updatedLaporan);
     
-    if (hasUpdates) setLaporan([...laporan]);
-    return hasUpdates;
+    console.log(`[LaporanPage] ✅ Blockchain enrichment complete:`, {
+      total: updatedLaporan.length,
+      verified: enrichedCount,
+    });
+
+    if (enrichedCount > 0) {
+      toast.success(`✅ ${enrichedCount} documents verified on blockchain`);
+    }
   };
 
-  // ✅ POLLING: DISABLED - Auto-refresh turned off for better UX
-  // useEffect(() => {
-  //   if (!isReady || laporan.length === 0) return;
-  //
-  //   const hasPendingItems = laporan.some(l => !l.blockchain_tx_hash && l.blockchain_doc_hash);
-  //   if (!hasPendingItems) {
-  //     console.log('[LaporanPage] ℹ️ No pending items, polling disabled');
-  //     return;
-  //   }
-  //
-  //   console.log('[LaporanPage] ✅ Polling ENABLED (45s interval, low intensity)');
-  //   const pollInterval = setInterval(() => {
-  //     pollPendingStatusOnly().catch(err => {
-  //       console.warn('[LaporanPage] Poll error:', err.message);
-  //     });
-  //   }, 45000); // 45 seconds - MUCH less aggressive
-  //
-  //   return () => {
-  //     clearInterval(pollInterval);
-  //     console.log('[LaporanPage] Polling cleared');
-  //   };
-  // }, [isReady, laporan.length]);
-
-  // ✅ Generate mock data dengan GUARANTEED blockchain data
-  const generateMockData = (count) => {
-    const kegiatan = ["Planting Mangrove", "Coral Transplanting"];
-    const bibit = ["Mangrove", "Karang", "Bakau", "Cemara Laut"];
-    const lokasi = [
-      "-2.548922, 118.014968",
-      "-2.549500, 118.015500",
-      "-2.550000, 118.016000",
-      "-2.548000, 118.013000",
-      "-2.551000, 118.017000",
-    ];
+  // ✅ Generate blockchain QR with frontend verification
+  const generateBlockchainQRCode = async (item) => {
+    setSelectedLaporan(item);
+    setLoadingBlockchain(true);
     
-    const companies = [
-      "PT. Contoh Indonesia",
-      "CV. Green Future",
-      "PT. Alam Lestari",
-      "Yayasan Konservasi",
-      "PT. Biru Nusantara",
-      "Komunitas Hijau",
-    ];
+    try {
+      console.log('[LaporanPage] Generating blockchain QR code...');
+      
+      let blockchainData = null;
+      
+      // ✅ Verify on blockchain using frontend service
+      if (item.blockchain_doc_hash && isReady) {
+        try {
+          const verificationResult = await verifyDocumentHash(item.blockchain_doc_hash);
+          if (verificationResult.verified) {
+            blockchainData = verificationResult;
+            console.log('[LaporanPage] ✅ Blockchain verification successful');
+          }
+        } catch (err) {
+          console.warn('[LaporanPage] Blockchain verification failed:', err.message);
+        }
+      }
 
-    const data = [];
-    for (let i = 1; i <= count; i++) {
-      // ✅ GUARANTEED: Setiap item punya blockchain data (tidak random)
-      data.push({
-        id: i,
-        nama_perusahaan: companies[i % companies.length],
-        nama_pic: `Person ${i}`,
-        narahubung: `+62 812-${String(i).padStart(4, '0')}-xxxx`,
-        jenis_kegiatan: kegiatan[i % kegiatan.length],
-        jenis_bibit: bibit[i % bibit.length],
-        jumlah_bibit: 50 + (i * 5),
-        lokasi: lokasi[i % lokasi.length],
-        tanggal_pelaksanaan: new Date(2024, 0, Math.min(i, 28)).toISOString().split('T')[0],
-        is_implemented: i % 2 === 0,
-        // ✅ SELALU ADA blockchain data
-        blockchain_doc_hash: `0x${i.toString().padStart(64, '0')}`,
-        blockchain_tx_hash: `0x${(1000 + i).toString().padStart(64, '0')}`,
-        created_at: new Date(2024, 0, Math.min(i, 28)).toISOString(),
-        source: "BLOCKCHAIN"
+      const qrData = {
+        type: 'PERENCANAAN_BLOCKCHAIN',
+        timestamp: new Date().toISOString(),
+        verification: {
+          blockchainVerified: !!blockchainData,
+          docHash: item.blockchain_doc_hash || null,
+          txHash: item.blockchain_tx_hash || null,
+          docId: blockchainData?.docId || null,
+          verificationUrl: blockchainData 
+            ? `https://3treesify-ccs.netlify.app/verify/${item.blockchain_doc_hash}`
+            : null,
+          source: blockchainData ? "SEPOLIA_BLOCKCHAIN" : "DATABASE"
+        },
+        data: {
+          id: item.id,
+          nama_perusahaan: item.nama_perusahaan,
+          nama_pic: item.nama_pic,
+          narahubung: item.narahubung,
+          jenis_kegiatan: item.jenis_kegiatan,
+          jenis_bibit: item.jenis_bibit,
+          jumlah_bibit: item.jumlah_bibit,
+          lokasi: item.lokasi,
+          tanggal_pelaksanaan: item.tanggal_pelaksanaan,
+          is_implemented: item.is_implemented,
+          blockchain_doc_hash: item.blockchain_doc_hash,
+          blockchain_tx_hash: item.blockchain_tx_hash,
+          created_at: item.created_at
+        },
+        blockchainProof: blockchainData || null
+      };
+
+      const qrUrl = await QRCode.toDataURL(JSON.stringify(qrData), {
+        width: 400,
+        margin: 2,
+        color: {
+          dark: blockchainData ? '#10b981' : '#3b82f6',
+          light: '#ffffff'
+        },
+        errorCorrectionLevel: 'H'
       });
+
+      setQrCodeData({
+        url: qrUrl,
+        data: qrData,
+        verified: !!blockchainData
+      });
+      
+      setQrModalOpen(true);
+      toast.success(blockchainData 
+        ? "🔗 QR Code with blockchain proof!" 
+        : "📱 QR Code from database");
+      
+    } catch (err) {
+      console.error('[LaporanPage] QR generation error:', err);
+      toast.error("❌ Failed to generate QR Code: " + err.message);
+    } finally {
+      setLoadingBlockchain(false);
     }
-    return data;
   };
 
   // ✅ Fetch blockchain data untuk dokumen spesifik
@@ -715,78 +632,6 @@ export default function LaporanPage() {
     }
   };
 
-  // ✅ Update bagian blockchain ke backend-driven
-  const generateBlockchainQRCode = async (item) => {
-    setSelectedLaporan(item);
-    setLoadingBlockchain(true);
-    
-    try {
-      // ✅ Fetch blockchain verification dari backend
-      const token = localStorage.getItem('token');
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/blockchain/document/${item.id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      let blockchainData = null;
-      if (response.ok) {
-        blockchainData = await response.json();
-      }
-
-      const qrData = {
-        type: 'PERENCANAAN_BLOCKCHAIN',
-        timestamp: new Date().toISOString(),
-        verification: {
-          blockchainVerified: !!blockchainData?.docHash,
-          docHash: blockchainData?.docHash || null,
-          txHash: blockchainData?.txHash || null,
-          verificationUrl: blockchainData?.docHash 
-            ? `https://3treesify-ccs.netlify.app/verify/${blockchainData.docHash}`
-            : null,
-          source: blockchainData ? "BLOCKCHAIN" : "DATABASE"
-        },
-        data: {
-          id: item.id,
-          nama_perusahaan: item.nama_perusahaan,
-          jenis_kegiatan: item.jenis_kegiatan,
-          jumlah_bibit: item.jumlah_bibit,
-          lokasi: item.lokasi,
-        },
-      };
-
-      const qrUrl = await QRCode.toDataURL(JSON.stringify(qrData), {
-        width: 400,
-        margin: 2,
-        color: {
-          dark: blockchainData?.docHash ? '#10b981' : '#3b82f6',
-          light: '#ffffff'
-        },
-        errorCorrectionLevel: 'H'
-      });
-
-      setQrCodeData({
-        url: qrUrl,
-        data: qrData,
-        verified: !!blockchainData?.docHash
-      });
-      
-      setQrModalOpen(true);
-      toast.success(blockchainData?.docHash 
-        ? "🔗 QR Code dari Blockchain!" 
-        : "📱 QR Code dari Database");
-      
-    } catch (err) {
-      console.error('[LaporanPage] QR generation error:', err);
-      toast.error("❌ Gagal membuat QR Code");
-    } finally {
-      setLoadingBlockchain(false);
-    }
-  };
 
   // ✅ Generate PDF dari Laporan
   const generatePDF = async (item) => {
@@ -1592,3 +1437,17 @@ export default function LaporanPage() {
     </div>
   );
 }
+
+// ✅ NEW: Transform blockchain data dari backend response
+const transformBlockchainData = (item) => {
+  return {
+    ...item,
+    // ✅ Handle berbagai format response dari backend
+    blockchain_doc_hash: item.blockchain_doc_hash || item.blockchain?.doc_hash || null,
+    blockchain_tx_hash: item.blockchain_tx_hash || item.blockchain?.tx_hash || null,
+    blockchain_status: item.blockchain_status || item.blockchain?.status || 'none',
+    blockchain_doc_id: item.blockchain_doc_id || item.blockchain?.doc_id || null,
+    blockchain_block_number: item.blockchain_block_number || item.blockchain?.block_number || null,
+    blockchain_contract_address: item.blockchain_contract_address || item.blockchain?.contract_address || null,
+  };
+};

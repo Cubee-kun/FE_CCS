@@ -1,85 +1,125 @@
 import { useBlockchain } from '../contexts/BlockchainContext';
 import { motion } from 'framer-motion';
-import { FiCheckCircle, FiAlertCircle, FiCopy, FiExternalLink } from 'react-icons/fi';
+import { FiCheckCircle, FiAlertCircle, FiCopy, FiExternalLink, FiWifi, FiWifiOff } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 
 export default function BlockchainStatus() {
-  const { isReady, walletAddress, walletStatus, loading } = useBlockchain();
+  const { 
+    isReady, 
+    isConnected, 
+    loading, 
+    walletAddress, 
+    walletStatus, 
+    error,
+    getExplorerUrl 
+  } = useBlockchain();
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm">
-        <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-transparent"></div>
-        <span>Initializing...</span>
-      </div>
+      <motion.div 
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 text-sm"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        <div className="animate-spin rounded-full h-4 w-4 border-2 border-yellow-400 border-t-transparent"></div>
+        <span>Connecting to blockchain...</span>
+      </motion.div>
     );
   }
 
-  if (!isReady) {
+  if (!isReady || error) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-sm">
-        <FiAlertCircle className="w-4 h-4" />
+      <motion.div 
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm"
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+      >
+        <FiWifiOff className="w-4 h-4" />
         <span>Blockchain unavailable</span>
-      </div>
+        {error && (
+          <span className="text-xs ml-1 opacity-75">({error})</span>
+        )}
+      </motion.div>
     );
   }
 
   const copyAddress = () => {
+    if (!walletAddress) return;
     navigator.clipboard.writeText(walletAddress);
-    toast.success('📋 Address copied!');
+    toast.success('📋 Wallet address copied!');
+  };
+
+  const viewOnExplorer = () => {
+    if (!walletAddress) return;
+    window.open(`https://sepolia.etherscan.io/address/${walletAddress}`, '_blank');
   };
 
   return (
     <motion.div
-      className="flex items-center gap-3 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-700"
+      className="flex items-center gap-3 px-4 py-2 rounded-lg bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.5 }}
     >
+      {/* Connection Status */}
       <div className="flex items-center gap-2">
-        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-        <FiCheckCircle className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+        <motion.div 
+          className="w-2 h-2 rounded-full bg-green-500"
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+        <FiWifi className="w-4 h-4 text-green-600 dark:text-green-400" />
       </div>
       
+      {/* Wallet Info */}
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-semibold text-purple-700 dark:text-purple-300">
-          💎 Blockchain: Active
+        <div className="text-xs font-semibold text-green-700 dark:text-green-300">
+          🔗 Blockchain: Connected
         </div>
-        <div className="flex items-center gap-1">
-          <code className="text-xs font-mono text-purple-600 dark:text-purple-400 truncate">
-            {walletAddress?.slice(0, 8)}...{walletAddress?.slice(-6)}
-          </code>
-        </div>
+        {walletAddress && (
+          <div className="flex items-center gap-1">
+            <code className="text-xs font-mono text-green-600 dark:text-green-400 truncate">
+              {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+            </code>
+          </div>
+        )}
       </div>
+
+      {/* Balance */}
+      {walletStatus?.balance && (
+        <div className="text-xs font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">
+          {parseFloat(walletStatus.balance).toFixed(4)} ETH
+        </div>
+      )}
+
+      {/* Network Info */}
+      {walletStatus?.network && (
+        <div className="text-xs text-green-600 dark:text-green-400 capitalize">
+          {walletStatus.network}
+        </div>
+      )}
 
       {/* Copy Button */}
       <motion.button
         onClick={copyAddress}
-        className="p-1.5 hover:bg-purple-200 dark:hover:bg-purple-800/50 rounded transition-colors"
+        className="p-1.5 hover:bg-green-200 dark:hover:bg-green-800/50 rounded transition-colors"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         title="Copy wallet address"
       >
-        <FiCopy className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+        <FiCopy className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
       </motion.button>
 
       {/* View on Etherscan */}
-      <a
-        href={`https://sepolia.etherscan.io/address/${walletAddress}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="p-1.5 hover:bg-purple-200 dark:hover:bg-purple-800/50 rounded transition-colors"
+      <motion.button
+        onClick={viewOnExplorer}
+        className="p-1.5 hover:bg-green-200 dark:hover:bg-green-800/50 rounded transition-colors"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
         title="View on Etherscan"
       >
-        <FiExternalLink className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-      </a>
-
-      {/* Balance */}
-      {walletStatus?.balance && (
-        <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 whitespace-nowrap">
-          {parseFloat(walletStatus.balance).toFixed(4)} ETH
-        </div>
-      )}
+        <FiExternalLink className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+      </motion.button>
     </motion.div>
   );
 }

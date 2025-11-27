@@ -1,276 +1,179 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { ethers } from 'ethers';
+import { blockchainService } from '../services/blockchain';
 
 const BlockchainContext = createContext();
 
 export function BlockchainProvider({ children }) {
-  const [provider, setProvider] = useState(null);
-  const [signer, setSigner] = useState(null);
-  const [account, setAccount] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState(null);
+  const [walletStatus, setWalletStatus] = useState(null);
   const [error, setError] = useState(null);
-  const [chainId, setChainId] = useState(null);
-  const [balance, setBalance] = useState('0');
+  const [loading, setLoading] = useState(true);
 
-  // ✅ Initialize blockchain dari .env file
+  // ✅ Initialize blockchain service on mount
   useEffect(() => {
-    const initBlockchain = async () => {
+    const initializeBlockchain = async () => {
       try {
-        console.log('[BlockchainContext] Initializing from .env configuration...');
+        console.log('[BlockchainContext] Initializing blockchain service...');
         
-        const privateKey = import.meta.env.VITE_WALLET_PRIVATE_KEY;
-        const rpcUrl = import.meta.env.VITE_SEPOLIA_RPC_URL;
-        const chainId = import.meta.env.VITE_SEPOLIA_CHAIN_ID;
+        const initialized = await blockchainService.initialize();
         
-        // ✅ Validasi konfigurasi
-        if (!privateKey) {
-          throw new Error('VITE_WALLET_PRIVATE_KEY tidak ditemukan di .env');
+        if (initialized) {
+          setIsReady(true);
+          setIsConnected(true);
+          setWalletAddress(blockchainService.getWalletAddress());
+          
+          // Get wallet status
+          const status = await blockchainService.getWalletStatus();
+          setWalletStatus(status);
+          
+          console.log('[BlockchainContext] ✅ Blockchain service ready');
+          setError(null);
+        } else {
+          throw new Error('Failed to initialize blockchain service');
         }
-        
-        if (!rpcUrl) {
-          throw new Error('VITE_SEPOLIA_RPC_URL tidak ditemukan di .env');
-        }
-
-        // ✅ Create provider dari RPC URL
-        const ethProvider = new ethers.JsonRpcProvider(rpcUrl);
-        console.log('[BlockchainContext] ✅ Provider created from RPC');
-        
-        // ✅ Create wallet dari private key
-        const wallet = new ethers.Wallet(privateKey, ethProvider);
-        console.log('[BlockchainContext] ✅ Wallet created from private key');
-        console.log('[BlockchainContext] Wallet address:', wallet.address);
-        
-        // ✅ Get account info
-        const network = await ethProvider.getNetwork();
-        const walletBalance = await ethProvider.getBalance(wallet.address);
-        const balanceInEth = ethers.formatEther(walletBalance);
-        
-        console.log('[BlockchainContext] ✅ Connected to:', {
-          network: network.name,
-          chainId: Number(network.chainId),
-          address: wallet.address,
-          balance: balanceInEth,
-        });
-
-        setProvider(ethProvider);
-        setSigner(wallet);
-        setAccount(wallet.address);
-        setBalance(balanceInEth);
-        setChainId(Number(network.chainId));
-        setIsConnected(true);
-        setError(null);
-        
       } catch (err) {
         console.error('[BlockchainContext] ❌ Initialization error:', err.message);
         setError(err.message);
+        setIsReady(false);
         setIsConnected(false);
       } finally {
-        setIsReady(true);
+        setLoading(false);
       }
     };
 
-    // ✅ Small delay untuk memastikan .env sudah load
-    const timer = setTimeout(initBlockchain, 500);
-    return () => clearTimeout(timer);
+    initializeBlockchain();
   }, []);
 
-  // ✅ Get blockchain status
-  const getBlockchainStatus = () => {
-    return {
-      isConnected,
-      isReady,
-      account,
-      chainId,
-      balance,
-      error,
-    };
-  };
-
-  // ✅ GET TRANSACTION - Fetch real tx dari Sepolia menggunakan provider
-  const getTransaction = async (txHash) => {
-    try {
-      if (!provider) {
-        throw new Error('Provider not initialized');
-      }
-
-      if (!txHash || txHash === '0x') {
-        throw new Error('Invalid transaction hash');
-      }
-
-      console.log('[BlockchainContext] Fetching transaction:', txHash);
-
-      // ✅ Get transaction dari blockchain
-      const tx = await provider.getTransaction(txHash);
-      
-      if (!tx) {
-        console.warn('[BlockchainContext] ⚠️ Transaction not found:', txHash);
-        return null;
-      }
-
-      console.log('[BlockchainContext] ✅ Transaction fetched:', tx);
-
-      // ✅ Get transaction receipt (konfirmasi blok)
-      const receipt = await provider.getTransactionReceipt(txHash);
-      
-      console.log('[BlockchainContext] ✅ Receipt fetched:', receipt);
-
-      return {
-        txHash: tx.hash,
-        from: tx.from,
-        to: tx.to,
-        value: ethers.formatEther(tx.value),
-        gasPrice: ethers.formatUnits(tx.gasPrice, 'gwei'),
-        gasLimit: tx.gasLimit.toString(),
-        data: tx.data,
-        nonce: tx.nonce,
-        blockNumber: receipt?.blockNumber || null,
-        blockHash: receipt?.blockHash || null,
-        transactionIndex: receipt?.transactionIndex || null,
-        gasUsed: receipt?.gasUsed?.toString() || null,
-        cumulativeGasUsed: receipt?.cumulativeGasUsed?.toString() || null,
-        contractAddress: receipt?.contractAddress || null,
-        status: receipt?.status === 1 ? 'success' : receipt?.status === 0 ? 'failed' : 'pending',
-        confirmations: receipt?.confirmations || 0,
-        timestamp: new Date().toISOString(),
-        verified: !!receipt, // ✅ Verified jika sudah ada receipt
-        explorerUrl: `https://sepolia.etherscan.io/tx/${txHash}`
-      };
-    } catch (error) {
-      console.error('[BlockchainContext] Get transaction error:', error);
-      return null;
-    }
-  };
-
-  // ✅ GET TRANSACTION PROOF - Alias untuk getTransaction
-  const getTransactionProof = async (txHash) => {
-    return getTransaction(txHash);
-  };
-
-  // ✅ Store document hash ke blockchain
+  // ✅ Store document directly to blockchain
   const storeDocumentHash = async (docType, formData, metadata = {}) => {
     try {
-      if (!isConnected || !signer) {
-        throw new Error('Blockchain service tidak terhubung');
+      if (!isReady) {
+        throw new Error('Blockchain service not ready');
       }
 
-      console.log('[BlockchainContext] Storing document to blockchain...');
-
-      // ✅ Gunakan smart contract untuk menyimpan
-      const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
-      
-      if (!contractAddress) {
-        throw new Error('Contract address tidak ditemukan di .env');
-      }
-
-      // ✅ Simpan data via API (backend yang akan handle blockchain transaction)
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('User not authenticated');
-      }
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/blockchain/store-document`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          docType,
-          formData,
-          metadata: {
-            ...metadata,
-            timestamp: new Date().toISOString(),
-            walletAddress: account,
-          },
-        }),
+      return await blockchainService.storeDocumentToBlockchain(formData, {
+        docType,
+        ...metadata,
+        walletAddress
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `API returned ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      console.log('[BlockchainContext] ✅ Document stored:', result);
-
-      return {
-        success: true,
-        docId: result.docId,
-        docHash: result.docHash,
-        txHash: result.txHash,
-        blockNumber: result.blockNumber,
-        gasUsed: result.gasUsed,
-      };
     } catch (error) {
       console.error('[BlockchainContext] Store error:', error);
       return {
         success: false,
-        error: error.message,
+        error: error.message
       };
     }
   };
 
-  // ✅ Verify document hash
+  // ✅ Get document directly from blockchain
+  const getDocument = async (docIdOrHash) => {
+    try {
+      if (!isReady) {
+        throw new Error('Blockchain service not ready');
+      }
+
+      // Check if it's a doc ID (number) or hash (0x...)
+      if (typeof docIdOrHash === 'number' || /^\d+$/.test(docIdOrHash)) {
+        return await blockchainService.getDocumentById(docIdOrHash);
+      } else if (typeof docIdOrHash === 'string' && docIdOrHash.startsWith('0x')) {
+        return await blockchainService.verifyDocumentOnBlockchain(docIdOrHash);
+      } else {
+        throw new Error('Invalid document ID or hash format');
+      }
+    } catch (error) {
+      console.error('[BlockchainContext] Get document error:', error);
+      return null;
+    }
+  };
+
+  // ✅ Verify document hash directly on blockchain
   const verifyDocumentHash = async (docHash) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('User not authenticated');
+      if (!isReady) {
+        throw new Error('Blockchain service not ready');
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/blockchain/verify-document?docHash=${docHash}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Verification failed with status ${response.status}`);
-      }
-
-      const result = await response.json();
-      return {
-        verified: result.verified,
-        docHash: result.docHash,
-        txHash: result.txHash,
-        timestamp: result.timestamp,
-      };
+      return await blockchainService.verifyDocumentOnBlockchain(docHash);
     } catch (error) {
       console.error('[BlockchainContext] Verification error:', error);
       return {
         verified: false,
-        error: error.message,
+        error: error.message
       };
     }
   };
 
-  // ✅ Get explorer URL
+  // ✅ Get transaction proof directly from blockchain
+  const getTransactionProof = async (txHash) => {
+    try {
+      if (!isReady) {
+        throw new Error('Blockchain service not ready');
+      }
+
+      return await blockchainService.fetchTransactionFromSepolia(txHash);
+    } catch (error) {
+      console.error('[BlockchainContext] Transaction proof error:', error);
+      return null;
+    }
+  };
+
+  // ✅ Get all documents from blockchain
+  const getAllDocuments = async (startId = 0, limit = 50) => {
+    try {
+      if (!isReady) {
+        throw new Error('Blockchain service not ready');
+      }
+
+      return await blockchainService.getAllDocuments(startId, limit);
+    } catch (error) {
+      console.error('[BlockchainContext] Get all documents error:', error);
+      return {
+        documents: [],
+        totalCount: 0,
+        error: error.message
+      };
+    }
+  };
+
+  // ✅ Get blockchain explorer URL
   const getExplorerUrl = (txHash) => {
-    return `https://sepolia.etherscan.io/tx/${txHash}`;
+    return blockchainService.getExplorerUrl(txHash);
+  };
+
+  // ✅ Get blockchain status
+  const getBlockchainStatus = () => {
+    return {
+      isReady,
+      isConnected,
+      walletAddress,
+      walletStatus,
+      error,
+      loading
+    };
   };
 
   const value = {
-    provider,
-    signer,
-    account,
-    isConnected,
+    // Status
     isReady,
-    chainId,
-    balance,
+    isConnected,
+    loading,
     error,
-    getBlockchainStatus,
+    walletAddress,
+    walletStatus,
+    
+    // Functions
     storeDocumentHash,
+    getDocument,
     verifyDocumentHash,
-    getExplorerUrl,
-    getTransaction,
     getTransactionProof,
+    getAllDocuments,
+    getExplorerUrl,
+    getBlockchainStatus,
+    
+    // Direct access to service (for advanced usage)
+    blockchainService
   };
 
   return (

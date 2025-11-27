@@ -9,6 +9,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from "re
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "react-toastify/dist/ReactToastify.css";
+import { useBlockchain } from "../../contexts/BlockchainContext";
+import blockchainService from "../../services/blockchain";
 
 // ✅ Fix Leaflet default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -70,6 +72,8 @@ const PerencanaanForm = () => {
   const [success, setSuccess] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [mapCenter, setMapCenter] = useState([-2.5489, 118.0149]); // Indonesia center
+  const [blockchainLoading, setBlockchainLoading] = useState(false);
+  const { isReady } = useBlockchain();
 
   const validationSchema = Yup.object({
     nama_perusahaan: Yup.string().required("Wajib diisi"),
@@ -105,40 +109,99 @@ const PerencanaanForm = () => {
         console.log('[PerencanaanForm] ========== FORM SUBMISSION START ==========');
         console.log('[PerencanaanForm] Form data:', values);
         
-        // ✅ STEP 1: Send form data to backend (backend akan handle blockchain)
-        console.log('[PerencanaanForm] Submitting to POST /perencanaan...');
-        const response = await api.post('/perencanaan', values);
-        
-        console.log('[PerencanaanForm] API Response:', response.data);
-        
-        const createdData = response.data?.data || response.data;
-        console.log('[PerencanaanForm] Created data:', createdData);
-
-        // ✅ STEP 2: Extract blockchain data dari response
-        const blockchainDocHash = createdData?.blockchain?.doc_hash || createdData?.blockchain_doc_hash;
-        const blockchainTxHash = createdData?.blockchain?.tx_hash || createdData?.blockchain_tx_hash;
-        const blockchainStatus = createdData?.blockchain?.status || createdData?.blockchain_status;
-        
-        console.log('[PerencanaanForm] Blockchain fields:', {
-          doc_hash: blockchainDocHash,
-          tx_hash: blockchainTxHash,
-          status: blockchainStatus,
+        // ✅ STEP 1: Submit ke backend terlebih dahulu untuk dapat ID
+        console.log('[PerencanaanForm] Step 1: Saving to database...');
+        const response = await api.post('/perencanaan', {
+          ...values,
+          blockchain_status: 'pending' // Mark as pending blockchain
         });
         
-        // ✅ STEP 3: Show appropriate message
-        if (blockchainTxHash) {
-          toast.success('✅ Data disimpan & verified di blockchain!');
-        } else if (blockchainDocHash) {
-          toast.success('✅ Data disimpan (menunggu blockchain confirmation...)');
+        const createdData = response.data?.data || response.data;
+        const perencanaanId = createdData.id;
+        
+        console.log('[PerencanaanForm] Database save successful:', {
+          id: perencanaanId,
+          nama_perusahaan: createdData.nama_perusahaan
+        });
+
+        // ✅ STEP 2: Store to blockchain smart contract
+        let blockchainResult = null;
+        
+        if (isReady && blockchainService.isReady) {
+          try {
+            console.log('[PerencanaanForm] Step 2: Storing to blockchain...');
+            setBlockchainLoading(true);
+            
+            blockchainResult = await blockchainService.storePerencanaanToBlockchain(
+              values,
+              perencanaanId
+            );
+            
+            console.log('[PerencanaanForm] Blockchain result:', blockchainResult);
+
+            // ✅ STEP 3: Update database dengan blockchain info
+            if (blockchainResult.success) {
+              console.log('[PerencanaanForm] Step 3: Updating database with blockchain data...');
+              
+              await api.put(`/perencanaan/${perencanaanId}`, {
+                blockchain_doc_hash: blockchainResult.docHash,
+                blockchain_tx_hash: blockchainResult.txHash,
+                blockchain_doc_id: blockchainResult.docId,
+                blockchain_status: 'confirmed',
+                blockchain_contract_address: blockchainResult.contractAddress,
+                blockchain_block_number: blockchainResult.blockNumber,
+                blockchain_gas_used: blockchainResult.gasUsed,
+              });
+              
+              console.log('[PerencanaanForm] ✅ Blockchain integration complete!');
+              toast.success('🔗 Data disimpan ke database & blockchain!');
+              
+            } else {
+              // ✅ Blockchain failed, update status tapi tetap simpan doc_hash
+              console.warn('[PerencanaanForm] Blockchain failed, updating status...');
+              
+              await api.put(`/perencanaan/${perencanaanId}`, {
+                blockchain_doc_hash: blockchainResult.docHash, // Still save doc hash
+                blockchain_status: 'failed',
+                blockchain_error: blockchainResult.error,
+              });
+              
+              toast.warning('⚠️ Data tersimpan di database, blockchain gagal');
+            }
+          } catch (blockchainErr) {
+            console.error('[PerencanaanForm] Blockchain error:', blockchainErr);
+            
+            // ✅ Update database dengan error info
+            try {
+              await api.put(`/perencanaan/${perencanaanId}`, {
+                blockchain_status: 'error',
+                blockchain_error: blockchainErr.message,
+              });
+            } catch (updateErr) {
+              console.warn('[PerencanaanForm] Could not update error status:', updateErr.message);
+            }
+            
+            toast.error('❌ Blockchain error: ' + blockchainErr.message);
+          } finally {
+            setBlockchainLoading(false);
+          }
         } else {
-          toast.success('✅ Data berhasil disimpan!');
+          console.warn('[PerencanaanForm] Blockchain service not ready, skipping...');
+          toast.warning('⚠️ Blockchain service tidak tersedia, data hanya tersimpan di database');
         }
+
+        // ✅ STEP 4: Show final result & redirect
+        const finalMessage = blockchainResult?.success 
+          ? '✅ Data berhasil disimpan ke database & blockchain!'
+          : '✅ Data berhasil disimpan ke database';
+          
+        toast.success(finalMessage);
 
         resetForm();
         setSelectedLocation(null);
         setSuccess(true);
 
-        // Redirect setelah 2 detik
+        // ✅ Redirect ke laporan page untuk lihat hasil
         setTimeout(() => {
           window.location.href = '/admin/laporan';
         }, 2000);
@@ -482,22 +545,22 @@ const PerencanaanForm = () => {
             >
               <motion.button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || blockchainLoading}
                 className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-all ${
-                  submitting
+                  submitting || blockchainLoading
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 text-white"
                 }`}
               >
-                {submitting ? (
+                {submitting || blockchainLoading ? (
                   <span className="flex items-center justify-center gap-2">
                     <motion.div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
-                    Menyimpan Data...
+                    {blockchainLoading ? 'Menyimpan ke Blockchain...' : 'Menyimpan ke Database...'}
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
                     <FiCheckCircle className="w-6 h-6" />
-                    Simpan Data Perencanaan
+                    Simpan ke Database & Blockchain
                   </span>
                 )}
               </motion.button>

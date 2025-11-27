@@ -16,7 +16,7 @@ const RPC_URL = import.meta.env.VITE_SEPOLIA_RPC_URL || "https://ethereum-sepoli
 const PRIVATE_KEY = import.meta.env.VITE_WALLET_PRIVATE_KEY || "";
 
 // ✅ Contract Address dari environment
-const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || "";
+const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || "0x5C5F6CE61647600bB8c04F59c0F2B493EBE78DDF";
 
 class BlockchainService {
   constructor() {
@@ -267,6 +267,113 @@ class BlockchainService {
     }
   }
 
+  // ✅ Store perencanaan form data to blockchain
+  // ✅ UPDATED: Store perencanaan dengan better error handling
+  async storePerencanaanToBlockchain(formData, perencanaanId) {
+    try {
+      if (!this.isReady) {
+        throw new Error('Blockchain service not initialized');
+      }
+
+      console.log('[Blockchain] Storing perencanaan to contract:', CONTRACT_ADDRESS);
+      
+      // ✅ Calculate document hash
+      const docHash = this.calculateDocumentHash(formData);
+      
+      // ✅ Prepare metadata
+      const metadata = JSON.stringify({
+        perencanaan_id: perencanaanId,
+        nama_perusahaan: formData.nama_perusahaan,
+        jenis_kegiatan: formData.jenis_kegiatan,
+        timestamp: new Date().toISOString(),
+        source: 'FRONTEND_FORM'
+      });
+
+      console.log('[Blockchain] Calling storeDocument with:', {
+        docType: 'PERENCANAAN',
+        docHash,
+        metadata: metadata.substring(0, 100) + '...'
+      });
+
+      // ✅ Send transaction ke smart contract
+      toast.info('📤 Menyimpan ke blockchain...', { autoClose: false });
+      
+      const tx = await this.contract.storeDocument(
+        'PERENCANAAN',
+        docHash,
+        metadata
+      );
+
+      console.log('[Blockchain] Transaction sent:', tx.hash);
+      toast.info('⏳ Menunggu konfirmasi blockchain...', { autoClose: false });
+      
+      // ✅ Wait for confirmation
+      const receipt = await tx.wait();
+      console.log('[Blockchain] Transaction confirmed:', receipt);
+
+      // ✅ Extract document ID dari event logs
+      let blockchainDocId = null;
+      try {
+        const event = receipt.logs.find(log => {
+          try {
+            const parsedLog = this.contract.interface.parseLog(log);
+            return parsedLog.name === 'DocumentStored';
+          } catch {
+            return false;
+          }
+        });
+
+        if (event) {
+          const parsedLog = this.contract.interface.parseLog(event);
+          blockchainDocId = parsedLog.args.docId.toString();
+          console.log('[Blockchain] Document stored with ID:', blockchainDocId);
+        }
+      } catch (eventErr) {
+        console.warn('[Blockchain] Could not parse events:', eventErr.message);
+      }
+
+      toast.dismiss();
+      toast.success('✅ Data berhasil disimpan ke blockchain!');
+
+      return {
+        success: true,
+        docId: blockchainDocId,
+        docHash: docHash,
+        txHash: receipt.hash,
+        blockNumber: receipt.blockNumber,
+        gasUsed: receipt.gasUsed.toString(),
+        contractAddress: CONTRACT_ADDRESS,
+        explorerUrl: `https://sepolia.etherscan.io/tx/${receipt.hash}`,
+        walletAddress: this.walletAddress
+      };
+
+    } catch (error) {
+      toast.dismiss();
+      console.error('[Blockchain] Store error:', error);
+
+      // ✅ Better error categorization
+      let errorMessage = 'Gagal menyimpan ke blockchain';
+      
+      if (error.message.includes('insufficient funds')) {
+        errorMessage = '❌ Saldo wallet tidak cukup untuk gas fee!';
+      } else if (error.message.includes('user rejected')) {
+        errorMessage = '❌ Transaksi dibatalkan oleh user';
+      } else if (error.code === 'NETWORK_ERROR') {
+        errorMessage = '❌ Koneksi blockchain bermasalah';
+      } else if (error.code === 'TIMEOUT') {
+        errorMessage = '❌ Timeout: Blockchain network lambat';
+      }
+      
+      toast.error(errorMessage);
+
+      return {
+        success: false,
+        error: error.message,
+        docHash: this.calculateDocumentHash(formData), // Still return doc hash for database
+      };
+    }
+  }
+
   // ✅ Get document from blockchain
   async getDocument(docId) {
     try {
@@ -286,6 +393,32 @@ class BlockchainService {
     } catch (error) {
       console.error('[Blockchain] Get document error:', error);
       toast.error('❌ Gagal mengambil data dari blockchain');
+      return null;
+    }
+  }
+
+  // ✅ Get document by blockchain document ID
+  async getDocumentById(blockchainDocId) {
+    try {
+      if (!this.isReady) {
+        throw new Error('Blockchain service not initialized');
+      }
+
+      console.log('[Blockchain] Fetching document by ID:', blockchainDocId);
+      
+      const doc = await this.contract.getDocument(blockchainDocId);
+
+      return {
+        docId: blockchainDocId,
+        docType: doc[0],
+        docHash: doc[1],
+        metadata: JSON.parse(doc[2] || '{}'),
+        uploader: doc[3],
+        timestamp: new Date(Number(doc[4]) * 1000),
+        verified: true
+      };
+    } catch (error) {
+      console.error('[Blockchain] Get document error:', error);
       return null;
     }
   }
@@ -467,6 +600,214 @@ class BlockchainService {
     } catch (err) {
       console.error('[Blockchain] ❌ Fatal error in fetchTransactionFromSepolia:', err);
       return null;
+    }
+  }
+
+  // ✅ ENHANCED: Direct smart contract interaction without backend
+  async storeDocumentToBlockchain(formData, metadata = {}) {
+    try {
+      if (!this.isReady) {
+        throw new Error('Blockchain service not initialized');
+      }
+
+      console.log('[Blockchain] Direct contract call - storing document...');
+      
+      // ✅ Calculate document hash
+      const docHash = this.calculateDocumentHash(formData);
+      
+      // ✅ Prepare metadata for smart contract
+      const contractMetadata = JSON.stringify({
+        ...metadata,
+        nama_perusahaan: formData.nama_perusahaan,
+        jenis_kegiatan: formData.jenis_kegiatan,
+        jumlah_bibit: formData.jumlah_bibit,
+        timestamp: new Date().toISOString(),
+        source: 'FRONTEND_DIRECT'
+      });
+
+      // ✅ Send transaction directly to smart contract
+      toast.info('📤 Sending to blockchain...', { autoClose: false });
+      
+      const tx = await this.contract.storeDocument(
+        'PERENCANAAN',
+        docHash,
+        contractMetadata
+      );
+
+      console.log('[Blockchain] Transaction sent:', tx.hash);
+      toast.info('⏳ Waiting for blockchain confirmation...', { autoClose: false });
+      
+      // ✅ Wait for confirmation
+      const receipt = await tx.wait();
+      console.log('[Blockchain] Transaction confirmed:', receipt);
+
+      // ✅ Parse events to get document ID
+      let blockchainDocId = null;
+      try {
+        const event = receipt.logs.find(log => {
+          try {
+            const parsedLog = this.contract.interface.parseLog(log);
+            return parsedLog.name === 'DocumentStored';
+          } catch {
+            return false;
+          }
+        });
+
+        if (event) {
+          const parsedLog = this.contract.interface.parseLog(event);
+          blockchainDocId = parsedLog.args.docId.toString();
+          console.log('[Blockchain] Document stored with ID:', blockchainDocId);
+        }
+      } catch (eventErr) {
+        console.warn('[Blockchain] Could not parse events:', eventErr.message);
+      }
+
+      toast.dismiss();
+      toast.success('✅ Successfully stored on blockchain!');
+
+      return {
+        success: true,
+        docId: blockchainDocId,
+        docHash: docHash,
+        txHash: receipt.hash,
+        blockNumber: receipt.blockNumber,
+        gasUsed: receipt.gasUsed.toString(),
+        contractAddress: CONTRACT_ADDRESS,
+        explorerUrl: `https://sepolia.etherscan.io/tx/${receipt.hash}`,
+        walletAddress: this.walletAddress,
+        timestamp: new Date().toISOString()
+      };
+
+    } catch (error) {
+      toast.dismiss();
+      console.error('[Blockchain] Store error:', error);
+
+      let errorMessage = 'Failed to store on blockchain';
+      
+      if (error.message.includes('insufficient funds')) {
+        errorMessage = '❌ Insufficient wallet balance for gas fees!';
+      } else if (error.message.includes('user rejected')) {
+        errorMessage = '❌ Transaction rejected by user';
+      } else if (error.code === 'NETWORK_ERROR') {
+        errorMessage = '❌ Network connection error';
+      } else if (error.code === 'TIMEOUT') {
+        errorMessage = '❌ Transaction timeout';
+      }
+      
+      toast.error(errorMessage);
+
+      return {
+        success: false,
+        error: error.message,
+        docHash: this.calculateDocumentHash(formData),
+      };
+    }
+  }
+
+  // ✅ NEW: Get all documents from blockchain with pagination
+  async getAllDocuments(startId = 0, limit = 50) {
+    try {
+      if (!this.isReady) {
+        throw new Error('Blockchain service not initialized');
+      }
+
+      const totalDocs = await this.contract.getDocumentCount();
+      const totalCount = Number(totalDocs);
+      
+      console.log(`[Blockchain] Fetching documents ${startId}-${Math.min(startId + limit, totalCount)} of ${totalCount}`);
+
+      const documents = [];
+      const endId = Math.min(startId + limit, totalCount);
+
+      for (let i = startId; i < endId; i++) {
+        try {
+          const doc = await this.contract.getDocument(i);
+          
+          documents.push({
+            docId: i,
+            docType: doc[0],
+            docHash: doc[1],
+            metadata: JSON.parse(doc[2] || '{}'),
+            uploader: doc[3],
+            timestamp: new Date(Number(doc[4]) * 1000),
+            timestampISO: new Date(Number(doc[4]) * 1000).toISOString(),
+            verified: true,
+            source: 'BLOCKCHAIN'
+          });
+        } catch (err) {
+          console.warn(`[Blockchain] Could not fetch document ${i}:`, err.message);
+        }
+      }
+
+      return {
+        documents,
+        totalCount,
+        startId,
+        endId,
+        hasMore: endId < totalCount
+      };
+    } catch (error) {
+      console.error('[Blockchain] Get all documents error:', error);
+      return {
+        documents: [],
+        totalCount: 0,
+        error: error.message
+      };
+    }
+  }
+
+  // ✅ ENHANCED: Verify document with detailed blockchain proof
+  async verifyDocumentOnBlockchain(docHash) {
+    try {
+      if (!this.isReady) {
+        throw new Error('Blockchain service not initialized');
+      }
+
+      console.log('[Blockchain] Verifying document hash:', docHash);
+
+      const totalDocs = await this.contract.getDocumentCount();
+      console.log(`[Blockchain] Searching through ${totalDocs} documents...`);
+
+      // Search through all documents to find matching hash
+      for (let i = 0; i < Number(totalDocs); i++) {
+        try {
+          const doc = await this.contract.getDocument(i);
+          
+          if (doc[1].toLowerCase() === docHash.toLowerCase()) {
+            console.log(`[Blockchain] ✅ Document found at index ${i}!`);
+            
+            return {
+              verified: true,
+              docId: i,
+              docType: doc[0],
+              docHash: doc[1],
+              metadata: JSON.parse(doc[2] || '{}'),
+              uploader: doc[3],
+              timestamp: Number(doc[4]),
+              timestampISO: new Date(Number(doc[4]) * 1000).toISOString(),
+              blockchainProof: true
+            };
+          }
+        } catch (err) {
+          // Continue searching
+          continue;
+        }
+      }
+
+      console.log('[Blockchain] ❌ Document hash not found on blockchain');
+      return {
+        verified: false,
+        error: 'Document not found on blockchain',
+        docHash
+      };
+
+    } catch (error) {
+      console.error('[Blockchain] Verification error:', error);
+      return {
+        verified: false,
+        error: error.message,
+        docHash
+      };
     }
   }
 }

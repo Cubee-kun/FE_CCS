@@ -279,6 +279,46 @@ export default function Verifikasi() {
     }
   };
 
+  // ✅ Enhanced blockchain verification using frontend service
+  const verifyBlockchainData = async () => {
+    if (!qrDataParsed?.verification?.blockchainVerified) {
+      toast.warning("⚠️ Data ini belum terverifikasi di blockchain");
+      return;
+    }
+
+    try {
+      console.log('[Verifikasi] Verifying blockchain data:', qrDataParsed.verification.docHash);
+      
+      if (blockchainContext?.isReady) {
+        // ✅ Use frontend blockchain service directly
+        const blockchainVerified = await blockchainContext.verifyDocumentHash(qrDataParsed.verification.docHash);
+        
+        if (blockchainVerified.verified) {
+          console.log('[Verifikasi] ✅ Blockchain verification successful:', blockchainVerified);
+          
+          toast.success("🔗 Data berhasil diverifikasi dari Blockchain Sepolia!");
+          
+          // Update laporan dengan data blockchain
+          setLaporanDetail({
+            ...laporanDetail,
+            ...blockchainVerified.metadata,
+            blockchain_verified_at: new Date().toISOString(),
+            blockchain_doc_id: blockchainVerified.docId,
+            blockchain_uploader: blockchainVerified.uploader,
+            blockchain_timestamp: blockchainVerified.timestampISO
+          });
+        } else {
+          toast.warning("⚠️ Document tidak ditemukan di blockchain");
+        }
+      } else {
+        toast.warning("⚠️ Blockchain service belum siap");
+      }
+    } catch (err) {
+      console.error('[Verifikasi] Verification failed:', err);
+      toast.error("❌ Verifikasi blockchain gagal: " + err.message);
+    }
+  };
+
   // ✅ Enhanced processQRData - detect blockchain hash
   const processQRData = async (qrData) => {
     try {
@@ -294,14 +334,34 @@ export default function Verifikasi() {
         setScanning(false);
         setError(null);
         
-        toast.success(parsed.verification.blockchainVerified 
-          ? "🔗 QR Code dari Blockchain berhasil dipindai!" 
-          : "✅ QR Code berhasil dipindai!");
+        // ✅ Auto-verify if blockchain data exists
+        if (parsed.verification?.docHash && blockchainContext?.isReady) {
+          try {
+            const blockchainData = await blockchainContext.verifyDocumentHash(parsed.verification.docHash);
+            if (blockchainData.verified) {
+              toast.success("🔗 QR Code verified on Sepolia blockchain!");
+              setLaporanDetail({
+                ...parsed.data,
+                ...blockchainData.metadata,
+                blockchain_verified: true,
+                blockchain_doc_id: blockchainData.docId,
+                blockchain_timestamp: blockchainData.timestampISO
+              });
+              return;
+            }
+          } catch (err) {
+            console.warn('[Verifikasi] Auto-verification failed:', err.message);
+          }
+        }
         
-        // ✅ Set laporan detail langsung dari parsed data
+        toast.success(parsed.verification.blockchainVerified 
+          ? "🔗 Blockchain QR Code scanned!" 
+          : "✅ QR Code scanned!");
+        
+        // ✅ Set laporan detail dari parsed data
         if (parsed.data) {
           setLaporanDetail(parsed.data);
-          toast.success("📊 Detail laporan berhasil dimuat dari QR!");
+          toast.success("📊 Detail loaded from QR Code!");
         }
         return;
       }
@@ -337,26 +397,40 @@ export default function Verifikasi() {
         await fetchLaporanDetail(numericId);
       } else {
         // ✅ Check if blockchain hash format (0x...)
-        if (qrData.trim().startsWith('0x')) {
-          console.log('[Verifikasi] Blockchain hash detected, fetching...');
-          if (blockchainReady && blockchainContext?.contract) {
+        if (qrData.trim().startsWith('0x') && qrData.trim().length === 66) {
+          console.log('[Verifikasi] Blockchain hash detected, verifying...');
+          if (blockchainContext?.isReady) {
             try {
-              const blockchainData = await blockchainContext.getDocument(qrData.trim());
-              if (blockchainData) {
+              const blockchainData = await blockchainContext.verifyDocumentHash(qrData.trim());
+              if (blockchainData.verified) {
                 setScanResult(qrData);
                 setParsedData({ blockchain_doc_hash: qrData.trim(), type: 'BLOCKCHAIN_HASH' });
                 setScanning(false);
                 setError(null);
-                setLaporanDetail(blockchainData);
-                toast.success("🔗 Data fetched dari Sepolia Blockchain!");
+                
+                // ✅ Create laporan detail from blockchain metadata
+                const laporanFromBlockchain = {
+                  id: blockchainData.docId,
+                  ...blockchainData.metadata,
+                  blockchain_verified: true,
+                  blockchain_doc_id: blockchainData.docId,
+                  blockchain_doc_hash: blockchainData.docHash,
+                  blockchain_timestamp: blockchainData.timestampISO,
+                  source: 'BLOCKCHAIN_DIRECT'
+                };
+                
+                setLaporanDetail(laporanFromBlockchain);
+                toast.success("🔗 Data fetched directly from Sepolia blockchain!");
                 return;
+              } else {
+                toast.error("❌ Hash tidak ditemukan di blockchain");
               }
             } catch (err) {
-              console.error('[Verifikasi] Blockchain fetch failed:', err);
-              toast.error("❌ Gagal fetch dari blockchain");
+              console.error('[Verifikasi] Blockchain verification failed:', err);
+              toast.error("❌ Gagal verifikasi blockchain: " + err.message);
             }
           } else {
-            toast.warning("⚠️ Blockchain belum siap, silakan tunggu...");
+            toast.warning("⚠️ Blockchain service belum siap, silakan tunggu...");
           }
         }
         
@@ -372,40 +446,6 @@ export default function Verifikasi() {
           autoClose: 2000
         });
       }
-    }
-  };
-
-  // ✅ Verify Blockchain Data
-  const verifyBlockchainData = async () => {
-    if (!qrDataParsed?.verification?.blockchainVerified) {
-      toast.warning("⚠️ Data ini belum terverifikasi di blockchain");
-      return;
-    }
-
-    try {
-      console.log('[Verifikasi] Verifying blockchain data:', qrDataParsed.verification.docHash);
-      
-      if (blockchainReady && blockchainContext?.contract) {
-        const blockchainVerified = await blockchainContext.getDocument(qrDataParsed.verification.docHash);
-        
-        console.log('[Verifikasi] ✅ Blockchain verification successful:', blockchainVerified);
-        
-        toast.success("🔗 Data berhasil diverifikasi dari Blockchain Sepolia!");
-        
-        // Update laporan dengan data blockchain
-        if (blockchainVerified) {
-          setLaporanDetail({
-            ...laporanDetail,
-            ...blockchainVerified,
-            blockchain_verified_at: new Date().toISOString()
-          });
-        }
-      } else {
-        toast.warning("⚠️ Blockchain service belum siap");
-      }
-    } catch (err) {
-      console.error('[Verifikasi] Verification failed:', err);
-      toast.error("❌ Verifikasi blockchain gagal");
     }
   };
 

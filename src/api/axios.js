@@ -7,7 +7,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 30000, // ✅ INCREASED: 30 second timeout (from 10s default)
 });
 
 // Interceptor untuk menambahkan token JWT sebelum request dikirim
@@ -81,6 +81,18 @@ api.interceptors.response.use(
       console.error('[API Error]', error.message);
     }
     
+    return Promise.reject(error);
+  }
+);
+
+// ✅ Add response interceptor for timeout handling
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.code === 'ECONNABORTED') {
+      console.error('[Axios] Request timeout detected');
+      // Optionally add global retry logic here
+    }
     return Promise.reject(error);
   }
 );
