@@ -24,7 +24,6 @@ export function BlockchainProvider({ children }) {
           setIsConnected(true);
           setWalletAddress(blockchainService.getWalletAddress());
           
-          // Get wallet status
           const status = await blockchainService.getWalletStatus();
           setWalletStatus(status);
           

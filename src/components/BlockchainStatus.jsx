@@ -1,6 +1,6 @@
 import { useBlockchain } from '../contexts/BlockchainContext';
 import { motion } from 'framer-motion';
-import { FiCheckCircle, FiAlertCircle, FiCopy, FiExternalLink, FiWifi, FiWifiOff } from 'react-icons/fi';
+import { FiCheck, FiX, FiLoader, FiCopy, FiExternalLink, FiWifi, FiWifiOff } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 
 export default function BlockchainStatus() {
@@ -16,13 +16,18 @@ export default function BlockchainStatus() {
 
   if (loading) {
     return (
-      <motion.div 
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 text-sm"
+      <motion.div
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        <div className="animate-spin rounded-full h-4 w-4 border-2 border-yellow-400 border-t-transparent"></div>
-        <span>Connecting to blockchain...</span>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        >
+          <FiLoader className="w-4 h-4" />
+        </motion.div>
+        <span className="text-xs font-medium">Initializing blockchain...</span>
       </motion.div>
     );
   }
@@ -30,12 +35,12 @@ export default function BlockchainStatus() {
   if (!isReady || error) {
     return (
       <motion.div 
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300"
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
       >
         <FiWifiOff className="w-4 h-4" />
-        <span>Blockchain unavailable</span>
+        <span className="text-xs font-medium">Blockchain unavailable</span>
         {error && (
           <span className="text-xs ml-1 opacity-75">({error})</span>
         )}
@@ -56,11 +61,20 @@ export default function BlockchainStatus() {
 
   return (
     <motion.div
-      className="flex items-center gap-3 px-4 py-2 rounded-lg bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700"
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.5 }}
+      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
     >
+      <FiCheck className="w-4 h-4" />
+      <span className="text-xs font-medium">
+        {isReady ? '✅ Blockchain Ready' : '⏳ Loading'}
+      </span>
+      {walletAddress && (
+        <span className="text-xs opacity-70 ml-1">
+          ({walletAddress.substring(0, 6)}...{walletAddress.substring(-4)})
+        </span>
+      )}
+
       {/* Connection Status */}
       <div className="flex items-center gap-2">
         <motion.div 

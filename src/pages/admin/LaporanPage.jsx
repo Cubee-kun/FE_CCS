@@ -48,19 +48,28 @@ export default function LaporanPage() {
     fetchLaporan();
   }, []);
 
-  // ✅ Fetch blockchain transaction hashes setelah data loaded
+  // ✅ IMPROVED: Wait for blockchain to be ready, THEN enrich data
   useEffect(() => {
-    if (isReady && laporan.length > 0) {
-      // ✅ THROTTLE: Only call full enrichment every 60 seconds
-      const now = Date.now();
-      if (now - lastEnrichmentTime > MIN_ENRICHMENT_INTERVAL) {
-        lastEnrichmentTime = now;
-        enrichLaporanWithBlockchainData();
-      } else {
-        console.log('[LaporanPage] Skipping enrichment (throttled)');
-      }
+    if (!isReady) {
+      console.log('[LaporanPage] ⏳ Waiting for blockchain service to be ready...');
+      return; // ✅ Don't proceed if not ready
     }
-  }, [isReady, laporan.length]);
+
+    if (laporan.length === 0) {
+      console.log('[LaporanPage] ⏳ Waiting for laporan data to load...');
+      return; // ✅ Don't proceed if no data yet
+    }
+
+    // ✅ THROTTLE: Only call full enrichment every 60 seconds
+    const now = Date.now();
+    if (now - lastEnrichmentTime > MIN_ENRICHMENT_INTERVAL) {
+      lastEnrichmentTime = now;
+      console.log('[LaporanPage] ✅ Blockchain ready AND data loaded, starting enrichment...');
+      enrichLaporanWithBlockchainData();
+    } else {
+      console.log('[LaporanPage] Skipping enrichment (throttled)');
+    }
+  }, [isReady, laporan.length]); // ✅ Depend on isReady too!
 
   // ✅ MAIN: Fetch laporan dari API dengan INCREASED TIMEOUT & RETRY
   const fetchLaporan = async (retries = 3, page = 1, perPage = 25) => {
@@ -311,7 +320,16 @@ export default function LaporanPage() {
 
   // ✅ ENRICHMENT: Modified to handle rate limiting gracefully
   const enrichLaporanWithBlockchainData = async () => {
-    if (laporan.length === 0 || !isReady) return;
+    // ✅ CRITICAL: Double-check blockchain is ready
+    if (!isReady) {
+      console.error('[LaporanPage] ❌ Blockchain service NOT ready, skipping enrichment');
+      return;
+    }
+
+    if (laporan.length === 0) {
+      console.log('[LaporanPage] No laporan to enrich');
+      return;
+    }
 
     console.log('[LaporanPage] Starting blockchain enrichment via frontend service...');
     
@@ -349,7 +367,6 @@ export default function LaporanPage() {
             ]);
 
             if (verificationResult.verified) {
-              // ✅ Verified on blockchain
               blockchainData = {
                 docHash: item.blockchain_doc_hash,
                 docId: verificationResult.docId,
@@ -362,7 +379,6 @@ export default function LaporanPage() {
                 metadata: verificationResult.metadata
               };
               
-              // ✅ Try to get TX proof if available
               if (item.blockchain_tx_hash) {
                 try {
                   const txProof = await Promise.race([
@@ -392,7 +408,6 @@ export default function LaporanPage() {
               enrichedCount++;
               console.log(`[LaporanPage] ✅ Item ${item.id}: Blockchain ${blockchainData.status.toLowerCase()}`);
             } else {
-              // ✅ Not verified yet
               blockchainData = {
                 docHash: item.blockchain_doc_hash,
                 verified: false,
@@ -402,7 +417,6 @@ export default function LaporanPage() {
                 searchSummary: verificationResult.searchSummary
               };
               
-              // ✅ Don't count as error if just not found yet
               if (!verificationResult.error?.includes('not found')) {
                 errorCount++;
               } else {
