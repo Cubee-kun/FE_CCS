@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import axios from "axios";
 import { 
   FiCamera, FiCheckCircle, FiAlertCircle, FiRefreshCw, 
   FiX, FiDownload, FiCopy, FiChevronDown, FiChevronUp, FiUpload,
@@ -371,6 +372,19 @@ export default function Verifikasi() {
       let laporan = null;
       let lastError = null;
 
+      // ✅ IMMEDIATE: If blockchainData available, show it immediately while fetching
+      if (blockchainData?.blockchain_doc_hash) {
+        console.log('[Verifikasi] Blockchain data available, showing immediately');
+        const immediateData = {
+          id: laporanId,
+          blockchain_doc_hash: blockchainData.blockchain_doc_hash,
+          blockchain_tx_hash: blockchainData.blockchain_tx_hash,
+          blockchain_verified: blockchainData.blockchain_verified || true,
+          is_implemented: false
+        };
+        setLaporanDetail(immediateData);
+      }
+
       // ✅ 1. PRIORITY: Fetch dari Sepolia Blockchain jika ada doc hash
       if (blockchainReady && qrDataParsed?.blockchain_doc_hash) {
         try {
@@ -390,10 +404,16 @@ export default function Verifikasi() {
         }
       }
 
-      // ✅ 2. Fallback: Try public endpoint
+      // ✅ 2. Fallback: Try public endpoint (with short timeout for public page)
       try {
         console.log(`[Verifikasi] Step 2: Trying public endpoint: /perencanaan/${laporanId}/public`);
-        const response = await api.get(`/perencanaan/${laporanId}/public`);
+        
+        // Create request with short timeout for public endpoint
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/perencanaan/${laporanId}/public`,
+          { timeout: 5000 } // 5 second timeout for public page
+        );
+        
         laporan = response.data?.data || response.data;
         
         if (laporan) {
@@ -417,13 +437,14 @@ export default function Verifikasi() {
           status: publicErr.response?.status,
           statusText: publicErr.response?.statusText,
           message: publicErr.message,
+          code: publicErr.code,
           url: publicErr.config?.url,
           data: publicErr.response?.data
         });
         
         // ✅ If 404, show user-friendly error
         if (publicErr.response?.status === 404) {
-          toast.error(`❌ Data dengan ID ${laporanId} tidak ditemukan di server`);
+          console.log(`[Verifikasi] ID ${laporanId} not found on server, using fallback`);
         }
         lastError = publicErr;
       }
