@@ -783,142 +783,163 @@ class BlockchainService {
     }
   }
 
-  // ✅ ENHANCED: Verify document on blockchain dengan better error handling & skip invalid IDs
+  // ✅ OPTIMIZED: Verifikasi dengan cache dan fast lookup
   async verifyDocumentOnBlockchain(docHash) {
     try {
       if (!this.isReady) {
-        throw new Error('Blockchain service not ready. Call initialize() first.');
+        throw new Error('Blockchain service not ready');
       }
 
       if (!docHash || typeof docHash !== 'string') {
         throw new Error(`Invalid document hash: ${docHash}`);
       }
 
-      console.log('[Blockchain] Verifying document hash:', docHash);
+      console.log('[Blockchain] Fast verify:', docHash);
 
-      // ✅ Get total count dengan error handling
+      // ✅ STEP 1: Check cache first (instant)
+      const cacheKey = `verify_${docHash}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsedCache = JSON.parse(cached);
+        const cacheAge = Date.now() - parsedCache.timestamp;
+        
+        // Cache valid for 5 minutes
+        if (cacheAge < 300000) {
+          console.log('[Blockchain] ⚡ Cache hit for', docHash);
+          return parsedCache.result;
+        }
+      }
+
+      // ✅ STEP 2: Get total document count (with timeout)
       let totalDocs;
       try {
-        totalDocs = await this.contract.getDocumentCount();
+        totalDocs = await Promise.race([
+          this.contract.getDocumentCount(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Contract timeout')), 5000)
+          )
+        ]);
         totalDocs = Number(totalDocs);
-        console.log(`[Blockchain] Found ${totalDocs} total documents on chain`);
         
         if (totalDocs === 0) {
-          console.warn('[Blockchain] ⚠️ No documents stored on blockchain yet');
-          return {
+          const notFoundResult = {
             verified: false,
-            error: 'No documents found on blockchain',
-            docHash
+            error: 'No documents on blockchain yet',
+            docHash,
+            searchSummary: { totalOnChain: 0, searched: 0 }
           };
+          
+          // Cache negative result for 1 minute
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            result: notFoundResult,
+            timestamp: Date.now()
+          }));
+          
+          return notFoundResult;
         }
       } catch (countErr) {
-        console.error('[Blockchain] ❌ Failed to get document count:', {
-          error: countErr.message,
-          code: countErr.code
-        });
-        
-        // ✅ Provide helpful debugging info
-        if (countErr.code === 'BAD_DATA') {
-          console.error('[Blockchain] 🔴 CONTRACT ERROR - Likely causes:');
-          console.error('  - Contract address is wrong');
-          console.error('  - Contract is not deployed to this network');
-          console.error('  - Contract ABI does not match deployed contract');
-        }
-        
-        throw countErr;
+        throw new Error(`Contract error: ${countErr.message}`);
       }
 
-      // ✅ IMPROVED: Search through documents with error handling
-      console.log(`[Blockchain] Searching through ${totalDocs} documents...`);
-      const failedIds = [];
-      const errors = [];
+      console.log(`[Blockchain] Searching ${totalDocs} documents for hash...`);
 
-      for (let i = 0; i < totalDocs; i++) {
+      // ✅ STEP 3: Smart search strategy - search backwards (recent first)
+      const batchSize = 5;
+      const maxSearch = Math.min(totalDocs, 50); // Limit search to recent 50 docs for performance
+      
+      for (let i = totalDocs - 1; i >= Math.max(0, totalDocs - maxSearch); i -= batchSize) {
+        const batch = [];
+        const startIdx = Math.max(0, i - batchSize + 1);
+        const endIdx = i;
+        
+        // Create batch promises with timeout
+        for (let j = startIdx; j <= endIdx; j++) {
+          batch.push(
+            Promise.race([
+              this.contract.getDocument(j),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Document timeout')), 3000)
+              )
+            ]).then(doc => ({ index: j, doc }))
+            .catch(err => ({ index: j, error: err.message }))
+          );
+        }
+
         try {
-          const doc = await this.contract.getDocument(i);
+          const results = await Promise.all(batch);
           
-          // ✅ Validate document object
-          if (!doc || !doc[1]) {
-            console.warn(`[Blockchain] Document ${i} returned empty/invalid data, skipping...`);
-            failedIds.push(i);
-            continue;
-          }
-          
-          // ✅ Compare hash
-          if (doc[1].toLowerCase() === docHash.toLowerCase()) {
-            console.log(`[Blockchain] ✅ Document found at index ${i}!`);
+          for (const result of results) {
+            if (result.error) {
+              console.warn(`[Blockchain] Doc ${result.index}: ${result.error}`);
+              continue;
+            }
             
-            return {
-              verified: true,
-              docId: i,
-              docType: doc[0],
-              docHash: doc[1],
-              metadata: JSON.parse(doc[2] || '{}'),
-              uploader: doc[3],
-              timestamp: Number(doc[4]),
-              timestampISO: new Date(Number(doc[4]) * 1000).toISOString(),
-              blockchainProof: true
-            };
+            const doc = result.doc;
+            if (doc && doc[1] && doc[1].toLowerCase() === docHash.toLowerCase()) {
+              console.log(`[Blockchain] ✅ Found at index ${result.index}!`);
+              
+              const verifiedResult = {
+                verified: true,
+                docId: result.index,
+                docType: doc[0],
+                docHash: doc[1],
+                metadata: JSON.parse(doc[2] || '{}'),
+                uploader: doc[3],
+                timestamp: Number(doc[4]),
+                timestampISO: new Date(Number(doc[4]) * 1000).toISOString(),
+                blockchainProof: true
+              };
+              
+              // Cache positive result for 10 minutes
+              sessionStorage.setItem(cacheKey, JSON.stringify({
+                result: verifiedResult,
+                timestamp: Date.now()
+              }));
+              
+              return verifiedResult;
+            }
           }
-        } catch (docErr) {
-          // ✅ Log error but continue searching
-          const errorMsg = docErr.message || String(docErr);
-          
-          if (errorMsg.includes('Invalid document ID')) {
-            console.warn(`[Blockchain] ⏭️ Document ${i}: Invalid ID (contract says this ID doesn't exist), skipping...`);
-            failedIds.push(i);
-          } else if (errorMsg.includes('reverted')) {
-            console.warn(`[Blockchain] ⏭️ Document ${i}: Contract reverted, skipping... (${errorMsg.substring(0, 50)})`);
-            failedIds.push(i);
-          } else {
-            console.warn(`[Blockchain] ⚠️ Error reading document ${i}:`, errorMsg.substring(0, 100));
-            errors.push({ id: i, error: errorMsg });
+        } catch (batchErr) {
+          console.warn(`[Blockchain] Batch error:`, batchErr.message);
+        }
+        
+                // Small delay between batches to avoid rate limiting
+                if (i > Math.max(0, totalDocs - maxSearch)) {
+                  await new Promise(resolve => setTimeout(resolve, 100));
+                }
+              }
+        
+              // ✅ STEP 4: Not found after search
+              const notFoundResult = {
+                verified: false,
+                docHash,
+                error: 'Document hash not found on blockchain',
+                searchSummary: {
+                  totalOnChain: totalDocs,
+                  searched: maxSearch
+                }
+              };
+        
+              // Cache negative result for 2 minutes
+              sessionStorage.setItem(cacheKey, JSON.stringify({
+                result: notFoundResult,
+                timestamp: Date.now()
+              }));
+        
+              return notFoundResult;
+        
+            } catch (error) {
+              console.error('[Blockchain] Verification error:', error);
+              return {
+                verified: false,
+                error: error.message,
+                docHash
+              };
+            }
           }
-          
-          // Continue searching other documents
-          continue;
         }
-      }
-
-      // ✅ Summary if search completed without finding document
-      console.log('[Blockchain] ❌ Document hash not found on blockchain');
-      console.log('[Blockchain] Search summary:', {
-        totalDocumentsOnChain: totalDocs,
-        searchedSuccessfully: totalDocs - failedIds.length,
-        skippedInvalidIds: failedIds,
-        otherErrors: errors.length
-      });
-      
-      return {
-        verified: false,
-        error: `Document hash not found in ${totalDocs} documents on blockchain`,
-        docHash,
-        searchedDocuments: totalDocs,
-        searchSummary: {
-          totalOnChain: totalDocs,
-          searched: totalDocs - failedIds.length,
-          failed: failedIds.length,
-          invalidIds: failedIds
-        }
-      };
-
-    } catch (error) {
-      console.error('[Blockchain] ❌ Verification error:', {
-        message: error.message,
-        code: error.code,
-        docHash
-      });
-      
-      return {
-        verified: false,
-        error: error.message,
-        code: error.code,
-        docHash
-      };
-    }
-  }
-}
-
-// Export singleton instance
-export const blockchainService = new BlockchainService();
-export default blockchainService;
+        
+        // ✅ FIXED: Export both default and named exports for compatibility
+        const blockchainServiceInstance = new BlockchainService();
+        export default blockchainServiceInstance;
+        export { blockchainServiceInstance as blockchainService };

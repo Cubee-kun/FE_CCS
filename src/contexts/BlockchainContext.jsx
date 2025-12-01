@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { blockchainService } from '../services/blockchain';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import blockchainService from '../services/blockchain.js'; // ✅ FIXED: Use default import
 
 const BlockchainContext = createContext();
 
