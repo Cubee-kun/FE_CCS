@@ -14,10 +14,10 @@ import { toast } from "react-toastify";
 import JSZip from "jszip";
 import { ethers } from 'ethers';
 
-// ✅ GLOBAL THROTTLE & TIMEOUT CONFIG
+// ✅ GLOBAL RATE LIMITING CONTROLS
 let lastEnrichmentTime = 0;
-const MIN_ENRICHMENT_INTERVAL = 60000; // 60 detik
-const POLL_TIMEOUT = 5000; // 5 detik timeout
+const MIN_ENRICHMENT_INTERVAL = 60000; // Increased to 60 seconds
+const POLL_TIMEOUT = 8000; // Increased timeout
 
 export default function LaporanPage() {
   const [laporan, setLaporan] = useState([]);
@@ -71,65 +71,6 @@ export default function LaporanPage() {
     }
   }, [isReady, laporan.length]); // ✅ Depend on isReady too!
 
-  // ✅ FIXED: Manual blockchain verification and DB update function
-  const verifyOnBlockchainAndUpdateDB = async (item) => {
-    if (!isReady || !item.blockchain_doc_hash) {
-      toast.warning("Blockchain service belum siap atau doc_hash kosong");
-      return;
-    }
-    
-    setLoadingBlockchain(true);
-    try {
-      console.log('[LaporanPage] Manual verification for:', item.blockchain_doc_hash);
-      
-      // 1. Verify on blockchain (Sepolia)
-      const verificationResult = await Promise.race([
-        verifyDocumentHash(item.blockchain_doc_hash),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Verification timeout')), 10000)
-        )
-      ]);
-      
-      if (verificationResult.verified) {
-        toast.success("✅ Document verified on blockchain!");
-
-        // 2. Update DB status (is_verified/blockchain_status)
-        await api.put(`/perencanaan/${item.id}`, {
-          is_verified: true,
-          blockchain_status: 'verified',
-          blockchain_doc_id: verificationResult.docId,
-          blockchain_verified_at: new Date().toISOString(),
-        });
-
-        // 3. Update local state for instant UI feedback
-        setLaporan(prev =>
-          prev.map(l =>
-            l.id === item.id
-              ? { 
-                  ...l, 
-                  is_verified: true, 
-                  blockchain_status: 'verified', 
-                  blockchain_doc_id: verificationResult.docId,
-                  blockchainData: {
-                    ...verificationResult,
-                    status: 'VERIFIED',
-                    verified: true
-                  }
-                }
-              : l
-          )
-        );
-      } else {
-        toast.error("❌ Document not found on blockchain");
-      }
-    } catch (err) {
-      console.error('[LaporanPage] Manual verification failed:', err.message);
-      toast.error("❌ Gagal verifikasi blockchain: " + err.message);
-    } finally {
-      setLoadingBlockchain(false);
-    }
-  };
-
   // ✅ MAIN: Fetch laporan dari API dengan INCREASED TIMEOUT & RETRY
   const fetchLaporan = async (retries = 3, page = 1, perPage = 25) => {
     try {
@@ -179,18 +120,20 @@ export default function LaporanPage() {
     }
   };
 
-  // ✅ OPTIMIZED: Reduced polling frequency untuk better UX
+  // ✅ REDUCED: Polling frequency untuk mengurangi rate limit errors
   useEffect(() => {
     if (laporan.length === 0) return;
 
     const pendingItems = laporan.filter(l => l.blockchain_doc_hash && !l.blockchain_tx_hash);
     if (pendingItems.length === 0) return;
 
-    console.log(`[LaporanPage] Polling ${pendingItems.length} pending items...`);
+    console.log(`[LaporanPage] Lightweight polling for ${pendingItems.length} pending items...`);
 
+    // ✅ INCREASED: Polling interval from 10s to 30s
     const pollInterval = setInterval(() => {
-      pendingItems.forEach(item => {
-        api.get(`/perencanaan/${item.id}`, { timeout: 5000 })
+      // ✅ Lightweight poll - only check database, NO blockchain calls
+      pendingItems.slice(0, 3).forEach(item => { // Max 3 items per poll
+        api.get(`/perencanaan/${item.id}`, { timeout: POLL_TIMEOUT })
           .then(response => {
             const updated = transformBlockchainData(response.data?.data || response.data);
             
@@ -212,16 +155,20 @@ export default function LaporanPage() {
             }
           })
           .catch(err => {
-            console.warn(`Poll error for ${item.id}:`, err.message);
+            if (err.response?.status === 429) {
+              console.warn(`Rate limited while polling ${item.id}, slowing down...`);
+            } else {
+              console.warn(`Poll error for ${item.id}:`, err.message);
+            }
           });
       });
-    }, 10000); // ✅ Reduced to 10 seconds
+    }, 30000); // ✅ Increased from 10s to 30s
 
     return () => clearInterval(pollInterval);
   }, [laporan]);
 
 
-  // ✅ OPTIMIZED: Enrichment with progressive loading dan user feedback
+  // ✅ SIMPLIFIED: Enrichment with better rate limiting
   const enrichLaporanWithBlockchainData = async () => {
     if (!isReady) {
       console.warn('[LaporanPage] Blockchain not ready for enrichment');
@@ -230,14 +177,25 @@ export default function LaporanPage() {
 
     if (laporan.length === 0) return;
 
+    // ✅ THROTTLE: Only allow enrichment every 60 seconds
+    const now = Date.now();
+    if (now - lastEnrichmentTime < MIN_ENRICHMENT_INTERVAL) {
+      console.log('[LaporanPage] Enrichment throttled, skipping...');
+      return;
+    }
+    lastEnrichmentTime = now;
+
     const itemsWithDocHash = laporan.filter(item => item.blockchain_doc_hash);
     if (itemsWithDocHash.length === 0) return;
 
-    console.log(`[LaporanPage] Starting optimized enrichment for ${itemsWithDocHash.length} items...`);
+    // ✅ REDUCED: Limit concurrent verification to prevent rate limiting
+    const maxConcurrentVerifications = 3; // Reduced from 5
+    const itemsToVerify = itemsWithDocHash.slice(0, maxConcurrentVerifications);
+
+    console.log(`[LaporanPage] Rate-limited enrichment for ${itemsToVerify.length} items (max ${maxConcurrentVerifications})...`);
     
-    // ✅ Show progress toast
     const progressToast = toast.info(
-      `🔍 Verifying ${itemsWithDocHash.length} documents on Sepolia blockchain...`,
+      `🔍 Verifying ${itemsToVerify.length} documents (rate limited)...`,
       { autoClose: false }
     );
 
@@ -247,106 +205,106 @@ export default function LaporanPage() {
     let errorCount = 0;
 
     try {
-      // ✅ Process in small batches with progress updates
-      const batchSize = 2; // Reduced for better UX
-      let updatedLaporan = [...laporan];
-
-      for (let i = 0; i < itemsWithDocHash.length; i += batchSize) {
-        const batch = itemsWithDocHash.slice(i, i + batchSize);
+      // ✅ Process items sequentially to avoid rate limits
+      for (let i = 0; i < itemsToVerify.length; i++) {
+        const item = itemsToVerify[i];
         
-        // Update progress
         toast.update(progressToast, {
-          render: `🔍 Verifying ${i + 1}-${Math.min(i + batchSize, itemsWithDocHash.length)} of ${itemsWithDocHash.length}...`,
+          render: `🔍 Verifying ${i + 1}/${itemsToVerify.length}... (rate limited)`,
           type: "info"
         });
 
-        const promises = batch.map(async (item) => {
-          const cacheKey = item.id;
-          const cachedData = cache[cacheKey];
-          
-          // ✅ Check cache (5 min expiry)
-          if (cachedData?.timestamp) {
-            const cacheAge = Date.now() - new Date(cachedData.timestamp).getTime();
-            if (cacheAge < 300000) {
-              return { ...item, blockchainData: cachedData };
-            }
+        const cacheKey = item.id;
+        const cachedData = cache[cacheKey];
+        
+        // ✅ Check cache (10 min expiry for rate limiting)
+        if (cachedData?.timestamp) {
+          const cacheAge = Date.now() - new Date(cachedData.timestamp).getTime();
+          if (cacheAge < 600000) { // 10 minutes
+            continue;
+          }
+        }
+
+        try {
+          // ✅ Add delay between verifications to prevent rate limiting
+          if (i > 0) {
+            await new Promise(r => setTimeout(r, 2000)); // 2 second delay
           }
 
-          try {
-            const verificationResult = await Promise.race([
-              verifyDocumentHash(item.blockchain_doc_hash),
-              new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Timeout')), 8000)
-              )
-            ]);
+          const verificationResult = await Promise.race([
+            verifyDocumentHash(item.blockchain_doc_hash),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout')), 12000) // Increased timeout
+            )
+          ]);
 
-            let blockchainData;
-            if (verificationResult.verified) {
-              blockchainData = {
-                ...verificationResult,
-                status: item.blockchain_tx_hash ? 'VERIFIED' : 'CONFIRMED',
-                verified: true,
-                timestamp: new Date().toISOString()
-              };
-              enrichedCount++;
-            } else {
-              blockchainData = {
-                docHash: item.blockchain_doc_hash,
-                verified: false,
-                status: 'PENDING_BLOCKCHAIN',
-                error: verificationResult.error,
-                timestamp: new Date().toISOString()
-              };
-              skipCount++;
-            }
-
-            cache[cacheKey] = blockchainData;
-            return { ...item, blockchainData };
-
-          } catch (err) {
-            errorCount++;
-            const errorData = {
-              docHash: item.blockchain_doc_hash,
-              verified: false,
-              status: 'ERROR',
-              error: err.message,
+          let blockchainData;
+          if (verificationResult.verified) {
+            blockchainData = {
+              ...verificationResult,
+              status: item.blockchain_tx_hash ? 'VERIFIED' : 'CONFIRMED',
+              verified: true,
               timestamp: new Date().toISOString()
             };
-            cache[cacheKey] = errorData;
-            return { ...item, blockchainData: errorData };
+            enrichedCount++;
+          } else {
+            blockchainData = {
+              docHash: item.blockchain_doc_hash,
+              verified: false,
+              status: 'PENDING_BLOCKCHAIN',
+              error: verificationResult.error,
+              timestamp: new Date().toISOString()
+            };
+            skipCount++;
           }
-        });
 
-        const batchResults = await Promise.all(promises);
-        
-        // ✅ Update state progressively
-        batchResults.forEach(result => {
-          const index = updatedLaporan.findIndex(l => l.id === result.id);
-          if (index !== -1) {
-            updatedLaporan[index] = result;
+          cache[cacheKey] = blockchainData;
+          
+          // ✅ Update state immediately for better UX
+          setLaporan(prev =>
+            prev.map(l =>
+              l.id === item.id ? { ...l, blockchainData } : l
+            )
+          );
+
+        } catch (err) {
+          errorCount++;
+          console.warn(`[LaporanPage] Verification failed for ${item.id}:`, err.message);
+          
+          // ✅ If rate limited, stop processing to avoid further rate limits
+          if (err.message.includes('429') || err.message.includes('Rate limited')) {
+            console.warn('[LaporanPage] Rate limited during enrichment, stopping...');
+            toast.update(progressToast, {
+              render: "⚠️ Rate limited - pausing enrichment",
+              type: "warning",
+              autoClose: 3000
+            });
+            break;
           }
-        });
-
-        // ✅ Update UI immediately for better UX
-        setLaporan([...updatedLaporan]);
-        setBlockchainCache({ ...cache });
-
-        // Small delay between batches
-        if (i + batchSize < itemsWithDocHash.length) {
-          await new Promise(r => setTimeout(r, 1000));
+          
+          const errorData = {
+            docHash: item.blockchain_doc_hash,
+            verified: false,
+            status: 'ERROR',
+            error: err.message,
+            timestamp: new Date().toISOString()
+          };
+          cache[cacheKey] = errorData;
         }
       }
 
-      // ✅ Final success toast
+      setBlockchainCache({ ...cache });
+
+      // ✅ Final result toast
       toast.update(progressToast, {
-        render: `✅ Verification complete: ${enrichedCount} verified, ${skipCount} pending, ${errorCount} errors`,
-        type: "success",
+        render: `✅ Verified: ${enrichedCount}, Pending: ${skipCount}, Errors: ${errorCount}`,
+        type: enrichedCount > 0 ? "success" : "info",
         autoClose: 4000
       });
 
     } catch (err) {
       toast.update(progressToast, {
-        render: "❌ Verification failed: " + err.message,
+        render: "❌ Enrichment failed: " + err.message,
         type: "error",
         autoClose: 3000
       });
@@ -486,58 +444,47 @@ export default function LaporanPage() {
   // ✅ ENRICHMENT: Fetch real blockchain tx hashes dari Sepolia dengan parallel processing
   // Note: Duplicate function removed, using the one defined earlier
 
-  // ✅ Generate blockchain QR with frontend verification - OPTIMIZED
+  // ✅ Generate blockchain QR with simplified logic
   const generateBlockchainQRCode = async (item) => {
     setSelectedLaporan(item);
     setLoadingBlockchain(true);
     
     try {
-      console.log('[LaporanPage] Generating blockchain QR code...');
+      console.log('[LaporanPage] Generating simplified blockchain QR code...');
       
-      let blockchainData = null;
+      // ✅ SIMPLIFIED: No blockchain verification needed
+      const isBlockchainComplete = !!item.blockchain_tx_hash;
       
-      // ✅ Verify on blockchain using frontend service
-      if (item.blockchain_doc_hash && isReady) {
-        try {
-          const verificationResult = await verifyDocumentHash(item.blockchain_doc_hash);
-          if (verificationResult.verified) {
-            blockchainData = verificationResult;
-            console.log('[LaporanPage] ✅ Blockchain verification successful');
-          }
-        } catch (err) {
-          console.warn('[LaporanPage] Blockchain verification failed:', err.message);
-        }
-      }
-
-      // ✅ MINIMAL QR data untuk mengurangi size
+      // ✅ MINIMAL QR data
       const qrData = {
         id: item.id,
         docHash: item.blockchain_doc_hash || null,
         txHash: item.blockchain_tx_hash || null,
-        verified: !!blockchainData,
-        source: blockchainData ? "BLOCKCHAIN" : "DB"
+        status: isBlockchainComplete ? "Verified" : item.blockchain_doc_hash ? "PROCESSING" : "DATABASE_ONLY",
+        source: isBlockchainComplete ? "BLOCKCHAIN" : "DATABASE"
       };
 
       const qrUrl = await QRCode.toDataURL(JSON.stringify(qrData), {
         width: 400,
         margin: 2,
         color: {
-          dark: blockchainData ? '#10b981' : '#3b82f6',
+          dark: isBlockchainComplete ? '#10b981' : item.blockchain_doc_hash ? '#f59e0b' : '#3b82f6',
           light: '#ffffff'
         },
         errorCorrectionLevel: 'L'
       });
 
-      // ✅ Keep full data for download but not in QR
+      // ✅ Full data for download
       const fullData = {
         type: 'PERENCANAAN_BLOCKCHAIN',
         timestamp: new Date().toISOString(),
         verification: {
-          blockchainVerified: !!blockchainData,
+          status: qrData.status,
+          blockchainComplete: isBlockchainComplete,
           docHash: item.blockchain_doc_hash || null,
           txHash: item.blockchain_tx_hash || null,
-          docId: blockchainData?.docId || null,
-          source: blockchainData ? "SEPOLIA_BLOCKCHAIN" : "DATABASE"
+          explorerUrl: item.blockchain_tx_hash ? `https://sepolia.etherscan.io/tx/${item.blockchain_tx_hash}` : null,
+          source: qrData.source
         },
         data: {
           id: item.id,
@@ -549,20 +496,24 @@ export default function LaporanPage() {
           is_implemented: item.is_implemented,
           blockchain_doc_hash: item.blockchain_doc_hash,
           blockchain_tx_hash: item.blockchain_tx_hash
-        },
-        blockchainProof: blockchainData || null
+        }
       };
 
       setQrCodeData({
         url: qrUrl,
         data: fullData,
-        verified: !!blockchainData
+        verified: isBlockchainComplete
       });
       
       setQrModalOpen(true);
-      toast.success(blockchainData 
-        ? "🔗 QR Code with blockchain proof!" 
-        : "📱 QR Code from database");
+      
+      if (isBlockchainComplete) {
+        toast.success("🔗 QR Code with blockchain proof!");
+      } else if (item.blockchain_doc_hash) {
+        toast.info("⏳ QR Code - Transaction processing...");
+      } else {
+        toast.info("📱 QR Code from database");
+      }
       
     } catch (err) {
       console.error('[LaporanPage] QR generation error:', err);
@@ -572,294 +523,32 @@ export default function LaporanPage() {
     }
   };
 
-  // ✅ Fetch blockchain data untuk dokumen spesifik
-  const fetchBlockchainData = async (item) => {
-    if (!isReady) {
-      toast.warning("⚠️ Blockchain service belum siap");
-      return;
-    }
-
-    setLoadingBlockchain(true);
-    
+  // ✅ Fetch laporan dengan pagination
+  const fetchLaporanWithPagination = async (page = 1, perPage = 25) => {
     try {
-      // ✅ Show immediate loading feedback
-      toast.info("🔍 Checking Sepolia blockchain...", { autoClose: 2000 });
+      setLoading(true);
+      setError(null);
+
+      console.log(`[LaporanPage] Fetching laporan (page ${page})...`);
       
-      const verificationResult = await Promise.race([
-        verifyDocumentHash(item.blockchain_doc_hash),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Verification timeout after 10s')), 10000)
-        )
-      ]);
+      const response = await api.get('/perencanaan/all', { timeout: 30000 });
+      const rawData = response.data?.data || response.data || [];
+      const transformedList = rawData.map(transformBlockchainData);
+
+      setLaporan(transformedList);
       
-      if (verificationResult.verified) {
-        toast.success("🔗 Verified on Sepolia blockchain!");
-        
-        // ✅ Update local state immediately
-        setLaporan(prev =>
-          prev.map(l =>
-            l.id === item.id
-              ? {
-                  ...l,
-                  blockchainData: {
-                    ...verificationResult,
-                    status: 'CONFIRMED',
-                    verified: true
-                  }
-                }
-              : l
-          )
-        );
-      } else {
-        toast.warning(`⚠️ ${verificationResult.error || 'Document not found on blockchain'}`);
-      }
+      console.log('[LaporanPage] Loaded:', {
+        total: transformedList.length,
+        withTxHash: transformedList.filter(l => l.blockchain_tx_hash).length,
+        withDocHash: transformedList.filter(l => l.blockchain_doc_hash).length,
+        pending: transformedList.filter(l => l.blockchain_doc_hash && !l.blockchain_tx_hash).length,
+      });
+      
     } catch (err) {
-      console.error("Blockchain verification error:", err);
-      
-      if (err.message.includes('timeout')) {
-        toast.error("❌ Verification timeout - blockchain might be slow");
-      } else {
-        toast.error("❌ Verification failed: " + err.message);
-      }
+      console.error('[LaporanPage] Fetch error:', err.message);
+      setError('Gagal memuat laporan');
     } finally {
-      setLoadingBlockchain(false);
-    }
-  };
-
-  // ✅ Toggle status implementasi
-  const toggleImplementasiStatus = async (id, currentStatus) => {
-    setUpdatingStatus(id);
-    try {
-      await api.put(`/forms/perencanaan/${id}/status`, {
-        is_implemented: !currentStatus
-      });
-      
-      setLaporan(laporan.map(item => 
-        item.id === id ? { ...item, is_implemented: !currentStatus } : item
-      ));
-      
-      toast.success(!currentStatus ? "✅ Ditandai sebagai sudah implementasi" : "Status implementasi dibatalkan");
-    } catch (err) {
-      console.error("Update status error:", err);
-      toast.error("❌ Gagal mengubah status");
-    } finally {
-      setUpdatingStatus(null);
-    }
-  };
-
-  // ✅ Generate PDF dari Laporan - FIXED dengan pdf-lib
-  const generatePDF = async (item) => {
-    try {
-      toast.info("📄 Membuat PDF...", { autoClose: 2000 });
-      
-      const { PDFDocument, rgb } = await import('pdf-lib');
-      
-      const pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage([600, 800]);
-      const { height } = page.getSize();
-      
-      let yPosition = height - 50;
-      
-      page.drawText('LAPORAN PERENCANAAN KEGIATAN', {
-        x: 50,
-        y: yPosition,
-        size: 16,
-        color: rgb(0.0627, 0.7255, 0.5059),
-      });
-      yPosition -= 30;
-      
-      page.drawLine({
-        start: { x: 50, y: yPosition },
-        end: { x: 550, y: yPosition },
-        thickness: 2,
-        color: rgb(0.0627, 0.7255, 0.5059),
-      });
-      yPosition -= 20;
-      
-      const details = [
-        `Perusahaan: ${item.nama_perusahaan}`,
-        `PIC: ${item.nama_pic}`,
-        `Narahubung: ${item.narahubung || '-'}`,
-        `Kegiatan: ${item.jenis_kegiatan}`,
-        `Bibit: ${item.jumlah_bibit} unit`,
-        `Lokasi: ${item.lokasi}`,
-        `Status: ${item.is_implemented ? 'Implementasi' : 'Perencanaan'}`,
-      ];
-      
-      details.forEach((detail) => {
-        if (yPosition > 50) {
-          page.drawText(detail, {
-            x: 50,
-            y: yPosition,
-            size: 10,
-            color: rgb(0, 0, 0),
-          });
-          yPosition -= 20;
-        }
-      });
-      
-      if (item.blockchain_tx_hash) {
-        yPosition -= 10;
-        page.drawText('Blockchain Info:', {
-          x: 50,
-          y: yPosition,
-          size: 10,
-          color: rgb(0.0627, 0.7255, 0.5059),
-        });
-        yPosition -= 15;
-        
-        const txDisplay = `TX Hash: ${item.blockchain_tx_hash.substring(0, 20)}...`;
-        page.drawText(txDisplay, {
-          x: 50,
-          y: yPosition,
-          size: 8,
-          color: rgb(0, 0, 0),
-        });
-      }
-      
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `Laporan-${item.nama_perusahaan}-${item.id}.pdf`;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
-      
-      toast.success("✅ PDF berhasil diunduh!");
-    } catch (err) {
-      console.error('PDF generation error:', err);
-      toast.error("❌ Gagal membuat PDF: " + err.message);
-    }
-  };
-
-  // ✅ Download QR Code
-  const downloadQRCode = () => {
-    if (!qrCodeData) return;
-    
-    const link = document.createElement('a');
-    link.download = `QR-BLOCKCHAIN-${selectedLaporan?.nama_perusahaan || 'laporan'}.png`;
-    link.href = qrCodeData.url;
-    link.click();
-    
-    const jsonLink = document.createElement('a');
-    jsonLink.download = `QR-DATA-${selectedLaporan?.id}.json`;
-    jsonLink.href = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(qrCodeData.data, null, 2))}`;
-    jsonLink.click();
-    
-    toast.success("📥 QR Code dan data JSON berhasil diunduh!");
-  };
-
-  // ✅ Download All as ZIP
-  const downloadAllAsZip = async (filteredItems = null) => {
-    setDownloadingZip(true);
-    try {
-      const zip = new JSZip();
-      const itemsToZip = filteredItems || currentItems;
-      
-      const laporan_folder = zip.folder('Laporan');
-      const qr_folder = zip.folder('QR_Codes');
-      const json_folder = zip.folder('JSON_Data');
-      
-      toast.info(`📦 Membuat ZIP dengan ${itemsToZip.length} file...`, { autoClose: 2000 });
-      
-      for (const item of itemsToZip) {
-        // 1. Create PDF
-        try {
-          const { PDFDocument, rgb } = await import('pdf-lib');
-          const pdfDoc = await PDFDocument.create();
-          const page = pdfDoc.addPage([600, 800]);
-          const { height } = page.getSize();
-          
-          let yPosition = height - 50;
-          
-          page.drawText('LAPORAN PERENCANAAN', {
-            x: 50,
-            y: yPosition,
-            size: 14,
-            color: rgb(0.0627, 0.7255, 0.5059),
-          });
-          yPosition -= 20;
-          
-          page.drawLine({
-            start: { x: 50, y: yPosition },
-            end: { x: 550, y: yPosition },
-            thickness: 1,
-            color: rgb(0.0627, 0.7255, 0.5059),
-          });
-          yPosition -= 15;
-          
-          const details = [
-            `Perusahaan: ${item.nama_perusahaan}`,
-            `PIC: ${item.nama_pic}`,
-            `Kegiatan: ${item.jenis_kegiatan}`,
-            `Bibit: ${item.jumlah_bibit} unit`,
-            `Lokasi: ${item.lokasi}`,
-            `Status: ${item.is_implemented ? 'Implementasi' : 'Perencanaan'}`,
-          ];
-          
-          details.forEach((detail) => {
-            if (yPosition > 50) {
-              page.drawText(detail, {
-                x: 50,
-                y: yPosition,
-                size: 10,
-                color: rgb(0, 0, 0),
-              });
-              yPosition -= 20;
-            }
-          });
-          
-          const pdfBytes = await pdfDoc.save();
-          laporan_folder.file(`${item.id}-${item.nama_perusahaan}.pdf`, pdfBytes);
-        } catch (err) {
-          console.warn(`Gagal membuat PDF untuk item ${item.id}:`, err);
-        }
-        
-        // 2. Generate QR Code
-        try {
-          const qrData = {
-            id: item.id,
-            docHash: item.blockchain_doc_hash || null,
-            txHash: item.blockchain_tx_hash || null,
-            verified: !!item.blockchain_tx_hash,
-            source: item.blockchain_tx_hash ? "BLOCKCHAIN" : "DB"
-          };
-          
-          const qrDataURL = await QRCode.toDataURL(JSON.stringify(qrData), {
-            width: 400,
-            margin: 2,
-            color: {
-              dark: item.blockchain_doc_hash ? '#10b981' : '#3b82f6',
-              light: '#ffffff'
-            },
-            errorCorrectionLevel: 'L'
-          });
-          
-          const qrBase64 = qrDataURL.split(',')[1];
-          const qrBlob = new Blob([Buffer.from(qrBase64, 'base64')], { type: 'image/png' });
-          qr_folder.file(`${item.id}-QR.png`, qrBlob);
-          
-          json_folder.file(`${item.id}-data.json`, JSON.stringify(qrData, null, 2));
-        } catch (err) {
-          console.warn(`Gagal membuat QR untuk item ${item.id}:`, err);
-        }
-      }
-      
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
-      const link = document.createElement('a');
-      link.download = `Laporan-All-${new Date().getTime()}.zip`;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
-      
-      toast.success(`✅ ZIP dengan ${itemsToZip.length} file berhasil diunduh!`);
-    } catch (err) {
-      console.error('ZIP creation error:', err);
-      toast.error("❌ Gagal membuat file ZIP");
-    } finally {
-      setDownloadingZip(false);
+      setLoading(false);
     }
   };
 
@@ -898,9 +587,9 @@ export default function LaporanPage() {
           <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
             <FiShield className="w-4 h-4 text-emerald-500" />
             {filteredLaporan.length} laporan • 
-            🔗 {laporan.filter(l => l.blockchain_tx_hash).length} with TX Hash •
-            ⛓️ {laporan.filter(l => l.blockchainData?.verified).length} blockchain verified •
-            {isReady ? '✅ Sepolia Ready' : '⏳ Blockchain Loading'}
+            ✅ {laporan.filter(l => l.blockchain_tx_hash).length} Verified •
+            ⏳ {laporan.filter(l => l.blockchain_doc_hash && !l.blockchain_tx_hash).length} Processing •
+            📋 {laporan.filter(l => !l.blockchain_doc_hash).length} Database Only
           </p>
         </motion.div>
 
@@ -1016,9 +705,9 @@ export default function LaporanPage() {
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">ID: {item.id}</p>
                   </div>
 
-                  {/* ✅ Hash Transaksi Blockchain - PROPERLY DISPLAY REAL SEPOLIA DATA */}
+                  {/* ✅ Hash Transaksi Blockchain - SIMPLIFIED STATUS LOGIC */}
                   <div className="md:col-span-5">
-                    {/* ✅ CASE 1: Real TX Hash from database (direct link to Sepolia) */}
+                    {/* ✅ CASE 1: TX Hash exists = DONE */}
                     {item.blockchain_tx_hash ? (
                       <motion.div 
                         className="space-y-2 group"
@@ -1032,7 +721,7 @@ export default function LaporanPage() {
                             transition={{ duration: 2, repeat: Infinity }}
                           ></motion.div>
                           <span className="text-xs font-bold text-green-600 dark:text-green-400">
-                            ✅ TX HASH AVAILABLE (SEPOLIA)
+                            ✅ Verified - TX CONFIRMED ON SEPOLIA
                           </span>
                         </div>
 
@@ -1069,32 +758,21 @@ export default function LaporanPage() {
                           </div>
                         )}
 
-                        {/* Blockchain Verification Status */}
-                        {item.blockchainData?.verified ? (
-                          <motion.div
-                            className="flex items-center gap-2 bg-green-100 dark:bg-green-900/30 rounded-lg p-2 border border-green-200 dark:border-green-700"
-                            initial={{ scale: 0.9 }}
-                            animate={{ scale: 1 }}
-                          >
-                            <FiCheck className="w-4 h-4 text-green-700 dark:text-green-300 flex-shrink-0" />
-                            <span className="text-xs font-bold text-green-700 dark:text-green-300">
-                              ✅ Smart contract verified (Doc ID: {item.blockchainData.docId})
-                            </span>
-                          </motion.div>
-                        ) : (
-                          <motion.div
-                            className="flex items-center gap-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg p-2 border border-amber-200 dark:border-amber-700"
-                          >
-                            <FiAlertCircle className="w-4 h-4 text-amber-700 dark:text-amber-300 flex-shrink-0" />
-                            <span className="text-xs font-bold text-amber-700 dark:text-amber-300">
-                              ⏳ TX confirmed, verifying smart contract...
-                            </span>
-                          </motion.div>
-                        )}
+                        {/* ✅ SIMPLIFIED: Final Status - DONE */}
+                        <motion.div
+                          className="flex items-center gap-2 bg-green-100 dark:bg-green-900/30 rounded-lg p-2 border border-green-200 dark:border-green-700"
+                          initial={{ scale: 0.9 }}
+                          animate={{ scale: 1 }}
+                        >
+                          <FiCheck className="w-4 h-4 text-green-700 dark:text-green-300 flex-shrink-0" />
+                          <span className="text-xs font-bold text-green-700 dark:text-green-300">
+                            ✅ BLOCKCHAIN COMPLETED - Transaction recorded permanently
+                          </span>
+                        </motion.div>
                       </motion.div>
 
                     ) : item.blockchain_doc_hash ? (
-                      /* ✅ CASE 2: Only doc hash, waiting for TX hash */
+                      /* ✅ CASE 2: Only doc hash = PROCESSING */
                       <motion.div 
                         className="space-y-2"
                         initial={{ opacity: 0 }}
@@ -1107,7 +785,7 @@ export default function LaporanPage() {
                             transition={{ duration: 2, repeat: Infinity }}
                           ></motion.div>
                           <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400">
-                            ⏳ AWAITING TX HASH FROM BLOCKCHAIN
+                            ⏳ PROCESSING - Awaiting blockchain confirmation
                           </span>
                         </div>
                         
@@ -1123,54 +801,45 @@ export default function LaporanPage() {
                           
                           <div className="pt-2 border-t border-yellow-200 dark:border-yellow-700">
                             <p className="text-xs text-yellow-700 dark:text-yellow-300 italic">
-                              💡 <strong>Status:</strong> Waiting for blockchain transaction to be confirmed
+                              💡 <strong>Status:</strong> Waiting for blockchain transaction to be mined
                             </p>
                             <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                              ⏱️ Transaction processing on Sepolia network...
+                              ⏱️ This usually takes 1-5 minutes on Sepolia network
                             </p>
                           </div>
                         </div>
                       </motion.div>
 
                     ) : (
-                      /* ✅ CASE 3: No blockchain data */
+                      /* ✅ CASE 3: No blockchain data = DATABASE ONLY */
                       <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500">
                         <FiAlertCircle className="w-4 h-4 flex-shrink-0" />
-                        <span className="text-xs">📋 Database only - No blockchain data</span>
+                        <span className="text-xs">📋 Database only - No blockchain integration</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Status Column - UPDATED */}
+                  {/* ✅ SIMPLIFIED Status Column */}
                   <div className="md:col-span-3">
                     <div className="flex gap-2 flex-wrap items-center">
-                      {/* ✅ Status badges berdasarkan real blockchain state */}
-                      {item.blockchain_tx_hash && item.blockchainData?.verified ? (
+                      {/* ✅ SIMPLIFIED: Status badges - 3 states only */}
+                      {item.blockchain_tx_hash ? (
                         <motion.span 
                           className="px-2 py-1 rounded text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 flex items-center gap-1"
                           initial={{ scale: 0.8 }}
                           animate={{ scale: 1 }}
                         >
                           <FiCheck className="w-3 h-3" />
-                          Full Verified
-                        </motion.span>
-                      ) : item.blockchain_tx_hash ? (
-                        <motion.span 
-                          className="px-2 py-1 rounded text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center gap-1"
-                          initial={{ scale: 0.8 }}
-                          animate={{ scale: 1 }}
-                        >
-                          <FiExternalLink className="w-3 h-3" />
-                          TX Confirmed
+                          Verified
                         </motion.span>
                       ) : item.blockchain_doc_hash ? (
                         <span className="px-2 py-1 rounded text-xs font-bold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 flex items-center gap-1">
                           <FiRefreshCw className="w-3 h-3 animate-spin" />
-                          Processing...
+                          ⏳ PROCESSING
                         </span>
                       ) : (
                         <span className="px-2 py-1 rounded text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-                          📋 Database Only
+                          📋 DATABASE ONLY
                         </span>
                       )}
                       
@@ -1181,35 +850,20 @@ export default function LaporanPage() {
                         </span>
                       )}
 
-                      {/* ✅ Action Buttons */}
+                      {/* ✅ SIMPLIFIED Action Buttons - Remove Verify button */}
                       <div className="flex gap-1 mt-2 w-full">
-                        {/* Manual Verify Button - ONLY if doc_hash exists but not verified */}
-                        {item.blockchain_doc_hash && !item.blockchainData?.verified && (
-                          <motion.button
-                            onClick={() => verifyOnBlockchainAndUpdateDB(item)}
-                            disabled={loadingBlockchain}
-                            className="px-2 py-1 rounded text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 hover:bg-orange-200 flex items-center gap-1 transition-all"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            title="Verify on Sepolia blockchain"
-                          >
-                            <FiShield className="w-3 h-3" />
-                            <span>Verify</span>
-                          </motion.button>
-                        )}
-
                         {/* QR Code Generation */}
                         <motion.button
                           onClick={() => generateBlockchainQRCode(item)}
                           disabled={loadingBlockchain && selectedLaporan?.id === item.id}
                           className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-all ${
-                            item.blockchainData?.verified
+                            item.blockchain_tx_hash
                               ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200'
                               : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200'
                           }`}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          title={item.blockchainData?.verified ? "Generate blockchain-verified QR" : "Generate QR from database"}
+                          title={item.blockchain_tx_hash ? "Generate blockchain-verified QR" : "Generate QR from database"}
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
@@ -1228,8 +882,6 @@ export default function LaporanPage() {
                           <FiDownload className="w-3 h-3" />
                           <span>PDF</span>
                         </motion.button>
-
-
                       </div>
                     </div>
                   </div>
