@@ -413,7 +413,18 @@ export default function Verifikasi() {
           return;
         }
       } catch (publicErr) {
-        console.warn(`[Verifikasi] Public endpoint failed (${publicErr.response?.status})`);
+        console.error(`[Verifikasi] Public endpoint failed:`, {
+          status: publicErr.response?.status,
+          statusText: publicErr.response?.statusText,
+          message: publicErr.message,
+          url: publicErr.config?.url,
+          data: publicErr.response?.data
+        });
+        
+        // ✅ If 404, show user-friendly error
+        if (publicErr.response?.status === 404) {
+          toast.error(`❌ Data dengan ID ${laporanId} tidak ditemukan di server`);
+        }
         lastError = publicErr;
       }
 
@@ -441,15 +452,28 @@ export default function Verifikasi() {
             return;
           }
         } catch (authErr) {
-          console.warn(`[Verifikasi] Authenticated endpoint failed (${authErr.response?.status})`);
+          console.error(`[Verifikasi] Authenticated endpoint failed:`, {
+            status: authErr.response?.status,
+            statusText: authErr.response?.statusText,
+            message: authErr.message,
+            url: authErr.config?.url
+          });
           lastError = authErr;
         }
       }
 
-      // ✅ 4. Fallback: Use QR code data
+      // ✅ 4. Fallback: Use QR code data + blockchain info
       if (parsedData && typeof parsedData === 'object' && parsedData.id) {
-        laporan = parsedData;
-        console.log('[Verifikasi] Using data from QR code as fallback');
+        laporan = { ...parsedData };
+        
+        // ✅ Always add blockchain data if available
+        if (blockchainData) {
+          laporan.blockchain_doc_hash = blockchainData.blockchain_doc_hash;
+          laporan.blockchain_tx_hash = blockchainData.blockchain_tx_hash;
+          laporan.blockchain_verified = blockchainData.blockchain_verified;
+        }
+        
+        console.log('[Verifikasi] Using data from QR code as fallback:', laporan);
         setLaporanDetail(laporan);
         toast.info("💡 Menampilkan data dari QR Code", { autoClose: 2000 });
         setLoadingLaporan(false);
@@ -1098,6 +1122,15 @@ export default function Verifikasi() {
                     <h3 className="font-semibold text-white flex items-center gap-2">
                       <FiCheckCircle className="w-5 h-5" />
                       Detail Laporan
+                      {loadingLaporan && (
+                        <motion.span
+                          className="text-xs bg-white/20 px-2 py-1 rounded-full"
+                          animate={{ opacity: [1, 0.5, 1] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          Loading...
+                        </motion.span>
+                      )}
                     </h3>
                     <button
                       onClick={() => setLaporanDetail(null)}
@@ -1109,6 +1142,17 @@ export default function Verifikasi() {
 
                   {/* Modal Content */}
                   <div className="p-6 overflow-y-auto scrollbar-premium flex-1">
+                  
+                  {/* ⚠️ Warning if data is from QR fallback */}
+                  {!laporanDetail.nama_perusahaan && laporanDetail.blockchain_doc_hash && (
+                    <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <p className="text-xs text-yellow-700 dark:text-yellow-300 font-semibold">⚠️ Data Terbatas</p>
+                      <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                        Server tidak merespons, menampilkan data dari blockchain. Detail lengkap mungkin tidak tersedia.
+                      </p>
+                    </div>
+                  )}
+                  
                   {/* Header Info */}
                   <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-start gap-4 mb-4">
@@ -1117,7 +1161,7 @@ export default function Verifikasi() {
                       </div>
                       <div className="flex-1">
                         <h4 className="font-bold text-lg text-gray-900 dark:text-gray-100 mb-1">
-                          {laporanDetail.nama_perusahaan}
+                          {laporanDetail.nama_perusahaan || (laporanDetail.blockchain_doc_hash ? '🔗 Data dari Blockchain' : 'Detail Laporan')}
                         </h4>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           ID: <span className="font-mono">{laporanDetail.id}</span>
@@ -1145,99 +1189,131 @@ export default function Verifikasi() {
                   </div>
 
                   {/* Detail Fields */}
-                  <div className="space-y-4">
-                    <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Nama PIC</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {laporanDetail.nama_pic}
-                      </p>
+                  {loadingLaporan ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3, 4].map((i) => (
+                        <motion.div
+                          key={i}
+                          className="h-12 bg-gradient-to-r from-gray-200 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg"
+                          animate={{ opacity: [0.5, 1, 0.5] }}
+                          transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 }}
+                        />
+                      ))}
                     </div>
-
-                    <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Narahubung</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {laporanDetail.narahubung}
-                      </p>
-                    </div>
-
-                    <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Jenis Bibit</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {laporanDetail.jenis_bibit}
-                      </p>
-                    </div>
-
-                    <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Jumlah Bibit</p>
-                      <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                        {laporanDetail.jumlah_bibit} unit
-                      </p>
-                    </div>
-
-                    <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Tanggal Pelaksanaan</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {new Date(laporanDetail.tanggal_pelaksanaan).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </p>
-                    </div>
-
-                    <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Lokasi</p>
-                      <p className="text-sm font-mono text-gray-900 dark:text-gray-100 break-all">
-                        {laporanDetail.lokasi}
-                      </p>
-                    </div>
-
-                    {/* Blockchain Info */}
-                    {laporanDetail?.blockchain_doc_hash || blockchainData?.blockchain_doc_hash ? (
-                      <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-                        <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-2 flex items-center gap-2">
-                          <FiShield className="w-4 h-4" /> Blockchain
-                        </p>
-                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 space-y-2">
-                          <div>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">Doc Hash:</p>
-                            <code className="text-xs font-mono text-blue-700 dark:text-blue-300 break-all">
-                              {laporanDetail?.blockchain_doc_hash || blockchainData?.blockchain_doc_hash}
-                            </code>
-                          </div>
-                          {(laporanDetail?.blockchain_tx_hash || blockchainData?.blockchain_tx_hash) && (
-                            <div>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">TX Hash:</p>
-                              <a
-                                href={`https://sepolia.etherscan.io/tx/${laporanDetail?.blockchain_tx_hash || blockchainData?.blockchain_tx_hash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs font-mono text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 break-all flex items-center gap-1"
-                              >
-                                {laporanDetail?.blockchain_tx_hash || blockchainData?.blockchain_tx_hash}
-                                <FiExternalLink className="w-3 h-3" />
-                              </a>
-                            </div>
-                          )}
+                  ) : (
+                    <div className="space-y-4">
+                      {laporanDetail.nama_pic && (
+                        <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Nama PIC</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {laporanDetail.nama_pic}
+                          </p>
                         </div>
-                      </div>
-                    ) : null}
+                      )}
 
-                    {/* Dibuat Tanggal */}
-                    <div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
-                        Dibuat pada
-                      </p>
-                      <p className="text-xs text-gray-700 dark:text-gray-300">
-                        {new Date(laporanDetail.created_at).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit"
-                        })}
-                      </p>
+                      {laporanDetail.narahubung && (
+                        <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Narahubung</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {laporanDetail.narahubung}
+                          </p>
+                        </div>
+                      )}
+
+                      {laporanDetail.jenis_bibit && (
+                        <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Jenis Bibit</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {laporanDetail.jenis_bibit}
+                          </p>
+                        </div>
+                      )}
+
+                      {laporanDetail.jumlah_bibit && (
+                        <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Jumlah Bibit</p>
+                          <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                            {laporanDetail.jumlah_bibit} unit
+                          </p>
+                        </div>
+                      )}
+
+                      {laporanDetail.tanggal_pelaksanaan && (
+                        <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Tanggal Pelaksanaan</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {new Date(laporanDetail.tanggal_pelaksanaan).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+                      )}
+
+                      {laporanDetail.lokasi && (
+                        <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">Lokasi</p>
+                          <p className="text-sm font-mono text-gray-900 dark:text-gray-100 break-all">
+                            {laporanDetail.lokasi}
+                          </p>
+                        </div>
+                      )}
                     </div>
+                  )}
+
+                  {/* Blockchain Info */}
+                  {laporanDetail?.blockchain_doc_hash || blockchainData?.blockchain_doc_hash ? (
+                    <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-2 flex items-center gap-2">
+                        <FiShield className="w-4 h-4" /> Blockchain
+                        {loadingLaporan && (
+                          <motion.span
+                            className="w-2 h-2 bg-blue-500 rounded-full"
+                            animate={{ opacity: [1, 0.3, 1] }}
+                            transition={{ duration: 1, repeat: Infinity }}
+                          />
+                        )}
+                      </p>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 space-y-2">
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Doc Hash:</p>
+                          <code className="text-xs font-mono text-blue-700 dark:text-blue-300 break-all">
+                            {laporanDetail?.blockchain_doc_hash || blockchainData?.blockchain_doc_hash}
+                          </code>
+                        </div>
+                        {(laporanDetail?.blockchain_tx_hash || blockchainData?.blockchain_tx_hash) && (
+                          <div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">TX Hash:</p>
+                            <a
+                              href={`https://sepolia.etherscan.io/tx/${laporanDetail?.blockchain_tx_hash || blockchainData?.blockchain_tx_hash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-mono text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 break-all flex items-center gap-1"
+                            >
+                              {laporanDetail?.blockchain_tx_hash || blockchainData?.blockchain_tx_hash}
+                              <FiExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Dibuat Tanggal */}
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
+                      Dibuat pada
+                    </p>
+                    <p className="text-xs text-gray-700 dark:text-gray-300">
+                      {new Date(laporanDetail.created_at).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      })}
+                    </p>
                   </div>
 
                   {/* Scan Ulang Button */}
