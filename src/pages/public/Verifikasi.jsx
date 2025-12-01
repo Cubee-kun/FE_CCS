@@ -418,13 +418,30 @@ export default function Verifikasi() {
         
         if (laporan) {
           console.log('[Verifikasi] ✅ Data fetched from API successfully');
+          console.log('[Verifikasi] API Response structure:', {
+            hasBlockchainObject: !!laporan.blockchain,
+            hasBlockchainDocHash: !!laporan.blockchain_doc_hash,
+            blockchainObj: laporan.blockchain
+          });
           
-          // ✅ ALWAYS apply blockchain data if it exists
+          // ✅ Extract blockchain data from API response structure
+          if (laporan.blockchain && typeof laporan.blockchain === 'object') {
+            laporan.blockchain_doc_hash = laporan.blockchain.doc_hash || laporan.blockchain_doc_hash;
+            laporan.blockchain_tx_hash = laporan.blockchain.tx_hash || laporan.blockchain_tx_hash;
+            laporan.blockchain_verified = laporan.blockchain.verified !== undefined ? laporan.blockchain.verified : true;
+            console.log('[Verifikasi] ✅ Extracted blockchain from API response:', {
+              doc_hash: laporan.blockchain_doc_hash,
+              tx_hash: laporan.blockchain_tx_hash,
+              verified: laporan.blockchain_verified
+            });
+          }
+          
+          // ✅ ALSO apply blockchain data from state if it exists
           if (blockchainData) {
-            laporan.blockchain_doc_hash = blockchainData.blockchain_doc_hash;
-            laporan.blockchain_tx_hash = blockchainData.blockchain_tx_hash;
-            laporan.blockchain_verified = blockchainData.blockchain_verified;
-            console.log('[Verifikasi] ✅ Applied blockchain data:', blockchainData);
+            laporan.blockchain_doc_hash = blockchainData.blockchain_doc_hash || laporan.blockchain_doc_hash;
+            laporan.blockchain_tx_hash = blockchainData.blockchain_tx_hash || laporan.blockchain_tx_hash;
+            laporan.blockchain_verified = blockchainData.blockchain_verified !== undefined ? blockchainData.blockchain_verified : laporan.blockchain_verified;
+            console.log('[Verifikasi] ✅ Applied blockchain data from state:', blockchainData);
           }
           
           setLaporanDetail(laporan);
@@ -459,12 +476,18 @@ export default function Verifikasi() {
           if (laporan) {
             console.log('[Verifikasi] ✅ Data fetched from authenticated endpoint');
             
-            // ✅ ALWAYS apply blockchain data if it exists
+            // ✅ Extract blockchain data from API response structure
+            if (laporan.blockchain && typeof laporan.blockchain === 'object') {
+              laporan.blockchain_doc_hash = laporan.blockchain.doc_hash || laporan.blockchain_doc_hash;
+              laporan.blockchain_tx_hash = laporan.blockchain.tx_hash || laporan.blockchain_tx_hash;
+              laporan.blockchain_verified = laporan.blockchain.verified !== undefined ? laporan.blockchain.verified : true;
+            }
+            
+            // ✅ ALSO apply blockchain data from state if it exists
             if (blockchainData) {
-              laporan.blockchain_doc_hash = blockchainData.blockchain_doc_hash;
-              laporan.blockchain_tx_hash = blockchainData.blockchain_tx_hash;
-              laporan.blockchain_verified = blockchainData.blockchain_verified;
-              console.log('[Verifikasi] ✅ Applied blockchain data:', blockchainData);
+              laporan.blockchain_doc_hash = blockchainData.blockchain_doc_hash || laporan.blockchain_doc_hash;
+              laporan.blockchain_tx_hash = blockchainData.blockchain_tx_hash || laporan.blockchain_tx_hash;
+              laporan.blockchain_verified = blockchainData.blockchain_verified !== undefined ? blockchainData.blockchain_verified : laporan.blockchain_verified;
             }
             
             setLaporanDetail(laporan);
