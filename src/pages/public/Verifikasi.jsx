@@ -1,10 +1,11 @@
 // src/pages/public/Verifikasi.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { 
   FiCamera, FiCheckCircle, FiAlertCircle, FiRefreshCw, 
-  FiX, FiDownload, FiCopy, FiChevronDown, FiChevronUp, FiUpload
+  FiX, FiDownload, FiCopy, FiChevronDown, FiChevronUp, FiUpload,
+  FiShield, FiExternalLink
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../contexts/AuthContext";
@@ -81,6 +82,10 @@ export default function Verifikasi() {
   const [loadingLaporan, setLoadingLaporan] = useState(false);
   const [blockchainReady, setBlockchainReady] = useState(false);
   const [blockchainError, setBlockchainError] = useState(null);
+  
+  // ✅ NEW: Track blockchain data separately to ensure it never gets lost
+  const [blockchainData, setBlockchainData] = useState(null);
+  
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const blockchainContext = useBlockchain();
@@ -88,14 +93,65 @@ export default function Verifikasi() {
   const [ScannerComponent, setScannerComponent] = useState(null);
   const [qrDataParsed, setQrDataParsed] = useState(null);
 
-  // ✅ Load Scanner Component
+  // ✅ Function untuk beep sound dengan beberapa varian
+  const playBeepSound = (type = 'success') => {
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // ✅ Varian suara berbeda
+      if (type === 'success') {
+        // Two beeps: low then high (success sound)
+        oscillator.frequency.setValueAtTime(523, audioContext.currentTime); // C5
+        oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.1); // G5
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.25);
+      } else if (type === 'warning') {
+        // Continuous beep for warnings
+        oscillator.frequency.value = 660; // E5
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.15);
+      } else if (type === 'triple') {
+        // Three short beeps
+        oscillator.frequency.value = 800; // G#5
+        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime + 0.08);
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.08);
+        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime + 0.12);
+        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime + 0.20);
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.20);
+        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime + 0.24);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.32);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.32);
+      }
+    } catch (err) {
+      console.log('[Verifikasi] Beep sound not available:', err.message);
+    }
+  };
+
+  // ✅ Video ref untuk camera
+  const videoRef = useRef(null);
+
+  // ✅ Load Scanner Component dengan QR-Scanner (lebih stabil)
   useEffect(() => {
     const loadScanner = async () => {
       try {
-        const { Scanner: QRScanner } = await import("@yudiel/react-qr-scanner");
-        setScannerComponent(() => QRScanner);
         setScannerReady(true);
-        console.log('[Verifikasi] Scanner component loaded successfully');
+        console.log('[Verifikasi] Scanner ready (using browser API)');
       } catch (err) {
         console.error('[Verifikasi] Failed to load scanner component:', err);
         setError('❌ QR Scanner tidak tersedia. Gunakan input manual atau upload gambar.');
@@ -134,24 +190,158 @@ export default function Verifikasi() {
     }
   }, [scannerReady]);
 
+  // ✅ Start camera stream ketika scanning dimulai
+  useEffect(() => {
+    if (!scanning || !scannerReady || !videoRef.current) return;
+
+    const startCamera = async () => {
+      try {
+        console.log('[Verifikasi] Starting camera with device:', deviceId);
+        
+        const constraints = {
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const video = videoRef.current;
+        
+        if (video) {
+          video.srcObject = stream;
+          await video.play().catch(err => {
+            console.error('[Verifikasi] Video play error:', err);
+          });
+        }
+
+        setError(null);
+      } catch (err) {
+        console.error('[Verifikasi] Camera access error:', err);
+        handleError(err);
+      }
+    };
+
+    startCamera();
+
+    return () => {
+      // Stop camera when component unmounts or scanning stops
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(track => {
+          track.stop();
+        });
+      }
+    };
+  }, [scanning, scannerReady, deviceId]);
+
+  // ✅ Get available cameras
+  useEffect(() => {
+    if (!scanning || !scannerReady) return;
+
+    let animationFrameId = null;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let lastScannedData = null;
+    let scannedCount = 0;
+
+    const scanFrame = async () => {
+      try {
+        const video = videoRef.current;
+        if (!video || !video.srcObject) {
+          scannedCount++;
+          if (scannedCount < 100) { // Try for ~3 seconds
+            animationFrameId = requestAnimationFrame(scanFrame);
+          }
+          return;
+        }
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          // ✅ Try jsQR
+          try {
+            const { default: jsQR } = await import('jsqr');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            
+            if (code && code.data && code.data !== lastScannedData) {
+              lastScannedData = code.data;
+              console.log('[Verifikasi] QR detected from video:', code.data.substring(0, 50));
+              await processQRData(code.data);
+              return; // Stop scanning after success
+            }
+          } catch (err) {
+            // Ignore jsQR errors, continue scanning
+          }
+        }
+
+        animationFrameId = requestAnimationFrame(scanFrame);
+      } catch (err) {
+        console.warn('[Verifikasi] Scan frame error:', err);
+        animationFrameId = requestAnimationFrame(scanFrame);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(scanFrame);
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [scanning, scannerReady]);
+
   // ✅ Check blockchain readiness
   useEffect(() => {
     if (blockchainContext?.isReady) {
       setBlockchainReady(true);
       setBlockchainError(null);
-      console.log('[Verifikasi] Blockchain is ready');
+      console.log('[Verifikasi] ✅ Blockchain is ready');
     } else {
       setBlockchainReady(false);
-      console.warn('[Verifikasi] Blockchain not ready yet');
+      // Only log if we had it ready before (don't spam on initial load)
+      if (blockchainReady) {
+        console.warn('[Verifikasi] Blockchain connection lost');
+      }
     }
   }, [blockchainContext?.isReady]);
 
   // ✅ Handle successful scan dari kamera
   const handleScan = (detections) => {
-    if (detections?.length > 0) {
-      const qrData = detections[0].rawValue;
-      console.log('[Verifikasi] QR Code detected:', qrData);
-      processQRData(qrData);
+    try {
+      if (!detections) {
+        console.log('[Verifikasi] No detections');
+        return;
+      }
+
+      // ✅ Handle array of detections
+      if (Array.isArray(detections) && detections.length > 0) {
+        const detection = detections[0];
+        const qrData = detection?.rawValue || detection?.data || detection;
+        
+        if (qrData) {
+          console.log('[Verifikasi] QR Code detected from array:', qrData);
+          processQRData(qrData);
+        }
+      }
+      // ✅ Handle single detection object
+      else if (typeof detections === 'object' && detections.rawValue) {
+        const qrData = detections.rawValue;
+        console.log('[Verifikasi] QR Code detected from object:', qrData);
+        processQRData(qrData);
+      }
+      // ✅ Handle string directly
+      else if (typeof detections === 'string') {
+        console.log('[Verifikasi] QR Code detected as string:', detections);
+        processQRData(detections);
+      }
+    } catch (err) {
+      console.error('[Verifikasi] Error in handleScan:', err);
+      toast.error('❌ Error membaca QR Code');
     }
   };
 
@@ -208,6 +398,15 @@ export default function Verifikasi() {
         
         if (laporan) {
           console.log('[Verifikasi] ✅ Data fetched from API successfully');
+          
+          // ✅ ALWAYS apply blockchain data if it exists
+          if (blockchainData) {
+            laporan.blockchain_doc_hash = blockchainData.blockchain_doc_hash;
+            laporan.blockchain_tx_hash = blockchainData.blockchain_tx_hash;
+            laporan.blockchain_verified = blockchainData.blockchain_verified;
+            console.log('[Verifikasi] ✅ Applied blockchain data:', blockchainData);
+          }
+          
           setLaporanDetail(laporan);
           toast.success("📊 Detail laporan berhasil dimuat dari server!");
           setLoadingLaporan(false);
@@ -227,6 +426,15 @@ export default function Verifikasi() {
           
           if (laporan) {
             console.log('[Verifikasi] ✅ Data fetched from authenticated endpoint');
+            
+            // ✅ ALWAYS apply blockchain data if it exists
+            if (blockchainData) {
+              laporan.blockchain_doc_hash = blockchainData.blockchain_doc_hash;
+              laporan.blockchain_tx_hash = blockchainData.blockchain_tx_hash;
+              laporan.blockchain_verified = blockchainData.blockchain_verified;
+              console.log('[Verifikasi] ✅ Applied blockchain data:', blockchainData);
+            }
+            
             setLaporanDetail(laporan);
             toast.success("📊 Detail laporan berhasil dimuat!");
             setLoadingLaporan(false);
@@ -330,91 +538,212 @@ export default function Verifikasi() {
     }
   };
 
-  // ✅ OPTIMIZED: Process QR dengan instant feedback
+  // ✅ OPTIMIZED: Process QR dengan instant feedback dan error handling
   const processQRData = async (qrData) => {
     try {
-      const parsed = JSON.parse(qrData);
-      
-      console.log('[Verifikasi] Processing QR:', parsed.type);
-      
-      // ✅ Instant feedback
-      toast.success("✅ QR Code scanned successfully!");
-      
-      if (parsed.type === 'PERENCANAAN_BLOCKCHAIN') {
-        setQrDataParsed(parsed);
-        setScanResult(qrData);
-        setParsedData(parsed.data);
-        setScanning(false);
-        setError(null);
-        
-        // ✅ Set laporan detail immediately from QR (no waiting)
-        if (parsed.data) {
-          setLaporanDetail(parsed.data);
-          toast.info("📊 Showing data from QR code", { autoClose: 2000 });
-        }
-        
-        // ✅ THEN verify blockchain in background (non-blocking)
-        if (parsed.verification?.docHash && blockchainContext?.isReady) {
-          setTimeout(() => {
-            verifyBlockchainData();
-          }, 500); // Small delay to let UI update first
-        }
-        
+      // ✅ Validate input
+      if (!qrData || typeof qrData !== 'string') {
+        console.error('[Verifikasi] Invalid QR data:', qrData);
+        toast.error('❌ Format QR code tidak valid');
         return;
       }
+
+      const trimmedData = qrData.trim();
+      console.log('[Verifikasi] Processing QR data:', trimmedData.substring(0, 100));
       
-      // ✅ Handle other QR formats...
-      // ...existing code for other formats...
+      // ✅ Try to parse as JSON first
+      let parsed = null;
+      try {
+        parsed = JSON.parse(trimmedData);
+        console.log('[Verifikasi] ✅ Parsed as JSON successfully');
+        console.log('[Verifikasi] JSON keys:', Object.keys(parsed));
+        console.log('[Verifikasi] Full JSON:', parsed);
+      } catch (jsonErr) {
+        console.log('[Verifikasi] Not JSON format:', jsonErr.message);
+      }
+
+      // ✅ Handle different JSON formats
+      if (parsed && typeof parsed === 'object') {
+        // Format 1: Old format dengan type: 'PERENCANAAN_BLOCKCHAIN'
+        if (parsed.type === 'PERENCANAAN_BLOCKCHAIN') {
+          console.log('[Verifikasi] Format 1: PERENCANAAN_BLOCKCHAIN detected');
+          playBeepSound('success');
+          toast.success("✅ QR Code scanned successfully!");
+          setQrDataParsed(parsed);
+          setScanResult(qrData);
+          setScanning(false);
+          setError(null);
+          
+          // ✅ ALWAYS save blockchain data to state
+          if (parsed.verification?.docHash) {
+            setBlockchainData({
+              blockchain_doc_hash: parsed.verification.docHash,
+              blockchain_tx_hash: parsed.verification.txHash,
+              blockchain_verified: true
+            });
+          }
+          
+          if (parsed.data && Object.keys(parsed.data).length > 0) {
+            setParsedData(parsed.data);
+            setLaporanDetail(parsed.data);
+            console.log('[Verifikasi] ✅ Laporan detail set from QR data', parsed.data);
+            toast.info("📊 Showing data from QR code", { autoClose: 2000 });
+          } else {
+            const minimalData = {
+              id: parsed.verification?.docId || 'unknown',
+              type: 'PERENCANAAN_BLOCKCHAIN',
+              blockchain_verified: true,
+              blockchain_doc_hash: parsed.verification?.docHash,
+              blockchain_tx_hash: parsed.verification?.txHash
+            };
+            setParsedData(minimalData);
+            setLaporanDetail(minimalData);
+          }
+          
+          if (parsed.verification?.docHash && blockchainContext?.isReady) {
+            setTimeout(() => {
+              verifyBlockchainData();
+            }, 500);
+          }
+          return;
+        }
+        
+        // Format 2: Minimal format dengan id, docHash, verified
+        if (parsed.id || parsed.docHash || parsed.verified !== undefined) {
+          console.log('[Verifikasi] Format 2: Minimal blockchain format detected');
+          playBeepSound('success');
+          toast.success("✅ QR Code scanned successfully!");
+          setScanResult(qrData);
+          setScanning(false);
+          setError(null);
+          
+          const bcData = {
+            id: parsed.id || 'unknown',
+            blockchain_doc_hash: parsed.docHash || parsed.blockchain_doc_hash,
+            blockchain_tx_hash: parsed.txHash || parsed.blockchain_tx_hash,
+            blockchain_verified: parsed.verified || false,
+            source: 'QR_CODE'
+          };
+          
+          // ✅ SET BLOCKCHAIN DATA TO STATE
+          setBlockchainData(bcData);
+          
+          setParsedData(bcData);
+          setLaporanDetail(bcData);
+          setQrDataParsed(parsed);
+          
+          console.log('[Verifikasi] ✅ Blockchain data set:', bcData);
+          toast.info("📊 Blockchain data from QR code", { autoClose: 2000 });
+          
+          // Fetch full detail if we have ID
+          if (parsed.id) {
+            await fetchLaporanDetail(parsed.id);
+          }
+          return;
+        }
+        
+        // Format 3: Any other object format - treat as data
+        if (Object.keys(parsed).length > 0) {
+          console.log('[Verifikasi] Format 3: Generic JSON object detected');
+          playBeepSound('success');
+          toast.success("✅ QR Code data received");
+          setScanResult(qrData);
+          setScanning(false);
+          setError(null);
+          
+          // ✅ SAVE blockchain data if present in Format 3
+          if (parsed.blockchain_doc_hash || parsed.docHash) {
+            const bcData = {
+              blockchain_doc_hash: parsed.blockchain_doc_hash || parsed.docHash,
+              blockchain_tx_hash: parsed.blockchain_tx_hash || parsed.txHash,
+              blockchain_verified: parsed.blockchain_verified !== undefined ? parsed.blockchain_verified : false
+            };
+            setBlockchainData(bcData);
+            console.log('[Verifikasi] ✅ Format 3 blockchain data set:', bcData);
+          }
+          
+          setParsedData(parsed);
+          setLaporanDetail(parsed);
+          
+          // If has ID, try to fetch full detail
+          if (parsed.id) {
+            await fetchLaporanDetail(parsed.id);
+          }
+          return;
+        }
+      }
       
-    } catch (parseError) {
-      // ✅ Handle non-JSON QR codes
-      if (/^\d+$/.test(qrData.trim())) {
-        const numericId = parseInt(qrData.trim());
+      // ✅ NUMERIC ID
+      if (/^\d+$/.test(trimmedData)) {
+        const numericId = parseInt(trimmedData);
+        console.log('[Verifikasi] Numeric ID detected:', numericId);
+        playBeepSound('triple');
+        toast.success("✅ ID detected, loading data...");
         setScanResult(qrData);
         setParsedData({ id: numericId, type: 'NUMERIC_ID' });
         setScanning(false);
         setError(null);
-        
-        toast.success("✅ ID detected, loading data...");
         await fetchLaporanDetail(numericId);
-      } else if (qrData.trim().startsWith('0x') && qrData.trim().length === 66) {
-        // Blockchain hash detected
+        return;
+      }
+      
+      // ✅ BLOCKCHAIN HASH (0x...)
+      if (trimmedData.startsWith('0x') && (trimmedData.length === 66 || trimmedData.length === 130)) {
+        console.log('[Verifikasi] Blockchain hash detected');
+        playBeepSound('success');
         toast.info("🔗 Blockchain hash detected, verifying...");
+        setScanResult(qrData);
+        
+        // ✅ SET blockchain data immediately
+        const bcData = {
+          blockchain_doc_hash: trimmedData,
+          type: 'BLOCKCHAIN_HASH'
+        };
+        setBlockchainData(bcData);
+        setParsedData(bcData);
+        
+        setScanning(false);
+        setError(null);
+        
+        console.log('[Verifikasi] ✅ Blockchain hash set:', bcData);
         
         if (blockchainContext?.isReady) {
           try {
-            const blockchainData = await blockchainContext.verifyDocumentHash(qrData.trim());
-            if (blockchainData.verified) {
-              setScanResult(qrData);
-              setParsedData({ blockchain_doc_hash: qrData.trim(), type: 'BLOCKCHAIN_HASH' });
-              setScanning(false);
-              setError(null);
-              
+            const blockchainResponse = await blockchainContext.verifyDocumentHash(trimmedData);
+            if (blockchainResponse?.verified) {
               const laporanFromBlockchain = {
-                id: blockchainData.docId,
-                ...blockchainData.metadata,
+                id: blockchainResponse.docId,
+                ...blockchainResponse.metadata,
                 blockchain_verified: true,
-                blockchain_doc_hash: blockchainData.docHash,
+                blockchain_doc_hash: blockchainResponse.docHash,
                 source: 'BLOCKCHAIN_DIRECT'
               };
-              
               setLaporanDetail(laporanFromBlockchain);
+              // ✅ Keep blockchain data
+              setBlockchainData(bcData);
               toast.success("🔗 Data loaded from blockchain!");
               return;
             }
           } catch (err) {
+            console.error('[Verifikasi] Blockchain verification failed:', err);
             toast.error("❌ Blockchain verification failed");
           }
         }
-      } else {
-        // Raw text
-        setScanResult(qrData);
-        setParsedData({ raw: qrData, type: 'TEXT' });
-        setScanning(false);
-        setError(null);
-        
-        toast.info("📋 Text data scanned");
+        return;
       }
+      
+      // ✅ RAW TEXT
+      console.log('[Verifikasi] Raw text detected');
+      playBeepSound('warning');
+      toast.info("📋 Text data scanned");
+      setScanResult(qrData);
+      setParsedData({ raw: trimmedData, type: 'TEXT' });
+      setScanning(false);
+      setError(null);
+      
+    } catch (err) {
+      console.error('[Verifikasi] Error in processQRData:', err);
+      toast.error('❌ Error processing QR data: ' + err.message);
     }
   };
 
@@ -423,6 +752,8 @@ export default function Verifikasi() {
     setScanResult(null);
     setParsedData(null);
     setLaporanDetail(null);
+    setBlockchainData(null);
+    setQrDataParsed(null);
     setScanning(true);
     setError(null);
     setExpandedInfo(false);
@@ -455,7 +786,9 @@ export default function Verifikasi() {
 
     try {
       console.log('[Verifikasi] Processing file upload:', file.name);
+      setScanning(false); // Stop camera
       const reader = new FileReader();
+      
       reader.onload = async (event) => {
         const img = new Image();
         img.onload = async () => {
@@ -515,14 +848,16 @@ export default function Verifikasi() {
               }
             }
 
-            // ✅ Fallback: Ask user untuk input manual
+            // ✅ Hasil
             if (!qrContent) {
               console.log('[Verifikasi] All QR decoders failed, falling back to manual input');
               toast.warning('⚠️ Tidak dapat membaca QR dari gambar otomatis.');
               toast.info('💡 Silakan input QR code secara manual atau copy-paste data-nya');
               setUseManualInput(true);
             } else {
-              processQRData(qrContent);
+              console.log('[Verifikasi] QR decoded successfully, processing...');
+              toast.success('✅ QR Code dari gambar berhasil dibaca!');
+              await processQRData(qrContent);
             }
             
           } catch (decodeErr) {
@@ -532,9 +867,14 @@ export default function Verifikasi() {
           }
         };
         img.onerror = () => {
+          console.error('[Verifikasi] Image failed to load');
           toast.error('❌ File gambar tidak valid');
         };
         img.src = event.target?.result;
+      };
+      reader.onerror = () => {
+        console.error('[Verifikasi] FileReader error');
+        toast.error('❌ Gagal membaca file');
       };
       reader.readAsDataURL(file);
     } catch (err) {
@@ -578,10 +918,10 @@ export default function Verifikasi() {
         </motion.div>
 
         {/* Main Grid */}
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-2 gap-6">
           {/* Scanner Section */}
           <motion.div 
-            className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 sm:p-8 border border-green-100 dark:border-gray-700"
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 sm:p-8 border border-green-100 dark:border-gray-700"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
@@ -626,33 +966,28 @@ export default function Verifikasi() {
               </div>
             )}
 
-            {/* Scanner or Manual Input */}
+            {/* Scanner atau Manual Input */}
             <AnimatePresence mode="wait">
               {!useManualInput && scannerReady && scanning && !scanResult ? (
                 <motion.div 
                   key="scanner"
-                  className="relative rounded-2xl overflow-hidden border-4 border-green-500 shadow-2xl aspect-square bg-gray-900 mb-6"
+                  className="relative rounded-2xl overflow-hidden border-4 border-green-500 shadow-2xl bg-gray-900 mb-6"
+                  style={{ aspectRatio: '1/1' }}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                 >
-                  {ScannerComponent ? (
-                    <ScannerComponent
-                      onDecode={handleScan}
-                      onError={handleError}
-                      constraints={{ deviceId: deviceId || undefined }}
-                      styles={{
-                        container: { width: '100%', height: '100%' }
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <div className="text-center">
-                        <FiAlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-                        <p className="text-yellow-300">Loading scanner...</p>
-                      </div>
-                    </div>
-                  )}
+                  {/* Video Stream untuk QR Code */}
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                    onLoadedMetadata={() => {
+                      console.log('[Verifikasi] Video loaded');
+                    }}
+                  />
                   
                   {/* Scanning Frame */}
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
@@ -704,8 +1039,8 @@ export default function Verifikasi() {
                   <FiCheckCircle className="w-16 h-16 text-blue-600 mx-auto mb-4" />
                 </motion.div>
                 <p className="text-blue-700 dark:text-blue-300 font-bold text-lg mb-2">QR Code Valid ✅</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {loadingLaporan ? 'Memuat detail laporan...' : 'Data sedang diproses...'}
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  {loadingLaporan ? '⏳ Memuat detail laporan...' : '🔄 Sedang memproses...'}
                 </p>
                 <motion.div
                   animate={{ rotate: 360 }}
@@ -716,25 +1051,64 @@ export default function Verifikasi() {
                 </motion.div>
               </motion.div>
             )}
+
+            {/* Success State - Show Detail */}
+            {scanResult && laporanDetail && (
+              <motion.div 
+                className="bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-2xl p-8 text-center aspect-square flex flex-col items-center justify-center"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                >
+                  <FiCheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+                </motion.div>
+                <p className="text-green-700 dark:text-green-300 font-bold text-lg mb-2">✅ Berhasil Terverifikasi</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Lihat detail laporan di sebelah kanan
+                </p>
+              </motion.div>
+            )}
           </motion.div>
 
-          {/* ✅ DETAIL LAPORAN PANEL - Tampilkan langsung tanpa perlu login */}
-          {laporanDetail && (
-            <motion.div 
-              className="lg:col-span-1"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 overflow-hidden sticky top-20">
-                <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4">
-                  <h3 className="font-semibold text-white flex items-center gap-2">
-                    <FiCheckCircle className="w-5 h-5" />
-                    Detail Laporan
-                  </h3>
-                </div>
-                
-                <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-premium">
+          {/* ✅ DETAIL LAPORAN MODAL - Tampilkan sebagai modal */}
+          <AnimatePresence>
+            {laporanDetail && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+                onClick={() => setLaporanDetail(null)}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-green-100 dark:border-gray-700 overflow-hidden max-w-2xl w-full max-h-[90vh] flex flex-col"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Modal Header */}
+                  <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex items-center justify-between">
+                    <h3 className="font-semibold text-white flex items-center gap-2">
+                      <FiCheckCircle className="w-5 h-5" />
+                      Detail Laporan
+                    </h3>
+                    <button
+                      onClick={() => setLaporanDetail(null)}
+                      className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                    >
+                      <FiX className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
+
+                  {/* Modal Content */}
+                  <div className="p-6 overflow-y-auto scrollbar-premium flex-1">
                   {/* Header Info */}
                   <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-start gap-4 mb-4">
@@ -819,7 +1193,7 @@ export default function Verifikasi() {
                     </div>
 
                     {/* Blockchain Info */}
-                    {laporanDetail.blockchain_doc_hash && (
+                    {laporanDetail?.blockchain_doc_hash || blockchainData?.blockchain_doc_hash ? (
                       <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
                         <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-2 flex items-center gap-2">
                           <FiShield className="w-4 h-4" /> Blockchain
@@ -828,26 +1202,26 @@ export default function Verifikasi() {
                           <div>
                             <p className="text-xs text-gray-600 dark:text-gray-400">Doc Hash:</p>
                             <code className="text-xs font-mono text-blue-700 dark:text-blue-300 break-all">
-                              {laporanDetail.blockchain_doc_hash}
+                              {laporanDetail?.blockchain_doc_hash || blockchainData?.blockchain_doc_hash}
                             </code>
                           </div>
-                          {laporanDetail.blockchain_tx_hash && (
+                          {(laporanDetail?.blockchain_tx_hash || blockchainData?.blockchain_tx_hash) && (
                             <div>
                               <p className="text-xs text-gray-600 dark:text-gray-400">TX Hash:</p>
                               <a
-                                href={`https://sepolia.etherscan.io/tx/${laporanDetail.blockchain_tx_hash}`}
+                                href={`https://sepolia.etherscan.io/tx/${laporanDetail?.blockchain_tx_hash || blockchainData?.blockchain_tx_hash}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs font-mono text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 break-all flex items-center gap-1"
                               >
-                                {laporanDetail.blockchain_tx_hash}
+                                {laporanDetail?.blockchain_tx_hash || blockchainData?.blockchain_tx_hash}
                                 <FiExternalLink className="w-3 h-3" />
                               </a>
                             </div>
                           )}
                         </div>
                       </div>
-                    )}
+                    ) : null}
 
                     {/* Dibuat Tanggal */}
                     <div>
@@ -876,10 +1250,23 @@ export default function Verifikasi() {
                     <FiRefreshCw className="w-4 h-4" />
                     Scan QR Lain
                   </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          )}
+                  </div>
+
+                  {/* Modal Footer - Close Button */}
+                  <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end gap-3">
+                    <motion.button
+                      onClick={() => setLaporanDetail(null)}
+                      className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Tutup
+                    </motion.button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Instructions (jika belum scan) */}
           {!laporanDetail && (

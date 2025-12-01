@@ -486,7 +486,7 @@ export default function LaporanPage() {
   // ✅ ENRICHMENT: Fetch real blockchain tx hashes dari Sepolia dengan parallel processing
   // Note: Duplicate function removed, using the one defined earlier
 
-  // ✅ Generate blockchain QR with frontend verification
+  // ✅ Generate blockchain QR with frontend verification - OPTIMIZED
   const generateBlockchainQRCode = async (item) => {
     setSelectedLaporan(item);
     setLoadingBlockchain(true);
@@ -509,35 +509,13 @@ export default function LaporanPage() {
         }
       }
 
+      // ✅ MINIMAL QR data untuk mengurangi size
       const qrData = {
-        type: 'PERENCANAAN_BLOCKCHAIN',
-        timestamp: new Date().toISOString(),
-        verification: {
-          blockchainVerified: !!blockchainData,
-          docHash: item.blockchain_doc_hash || null,
-          txHash: item.blockchain_tx_hash || null,
-          docId: blockchainData?.docId || null,
-          verificationUrl: blockchainData 
-            ? `https://3treesify-ccs.netlify.app/verify/${item.blockchain_doc_hash}`
-            : null,
-          source: blockchainData ? "SEPOLIA_BLOCKCHAIN" : "DATABASE"
-        },
-        data: {
-          id: item.id,
-          nama_perusahaan: item.nama_perusahaan,
-          nama_pic: item.nama_pic,
-          narahubung: item.narahubung,
-          jenis_kegiatan: item.jenis_kegiatan,
-          jenis_bibit: item.jenis_bibit,
-          jumlah_bibit: item.jumlah_bibit,
-          lokasi: item.lokasi,
-          tanggal_pelaksanaan: item.tanggal_pelaksanaan,
-          is_implemented: item.is_implemented,
-          blockchain_doc_hash: item.blockchain_doc_hash,
-          blockchain_tx_hash: item.blockchain_tx_hash,
-          created_at: item.created_at
-        },
-        blockchainProof: blockchainData || null
+        id: item.id,
+        docHash: item.blockchain_doc_hash || null,
+        txHash: item.blockchain_tx_hash || null,
+        verified: !!blockchainData,
+        source: blockchainData ? "BLOCKCHAIN" : "DB"
       };
 
       const qrUrl = await QRCode.toDataURL(JSON.stringify(qrData), {
@@ -547,12 +525,37 @@ export default function LaporanPage() {
           dark: blockchainData ? '#10b981' : '#3b82f6',
           light: '#ffffff'
         },
-        errorCorrectionLevel: 'H'
+        errorCorrectionLevel: 'L'
       });
+
+      // ✅ Keep full data for download but not in QR
+      const fullData = {
+        type: 'PERENCANAAN_BLOCKCHAIN',
+        timestamp: new Date().toISOString(),
+        verification: {
+          blockchainVerified: !!blockchainData,
+          docHash: item.blockchain_doc_hash || null,
+          txHash: item.blockchain_tx_hash || null,
+          docId: blockchainData?.docId || null,
+          source: blockchainData ? "SEPOLIA_BLOCKCHAIN" : "DATABASE"
+        },
+        data: {
+          id: item.id,
+          nama_perusahaan: item.nama_perusahaan,
+          nama_pic: item.nama_pic,
+          jenis_kegiatan: item.jenis_kegiatan,
+          jumlah_bibit: item.jumlah_bibit,
+          lokasi: item.lokasi,
+          is_implemented: item.is_implemented,
+          blockchain_doc_hash: item.blockchain_doc_hash,
+          blockchain_tx_hash: item.blockchain_tx_hash
+        },
+        blockchainProof: blockchainData || null
+      };
 
       setQrCodeData({
         url: qrUrl,
-        data: qrData,
+        data: fullData,
         verified: !!blockchainData
       });
       
@@ -644,7 +647,7 @@ export default function LaporanPage() {
     }
   };
 
-  // ✅ Generate PDF dari Laporan
+  // ✅ Generate PDF dari Laporan - FIXED dengan pdf-lib
   const generatePDF = async (item) => {
     try {
       toast.info("📄 Membuat PDF...", { autoClose: 2000 });
@@ -661,7 +664,7 @@ export default function LaporanPage() {
         x: 50,
         y: yPosition,
         size: 16,
-        color: rgb(16, 185, 129),
+        color: rgb(0.0627, 0.7255, 0.5059),
       });
       yPosition -= 30;
       
@@ -669,14 +672,14 @@ export default function LaporanPage() {
         start: { x: 50, y: yPosition },
         end: { x: 550, y: yPosition },
         thickness: 2,
-        color: rgb(16, 185, 129),
+        color: rgb(0.0627, 0.7255, 0.5059),
       });
       yPosition -= 20;
       
       const details = [
         `Perusahaan: ${item.nama_perusahaan}`,
         `PIC: ${item.nama_pic}`,
-        `Narahubung: ${item.narahubung}`,
+        `Narahubung: ${item.narahubung || '-'}`,
         `Kegiatan: ${item.jenis_kegiatan}`,
         `Bibit: ${item.jumlah_bibit} unit`,
         `Lokasi: ${item.lokasi}`,
@@ -695,6 +698,25 @@ export default function LaporanPage() {
         }
       });
       
+      if (item.blockchain_tx_hash) {
+        yPosition -= 10;
+        page.drawText('Blockchain Info:', {
+          x: 50,
+          y: yPosition,
+          size: 10,
+          color: rgb(0.0627, 0.7255, 0.5059),
+        });
+        yPosition -= 15;
+        
+        const txDisplay = `TX Hash: ${item.blockchain_tx_hash.substring(0, 20)}...`;
+        page.drawText(txDisplay, {
+          x: 50,
+          y: yPosition,
+          size: 8,
+          color: rgb(0, 0, 0),
+        });
+      }
+      
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
@@ -707,7 +729,7 @@ export default function LaporanPage() {
       toast.success("✅ PDF berhasil diunduh!");
     } catch (err) {
       console.error('PDF generation error:', err);
-      toast.error("❌ Gagal membuat PDF");
+      toast.error("❌ Gagal membuat PDF: " + err.message);
     }
   };
 
@@ -755,9 +777,17 @@ export default function LaporanPage() {
             x: 50,
             y: yPosition,
             size: 14,
-            color: rgb(16, 185, 129),
+            color: rgb(0.0627, 0.7255, 0.5059),
           });
           yPosition -= 20;
+          
+          page.drawLine({
+            start: { x: 50, y: yPosition },
+            end: { x: 550, y: yPosition },
+            thickness: 1,
+            color: rgb(0.0627, 0.7255, 0.5059),
+          });
+          yPosition -= 15;
           
           const details = [
             `Perusahaan: ${item.nama_perusahaan}`,
@@ -789,19 +819,11 @@ export default function LaporanPage() {
         // 2. Generate QR Code
         try {
           const qrData = {
-            type: 'PERENCANAAN_BLOCKCHAIN',
-            timestamp: new Date().toISOString(),
-            verification: {
-              blockchainVerified: !!item.blockchain_doc_hash,
-              docHash: item.blockchain_doc_hash || null,
-              txHash: item.blockchain_tx_hash || null,
-            },
-            data: {
-              id: item.id,
-              nama_perusahaan: item.nama_perusahaan,
-              jenis_kegiatan: item.jenis_kegiatan,
-              jumlah_bibit: item.jumlah_bibit,
-            },
+            id: item.id,
+            docHash: item.blockchain_doc_hash || null,
+            txHash: item.blockchain_tx_hash || null,
+            verified: !!item.blockchain_tx_hash,
+            source: item.blockchain_tx_hash ? "BLOCKCHAIN" : "DB"
           };
           
           const qrDataURL = await QRCode.toDataURL(JSON.stringify(qrData), {
@@ -810,7 +832,8 @@ export default function LaporanPage() {
             color: {
               dark: item.blockchain_doc_hash ? '#10b981' : '#3b82f6',
               light: '#ffffff'
-            }
+            },
+            errorCorrectionLevel: 'L'
           });
           
           const qrBase64 = qrDataURL.split(',')[1];
@@ -1206,48 +1229,7 @@ export default function LaporanPage() {
                           <span>PDF</span>
                         </motion.button>
 
-                        {/* Etherscan Link - ONLY if TX hash exists */}
-                        {item.blockchain_tx_hash && (
-                          <motion.a
-                            href={`https://sepolia.etherscan.io/tx/${item.blockchain_tx_hash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-2 py-1 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 flex items-center gap-1 transition-all"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            title="View on Etherscan Sepolia"
-                          >
-                            <FiExternalLink className="w-3 h-3" />
-                            <span>Etherscan</span>
-                          </motion.a>
-                        )}
 
-                        {/* Implementation Status Toggle */}
-                        <motion.button
-                          onClick={() => toggleImplementasiStatus(item.id, item.is_implemented)}
-                          disabled={updatingStatus === item.id}
-                          className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-all ${
-                            item.is_implemented 
-                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200'
-                              : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200'
-                          } ${updatingStatus === item.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          whileHover={updatingStatus === item.id ? {} : { scale: 1.05 }}
-                          whileTap={updatingStatus === item.id ? {} : { scale: 0.95 }}
-                          title={item.is_implemented ? "Mark as planning" : "Mark as implemented"}
-                        >
-                          {updatingStatus === item.id ? (
-                            <motion.div
-                              className="w-3 h-3 border-2 border-current border-t-transparent rounded-full"
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            />
-                          ) : item.is_implemented ? (
-                            <FiX className="w-3 h-3" />
-                          ) : (
-                            <FiCheck className="w-3 h-3" />
-                          )}
-                          <span>{item.is_implemented ? 'Undo' : 'Done'}</span>
-                        </motion.button>
                       </div>
                     </div>
                   </div>
