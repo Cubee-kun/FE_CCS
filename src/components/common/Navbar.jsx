@@ -96,17 +96,13 @@ export default function Navbar({ isUser = false }) {
 
   return (
     <motion.nav
-      className={`sticky top-0 z-40 w-screen -ml-[calc((100vw-100%)/2)] backdrop-blur-xl transition-all duration-300 ${
-        scrolled
-          ? "bg-green-800/70 dark:bg-green-950/80 shadow-[0_14px_35px_-15px_rgba(21,128,61,0.8)]"
-          : "bg-green-800/60 dark:bg-green-950/70"
-      }`}
-      initial={{ y: -100 }}
+      className="fixed top-0 left-0 right-0 z-50 w-screen -ml-[calc((100vw-100%)/2)] bg-transparent transition-all duration-300"
+      initial={{ y: 0 }}
       animate={{ y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div className="h-16 flex items-center justify-between rounded-full px-6 lg:px-8 backdrop-blur-2xl border border-green-600/60 dark:border-green-700/50 bg-gradient-to-r from-green-700/80 to-green-800/80 dark:from-green-800/70 dark:to-green-900/70 shadow-lg">
+        <div className="h-16 flex items-center justify-between rounded-full px-6 lg:px-8 backdrop-blur-2xl border border-green-600/60 dark:border-green-700/50 bg-gradient-to-r from-green-700/90 to-green-800/90 dark:from-green-800/85 dark:to-green-900/85 shadow-[0_12px_30px_-12px_rgba(21,128,61,0.75)]">
           {/* Logo Section */}
           <motion.div 
             className="flex items-center space-x-2.5 group cursor-pointer flex-shrink-0"
@@ -252,6 +248,8 @@ export default function Navbar({ isUser = false }) {
                             </div>
                             <div>
                               <p className="font-semibold text-gray-900 dark:text-gray-100">
+
+                          <div className="h-[88px]" aria-hidden="true" />
                                 {user?.username || user?.name || "User"}
                               </p>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
