@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { FiPieChart, FiBarChart2 } from "react-icons/fi";
 
 // Register Chart.js components
 ChartJS.register(
@@ -61,9 +62,12 @@ export function PieChart({ data = [] }) {
         <Pie data={chartData} options={options} />
       ) : (
         <div className="text-center">
-          <div className="text-4xl mb-2">📊</div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Tidak ada data
+          <div className="text-6xl mb-4">📊</div>
+          <p className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">
+            Belum ada data kegiatan
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Data akan muncul setelah ada perencanaan kegiatan
           </p>
         </div>
       )}
@@ -106,9 +110,12 @@ export function BarChart({ data = [] }) {
         <Bar data={chartData} options={options} />
       ) : (
         <div className="text-center">
-          <div className="text-4xl mb-2">📈</div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Tidak ada data
+          <div className="text-6xl mb-4">📈</div>
+          <p className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">
+            Belum ada progress bulan ini
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Grafik akan muncul setelah ada aktivitas
           </p>
         </div>
       )}

@@ -1,6 +1,6 @@
 import { useBlockchain } from '../contexts/BlockchainContext';
 import { motion } from 'framer-motion';
-import { FiCheck, FiX, FiLoader, FiCopy, FiExternalLink, FiWifi, FiWifiOff } from 'react-icons/fi';
+import { FiCheck, FiLoader, FiCopy, FiExternalLink, FiWifi, FiWifiOff, FiLink } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 
 export default function BlockchainStatus() {
@@ -51,7 +51,7 @@ export default function BlockchainStatus() {
   const copyAddress = () => {
     if (!walletAddress) return;
     navigator.clipboard.writeText(walletAddress);
-    toast.success('📋 Wallet address copied!');
+    toast.success('Wallet address copied');
   };
 
   const viewOnExplorer = () => {
@@ -67,7 +67,7 @@ export default function BlockchainStatus() {
     >
       <FiCheck className="w-4 h-4" />
       <span className="text-xs font-medium">
-        {isReady ? '✅ Blockchain Ready' : '⏳ Loading'}
+        {isReady ? 'Blockchain Ready' : 'Loading'}
       </span>
       {walletAddress && (
         <span className="text-xs opacity-70 ml-1">
@@ -87,8 +87,9 @@ export default function BlockchainStatus() {
       
       {/* Wallet Info */}
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-semibold text-green-700 dark:text-green-300">
-          🔗 Blockchain: Connected
+        <div className="text-xs font-semibold text-green-700 dark:text-green-300 flex items-center gap-1">
+          <FiLink className="w-3 h-3" />
+          <span>Blockchain: Connected</span>
         </div>
         {walletAddress && (
           <div className="flex items-center gap-1">

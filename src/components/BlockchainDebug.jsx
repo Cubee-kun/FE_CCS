@@ -1,6 +1,6 @@
 import { useBlockchain } from '../contexts/BlockchainContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiAlertCircle, FiCheck, FiWifi, FiWifiOff, FiServer } from 'react-icons/fi';
+import { FiX, FiAlertCircle, FiCheckCircle, FiWifi, FiWifiOff, FiServer, FiLink, FiBriefcase, FiLock } from 'react-icons/fi';
 import { useState } from 'react';
 
 export default function BlockchainDebug() {
@@ -39,7 +39,10 @@ export default function BlockchainDebug() {
                     ? 'text-green-900 dark:text-green-200'
                     : 'text-amber-900 dark:text-amber-200'
                 }`}>
-                  {isConnected ? '✅ Blockchain: Connected' : '⚠️ Blockchain: Disconnected'}
+                  <span className="inline-flex items-center gap-1.5">
+                    {isConnected ? <FiCheckCircle className="w-4 h-4" /> : <FiAlertCircle className="w-4 h-4" />}
+                    <span>{isConnected ? 'Blockchain: Connected' : 'Blockchain: Disconnected'}</span>
+                  </span>
                 </h3>
               </div>
               <button
@@ -75,8 +78,9 @@ export default function BlockchainDebug() {
 
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Chain:</span>
-                <span className="font-mono text-xs text-gray-700 dark:text-gray-300">
-                  🔗 Sepolia (11155111)
+                <span className="font-mono text-xs text-gray-700 dark:text-gray-300 inline-flex items-center gap-1">
+                  <FiLink className="w-3 h-3" />
+                  <span>Sepolia (11155111)</span>
                 </span>
               </div>
             </div>
@@ -92,8 +96,12 @@ export default function BlockchainDebug() {
             )}
 
             {/* Info Text */}
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-              💼 Backend-powered blockchain • 🔐 Auto transactions
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center inline-flex items-center gap-2 w-full justify-center">
+              <FiBriefcase className="w-3.5 h-3.5" />
+              <span>Backend-powered blockchain</span>
+              <span>•</span>
+              <FiLock className="w-3.5 h-3.5" />
+              <span>Auto transactions</span>
             </p>
           </div>
         </motion.div>

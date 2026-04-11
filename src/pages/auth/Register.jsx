@@ -4,6 +4,7 @@ import { EyeIcon, EyeSlashIcon, HomeIcon, ArrowPathIcon } from "@heroicons/react
 import { useAuth } from "../../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import { FiFeather, FiZap, FiShield } from "react-icons/fi";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -42,10 +43,10 @@ export default function Register() {
   };
 
   const floatingShapes = [
-    { icon: "🌱", size: "text-xl", position: "top-1/4 left-1/6" },
-    { icon: "🌿", size: "text-lg", position: "top-1/3 right-1/5" },
-    { icon: "🍃", size: "text-2xl", position: "bottom-1/4 left-1/4" },
-    { icon: "🌴", size: "text-3xl", position: "bottom-1/3 right-1/6" },
+    { icon: FiFeather, size: "text-xl", position: "top-1/4 left-1/6" },
+    { icon: FiFeather, size: "text-lg", position: "top-1/3 right-1/5" },
+    { icon: FiZap, size: "text-2xl", position: "bottom-1/4 left-1/4" },
+    { icon: FiShield, size: "text-3xl", position: "bottom-1/3 right-1/6" },
   ];
 
   if (loading) {
@@ -90,7 +91,7 @@ export default function Register() {
             ease: "easeInOut",
           }}
         >
-          {shape.icon}
+          <shape.icon />
         </motion.div>
       ))}
 
@@ -106,11 +107,11 @@ export default function Register() {
         <p className="text-green-700 text-sm">
           Bersama memajukan argopariwisata 
           <motion.span 
-            className="inline-block"
+            className="inline-flex items-center align-middle"
             animate={{ rotate: [0, 10, -10, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            🌱
+            <FiFeather className="ml-1" />
           </motion.span>
         </p>
       </motion.div>

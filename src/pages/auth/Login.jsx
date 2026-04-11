@@ -4,7 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { EyeIcon, EyeSlashIcon, HomeIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
-import { FiAlertTriangle, FiLogOut } from "react-icons/fi";
+import { FiAlertTriangle, FiLogOut, FiLock, FiZap, FiFeather } from "react-icons/fi";
 import api from "../../api/axios";
 
 export default function Login() {
@@ -94,10 +94,10 @@ export default function Login() {
   };
 
   const floatingShapes = [
-    { icon: "🌿", size: "text-xl", position: "top-1/4 left-1/6" },
-    { icon: "🌱", size: "text-lg", position: "top-1/3 right-1/5" },
-    { icon: "🍃", size: "text-2xl", position: "bottom-1/4 left-1/4" },
-    { icon: "🌲", size: "text-3xl", position: "bottom-1/3 right-1/6" },
+    { icon: FiFeather, size: "text-xl", position: "top-1/4 left-1/6" },
+    { icon: FiFeather, size: "text-lg", position: "top-1/3 right-1/5" },
+    { icon: FiZap, size: "text-2xl", position: "bottom-1/4 left-1/4" },
+    { icon: FiLock, size: "text-3xl", position: "bottom-1/3 right-1/6" },
   ];
 
   if (loading && !deviceConflict) {
@@ -139,7 +139,7 @@ export default function Login() {
               ease: "easeInOut",
             }}
           >
-            {shape.icon}
+            <shape.icon />
           </motion.div>
         ))}
 
@@ -167,9 +167,9 @@ export default function Login() {
           </motion.p>
           <div className="space-y-4">
             {[
-              { icon: "🔒", text: "Autentikasi aman dengan enkripsi" },
-              { icon: "⚡", text: "Proses cepat dan responsif" },
-              { icon: "🌱", text: "Ramah lingkungan - paperless" }
+              { icon: FiLock, text: "Autentikasi aman dengan enkripsi" },
+              { icon: FiZap, text: "Proses cepat dan responsif" },
+              { icon: FiFeather, text: "Ramah lingkungan - paperless" }
             ].map((item, index) => (
               <motion.div 
                 key={index} 
@@ -178,13 +178,13 @@ export default function Login() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.6 + index * 0.1 }}
               >
-                <motion.span 
-                  className="text-xl"
+                <motion.div
+                  className="w-8 h-8 rounded-full bg-emerald-100/80 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-700 dark:text-emerald-300"
                   whileHover={{ scale: 1.2 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
-                  {item.icon}
-                </motion.span>
+                  <item.icon className="w-4 h-4" />
+                </motion.div>
                 <span className="text-emerald-800/90 dark:text-emerald-200/90">{item.text}</span>
               </motion.div>
             ))}
@@ -271,7 +271,10 @@ export default function Login() {
                     </div>
                     <div className="flex-1">
                       <h3 className="font-bold text-amber-900 dark:text-amber-200 mb-2">
-                        ⚠️ Akun Sudah Login di Perangkat Lain
+                        <span className="inline-flex items-center gap-2">
+                          <FiAlertTriangle className="w-4 h-4" />
+                          <span>Akun Sudah Login di Perangkat Lain</span>
+                        </span>
                       </h3>
                       <p className="text-sm text-amber-800 dark:text-amber-300 mb-3">
                         Akun Anda sudah login di perangkat lain. Untuk keamanan, hanya 1 perangkat yang bisa aktif.

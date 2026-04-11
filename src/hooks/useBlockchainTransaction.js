@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useBlockchain } from '../contexts/BlockchainContext';
 import { toast } from 'react-toastify';
+import { FiCheckCircle, FiExternalLink, FiXCircle, FiSearch, FiAlertTriangle, FiSend } from 'react-icons/fi';
 
 /**
  * ✅ Custom hook for direct frontend blockchain transactions
@@ -22,7 +23,10 @@ export function useBlockchainTransaction() {
 
       console.log('[useBlockchainTransaction] Starting direct blockchain storage...');
       
-      toast.info('📤 Storing data to Sepolia blockchain...', { autoClose: false });
+      toast.info('Storing data to Sepolia blockchain...', {
+        autoClose: false,
+        icon: <FiSend />,
+      });
 
       const result = await storeDocumentHash(docType, formData, {
         ...metadata,
@@ -37,14 +41,18 @@ export function useBlockchainTransaction() {
         
         toast.success(
           <div>
-            <p>✅ Data successfully stored on blockchain!</p>
+            <p className="inline-flex items-center gap-2">
+              <FiCheckCircle className="text-emerald-600" />
+              <span>Data successfully stored on blockchain</span>
+            </p>
             <a
               href={result.explorerUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm underline mt-1 block text-blue-600 hover:text-blue-800"
+              className="text-sm underline mt-1 flex items-center gap-1 text-blue-600 hover:text-blue-800"
             >
-              👀 View on Sepolia Etherscan →
+              <FiExternalLink />
+              <span>View on Sepolia Etherscan</span>
             </a>
           </div>,
           { autoClose: 8000 }
@@ -63,7 +71,10 @@ export function useBlockchainTransaction() {
       
       toast.error(
         <div>
-          <p>❌ Blockchain storage failed</p>
+          <p className="inline-flex items-center gap-2">
+            <FiXCircle className="text-red-600" />
+            <span>Blockchain storage failed</span>
+          </p>
           <p className="text-xs mt-1 text-gray-600">{err.message}</p>
         </div>,
         { autoClose: 6000 }
@@ -88,7 +99,10 @@ export function useBlockchainTransaction() {
         throw new Error('Blockchain service not ready');
       }
 
-      toast.info('🔍 Verifying document on blockchain...', { autoClose: false });
+      toast.info('Verifying document on blockchain...', {
+        autoClose: false,
+        icon: <FiSearch />,
+      });
       
       const { verifyDocumentHash } = useBlockchain();
       const result = await verifyDocumentHash(docHash);
@@ -96,14 +110,14 @@ export function useBlockchainTransaction() {
       toast.dismiss();
 
       if (result.verified) {
-        toast.success('✅ Document verified on blockchain!');
+        toast.success('Document verified on blockchain', { icon: <FiCheckCircle /> });
         return {
           success: true,
           verified: true,
           ...result
         };
       } else {
-        toast.warning('⚠️ Document not found on blockchain');
+        toast.warning('Document not found on blockchain', { icon: <FiAlertTriangle /> });
         return {
           success: false,
           verified: false,
@@ -114,7 +128,7 @@ export function useBlockchainTransaction() {
       console.error('[useBlockchainTransaction] Verification error:', err);
       setError(err.message);
       
-      toast.error(`❌ Verification failed: ${err.message}`);
+      toast.error(`Verification failed: ${err.message}`, { icon: <FiXCircle /> });
       
       return {
         success: false,

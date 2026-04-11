@@ -96,74 +96,78 @@ export default function Navbar({ isUser = false }) {
 
   return (
     <motion.nav
-      className="sticky top-0 z-40 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm transition-all duration-300"
+      className={`sticky top-0 z-40 w-screen -ml-[calc((100vw-100%)/2)] backdrop-blur-xl transition-all duration-300 ${
+        scrolled
+          ? "bg-green-800/70 dark:bg-green-950/80 shadow-[0_14px_35px_-15px_rgba(21,128,61,0.8)]"
+          : "bg-green-800/60 dark:bg-green-950/70"
+      }`}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
-      <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="h-20 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="h-16 flex items-center justify-between rounded-full px-6 lg:px-8 backdrop-blur-2xl border border-green-600/60 dark:border-green-700/50 bg-gradient-to-r from-green-700/80 to-green-800/80 dark:from-green-800/70 dark:to-green-900/70 shadow-lg">
           {/* Logo Section */}
           <motion.div 
-            className="flex items-center space-x-2 sm:space-x-3 group cursor-pointer flex-shrink-0"
+            className="flex items-center space-x-2.5 group cursor-pointer flex-shrink-0"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => handleNavigation("/")}
           >
-            <div className="relative flex items-center gap-2 sm:gap-3">
+            <div className="relative flex items-center gap-2.5">
               <div className="relative">
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 rounded-full blur-xl opacity-30 group-hover:opacity-50"
+                  className="absolute inset-0 bg-gradient-to-r from-emerald-300 via-green-300 to-cyan-300 rounded-full blur-lg opacity-40 group-hover:opacity-60"
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 3, repeat: Infinity }}
                 />
                 <motion.img
                   src="/images/icon.png"
                   alt="CCS-System Logo"
-                  className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 relative z-10 object-contain drop-shadow-2xl"
+                  className="h-10 w-10 relative z-10 object-contain drop-shadow-lg"
                   whileHover={{ rotate: [0, -10, 10, 0] }}
                   transition={{ duration: 0.5 }}
                 />
               </div>
               <div className="flex flex-col">
                 <motion.h1 
-                  className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent leading-tight"
+                  className="text-lg font-bold text-white leading-tight"
                   whileHover={{ scale: 1.05 }}
                 >
                   3TREESIFY
                 </motion.h1>
-                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium leading-tight hidden sm:block">
-                  Traceability, Transparancy & Trust
+                <p className="text-xs text-emerald-100 font-medium leading-tight hidden sm:block">
+                  Traceability System
                 </p>
               </div>
             </div>
           </motion.div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-2 xl:space-x-3">
+          {/* Desktop Navigation - Centered */}
+          <div className="hidden lg:flex items-center space-x-1 absolute left-1/2 transform -translate-x-1/2">
             {navItems.map((item, index) => (
               <motion.button
                 key={item.name}
                 onClick={() => handleNavigation(item.path)}
-                className={`relative px-4 xl:px-5 py-2.5 xl:py-3 rounded-xl text-sm xl:text-base font-semibold transition-all group ${
+                className={`relative px-4 py-2 rounded-lg text-sm font-semibold transition-all group ${
                   location.pathname === item.path
-                    ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
-                    : "text-gray-700 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400"
+                    ? "text-white bg-white/20 shadow-lg shadow-emerald-400/50"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
                 }`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.08 }}
               >
-                <div className="flex items-center space-x-2">
-                  <item.icon className="w-4 xl:w-5 h-4 xl:h-5" />
-                  <span>{item.name}</span>
-                </div>
+                <span>{item.name}</span>
                 {location.pathname === item.path && (
                   <motion.div
-                    className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-300 via-green-300 to-emerald-300 rounded-full shadow-md shadow-emerald-300/50"
                     layoutId="activeNav"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />
                 )}
               </motion.button>
@@ -172,46 +176,29 @@ export default function Navbar({ isUser = false }) {
             {/* Verifikasi Button */}
             <motion.button
               onClick={handleVerifikasiNav}
-              className="flex items-center space-x-2 px-4 xl:px-5 py-2.5 xl:py-3 rounded-xl text-sm xl:text-base font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all border-2 border-emerald-200 dark:border-emerald-800"
-              whileHover={{ scale: 1.05, y: -2 }}
+              className="mx-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-white/10 hover:bg-white/20 transition-all border border-white/20 hover:border-white/40"
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <FiCheckCircle className="w-4 xl:w-5 h-4 xl:h-5" />
-              <span className="hidden xl:inline">Verifikasi</span>
+              <span>Verifikasi</span>
             </motion.button>
-
-            {/* Dashboard Button */}
-            {isAuthenticated && (
-              <motion.button
-                onClick={() => handleNavigation(user?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')}
-                className="flex items-center space-x-2 px-4 xl:px-6 py-2.5 xl:py-3 rounded-xl text-sm xl:text-base font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg"
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                <FiGrid className="w-4 xl:w-5 h-4 xl:h-5" />
-                <span className="hidden xl:inline">Dashboard</span>
-              </motion.button>
-            )}
           </div>
 
           {/* Right Section - Controls */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex items-center space-x-2 lg:space-x-3">
             {isAuthenticated ? (
               <>
                 {/* Theme Toggle - Hidden on mobile */}
                 <motion.button
                   onClick={toggleTheme}
-                  className="hidden sm:block p-2.5 sm:p-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                  className="hidden sm:block p-2.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all"
                   whileHover={{ scale: 1.1, rotate: 180 }}
                   whileTap={{ scale: 0.9 }}
                 >
                   {theme === "dark" ? (
-                    <FiSun className="w-4 sm:w-5 h-4 sm:h-5 text-yellow-500" />
+                    <FiSun className="w-5 h-5 text-yellow-300" />
                   ) : (
-                    <FiMoon className="w-4 sm:w-5 h-4 sm:h-5 text-gray-600" />
+                    <FiMoon className="w-5 h-5 text-slate-100" />
                   )}
                 </motion.button>
 
@@ -219,29 +206,29 @@ export default function Navbar({ isUser = false }) {
                 <div className="hidden lg:block relative" ref={dropdownRef}>
                   <motion.button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center space-x-2 px-3 xl:px-4 py-2 xl:py-2.5 rounded-xl border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
+                    className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-all"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <div className="relative">
                       <motion.div 
-                        className="w-9 xl:w-10 h-9 xl:h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold shadow-lg text-sm xl:text-base"
+                        className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-300 to-green-400 flex items-center justify-center text-green-900 font-bold shadow-lg text-sm"
                         whileHover={{ scale: 1.1 }}
                         animate={{ 
                           boxShadow: dropdownOpen 
-                            ? "0 0 20px rgba(16, 185, 129, 0.4)" 
+                            ? "0 0 20px rgba(16, 185, 129, 0.6)" 
                             : "0 0 0px rgba(16, 185, 129, 0)" 
                         }}
                       >
                         {(user?.username || user?.name || "U")[0].toUpperCase()}
                       </motion.div>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-200 rounded-full border-2 border-green-800"></div>
                     </div>
                     <div className="text-left hidden xl:block">
-                      <p className="text-sm xl:text-base font-bold text-gray-900 dark:text-gray-100 truncate max-w-[120px]">
+                      <p className="text-sm font-semibold text-white truncate max-w-[120px]">
                         {user?.username || user?.name || "User"}
                       </p>
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <p className="text-xs text-emerald-100 font-medium">
                         {user?.role || "User"}
                       </p>
                     </div>
@@ -255,12 +242,12 @@ export default function Navbar({ isUser = false }) {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="absolute right-0 top-full mt-3 w-80 bg-white dark:bg-gray-900 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden"
+                        className="absolute right-0 top-full mt-3 w-80 bg-green-50/90 dark:bg-green-950/80 backdrop-blur-2xl rounded-2xl shadow-2xl border border-green-200/70 dark:border-green-800/60 overflow-hidden"
                       >
                         {/* Header */}
-                        <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-b border-gray-200/50 dark:border-gray-700/50">
+                        <div className="p-4 bg-gradient-to-r from-green-100/50 to-emerald-100/50 dark:from-green-900/30 dark:to-green-900/20 border-b border-green-200/50 dark:border-green-800/50">
                           <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-lg font-bold">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-green-900 text-lg font-bold">
                               {(user?.username || user?.name || "U")[0].toUpperCase()}
                             </div>
                             <div>
@@ -272,7 +259,7 @@ export default function Navbar({ isUser = false }) {
                               </p>
                               <div className="flex items-center mt-1">
                                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                <span className="text-xs text-green-700 dark:text-green-400 font-medium">
                                   {user?.role || "User"}
                                 </span>
                               </div>
@@ -287,7 +274,7 @@ export default function Navbar({ isUser = false }) {
                               setDropdownOpen(false);
                               navigate(user?.role === "admin" ? "/admin/settings" : "/user/settings");
                             }}
-                            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all"
+                            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-green-100 dark:hover:bg-green-800/60 rounded-xl transition-all"
                             whileHover={{ x: 4 }}
                           >
                             <FiSettings className="w-5 h-5 text-gray-500 dark:text-gray-400" />
@@ -296,7 +283,7 @@ export default function Navbar({ isUser = false }) {
                           
                           <motion.button
                             onClick={handleLogout}
-                            className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all border-t border-gray-200/50 dark:border-gray-700/50 mt-2"
+                            className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all border-t border-green-200/50 dark:border-green-800/50 mt-2"
                             whileHover={{ x: 4 }}
                           >
                             <FiLogOut className="w-5 h-5" />
@@ -313,27 +300,27 @@ export default function Navbar({ isUser = false }) {
                 {/* Login Button - Desktop Only */}
                 <motion.button
                   onClick={() => handleNavigation("/login")}
-                  className="hidden lg:flex items-center space-x-2 px-4 xl:px-6 py-2.5 xl:py-3 rounded-xl text-sm xl:text-base font-bold text-emerald-600 dark:text-emerald-400 bg-white dark:bg-gray-900 border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
+                  className="hidden lg:flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-bold text-green-900 bg-white hover:bg-emerald-50 transition-all"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                 >
-                  <FiUser className="w-4 xl:w-5 h-4 xl:h-5" />
+                  <FiUser className="w-4 h-4" />
                   <span>Masuk</span>
                 </motion.button>
 
                 {/* Theme Toggle - Mobile */}
                 <motion.button
                   onClick={toggleTheme}
-                  className="p-2.5 sm:p-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all"
                   whileHover={{ scale: 1.1, rotate: 180 }}
                   whileTap={{ scale: 0.9 }}
                 >
                   {theme === "dark" ? (
-                    <FiSun className="w-4 sm:w-5 h-4 sm:h-5 text-yellow-500" />
+                    <FiSun className="w-5 h-5 text-yellow-300" />
                   ) : (
-                    <FiMoon className="w-4 sm:w-5 h-4 sm:h-5 text-gray-600" />
+                    <FiMoon className="w-5 h-5 text-slate-100" />
                   )}
                 </motion.button>
               </>
@@ -341,7 +328,7 @@ export default function Navbar({ isUser = false }) {
 
             {/* Mobile Menu Button */}
             <motion.button 
-              className="lg:hidden p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all border-2 border-emerald-200 dark:border-emerald-800"
+              className="lg:hidden p-2.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -355,7 +342,7 @@ export default function Navbar({ isUser = false }) {
                     exit={{ rotate: 90, opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <FiX className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+                    <FiX className="w-5 h-5 text-white" />
                   </motion.div>
                 ) : (
                   <motion.div
@@ -365,11 +352,27 @@ export default function Navbar({ isUser = false }) {
                     exit={{ rotate: -90, opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <FiMenu className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+                    <FiMenu className="w-5 h-5 text-white" />
                   </motion.div>
                 )}
               </AnimatePresence>
             </motion.button>
+
+            {/* Dashboard Button - Right side */}
+            {isAuthenticated && (
+              <motion.button
+                onClick={() => handleNavigation(user?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')}
+                className="hidden sm:flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-green-900 bg-white hover:bg-emerald-50 transition-all shadow-md"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <FiGrid className="w-4 h-4" />
+                <span className="hidden lg:inline">Dashboard</span>
+              </motion.button>
+            )}
           </div>
         </div>
       </div>
@@ -385,12 +388,12 @@ export default function Navbar({ isUser = false }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMobileMenuOpen(false)}
-              style={{ top: '80px', zIndex: 30 }}
+              style={{ top: '72px', zIndex: 30 }}
             />
 
             {/* Mobile Menu Panel */}
             <motion.div
-              className="fixed top-20 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 max-h-[calc(100vh-80px)] overflow-y-auto lg:hidden z-40"
+              className="fixed top-[72px] left-0 right-0 bg-white dark:bg-gray-900 shadow-xl max-h-[calc(100vh-72px)] overflow-y-auto lg:hidden z-40"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -404,8 +407,8 @@ export default function Navbar({ isUser = false }) {
                     onClick={() => handleNavigation(item.path)}
                     className={`w-full flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl font-semibold transition-all ${
                       location.pathname === item.path
-                        ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-500"
-                        : "bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-2 border-transparent hover:border-emerald-200 dark:hover:border-emerald-800"
+                        ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-2 border-green-600"
+                        : "bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-2 border-transparent hover:border-green-300 dark:hover:border-green-800"
                     }`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -416,7 +419,7 @@ export default function Navbar({ isUser = false }) {
                     <item.icon className="w-5 h-5" />
                     <span>{item.name}</span>
                     {location.pathname === item.path && (
-                      <FiCheckCircle className="w-5 h-5 ml-auto text-emerald-600" />
+                      <FiCheckCircle className="w-5 h-5 ml-auto text-green-600" />
                     )}
                   </motion.button>
                 ))}
@@ -427,7 +430,7 @@ export default function Navbar({ isUser = false }) {
                 {/* Verifikasi Button */}
                 <motion.button
                   onClick={handleVerifikasiNav}
-                  className="w-full flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-500 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-all"
+                  className="w-full flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-2 border-green-600 hover:bg-green-200 dark:hover:bg-green-900/50 transition-all"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 }}
@@ -443,7 +446,7 @@ export default function Navbar({ isUser = false }) {
                     {/* Dashboard Button */}
                     <motion.button
                       onClick={() => handleNavigation(user?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')}
-                      className="w-full flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl font-semibold bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md"
+                      className="w-full flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl font-semibold bg-gradient-to-r from-green-600 to-green-500 text-white hover:from-green-700 hover:to-green-600 transition-all shadow-md"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.15 }}
@@ -488,7 +491,7 @@ export default function Navbar({ isUser = false }) {
                   /* Login Button - Mobile */
                   <motion.button
                     onClick={() => handleNavigation("/login")}
-                    className="w-full flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-md"
+                    className="w-full flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl font-semibold bg-green-600 text-white hover:bg-green-700 transition-all shadow-md"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.15 }}

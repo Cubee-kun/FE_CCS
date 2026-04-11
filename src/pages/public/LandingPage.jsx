@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiArrowRight, FiPlay, FiStar, FiUsers, FiTrendingUp, FiShield, FiZap, FiHeart, FiCheck } from "react-icons/fi";
+import { FiArrowRight, FiPlay, FiStar, FiUsers, FiTrendingUp, FiShield, FiZap, FiHeart, FiCheck, FiLink, FiFileText, FiGlobe, FiBarChart2, FiUser, FiFeather } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import Footer from "../../components/common/Footer";
 import { useAuth } from "../../contexts/AuthContext";
@@ -23,7 +23,7 @@ const LandingPage = () => {
     {
       title: "Blockchain Recording",
       description: "Sistem pencatatan data menggunakan teknologi blockchain untuk transparansi dan keamanan data yang tidak dapat diubah.",
-      icon: "⛓️",
+      icon: FiLink,
       gradient: "from-blue-500 via-blue-600 to-cyan-500",
       glowColor: "rgba(59, 130, 246, 0.3)",
       benefits: ["Data immutable", "Transparansi penuh", "Audit trail lengkap"]
@@ -31,7 +31,7 @@ const LandingPage = () => {
     {
       title: "Smart Contracts",
       description: "Otomatisasi proses verifikasi dan validasi data menggunakan smart contract untuk menjamin integritas sistem.",
-      icon: "📋",
+      icon: FiFileText,
       gradient: "from-purple-500 via-purple-600 to-pink-500",
       glowColor: "rgba(168, 85, 247, 0.3)",
       benefits: ["Verifikasi otomatis", "Validasi real-time", "Kontrak digital"]
@@ -39,7 +39,7 @@ const LandingPage = () => {
     {
       title: "Distributed Ledger",
       description: "Penyimpanan data tersebar dengan sistem ledger yang memastikan keamanan dan aksesibilitas data konservasi.",
-      icon: "🌐",
+      icon: FiGlobe,
       gradient: "from-green-500 via-emerald-600 to-teal-500",
       glowColor: "rgba(16, 185, 129, 0.3)",
       benefits: ["Sinkronisasi multi-node", "Backup otomatis", "High availability"]
@@ -47,7 +47,7 @@ const LandingPage = () => {
     {
       title: "Crypto Analytics",
       description: "Analisis data konservasi dengan teknologi blockchain analytics untuk insights yang lebih mendalam dan terverifikasi.",
-      icon: "📈",
+      icon: FiBarChart2,
       gradient: "from-orange-500 via-red-500 to-pink-500",
       glowColor: "rgba(249, 115, 22, 0.3)",
       benefits: ["Data terenkripsi", "Analytics on-chain", "Reporting terverifikasi"]
@@ -60,7 +60,7 @@ const LandingPage = () => {
       role: "Environmental Scientist",
       company: "Green Indonesia Foundation",
       content: "Platform ini benar-benar mengubah cara kami mengelola proyek konservasi. Interface yang intuitif dan fitur monitoring real-time sangat membantu!",
-      avatar: "👩‍🔬",
+      avatar: FiUser,
       rating: 5,
       image: "/images/login-bg.jpg"
     },
@@ -69,7 +69,7 @@ const LandingPage = () => {
       role: "Project Manager",
       company: "EcoTech Solutions",
       content: "Dengan AgroPariwisata, produktivitas tim kami meningkat 300%. Fitur kolaborasi dan AI-nya luar biasa!",
-      avatar: "👨‍💼",
+      avatar: FiUser,
       rating: 5,
       image: "/images/login-bg.jpg"
     },
@@ -78,7 +78,7 @@ const LandingPage = () => {
       role: "Research Director",
       company: "Marine Conservation NGO",
       content: "Tool terbaik untuk monitoring proyek marine conservation. Dashboard analytics-nya sangat comprehensive dan mudah dipahami.",
-      avatar: "👩‍🔬",
+      avatar: FiUser,
       rating: 5,
       image: "/images/login-bg.jpg"
     }
@@ -175,7 +175,7 @@ const LandingPage = () => {
                 transition={{ delay: 0.2 }}
                 whileHover={{ scale: 1.05 }}
               >
-                <span className="mr-2">🌱</span>
+                <FiFeather className="mr-2 text-emerald-500" />
                 <span className={`font-medium ${
                   theme === 'dark' 
                     ? 'text-emerald-300' 
@@ -200,11 +200,11 @@ const LandingPage = () => {
                   Konservasi Digital
                 </span>{" "}
                 <motion.span
-                  className="inline-block"
+                  className="inline-flex align-middle"
                   animate={{ rotate: [0, 5, -5, 0] }}
                   transition={{ duration: 4, repeat: Infinity }}
                 >
-                  🌍
+                  <FiGlobe className="w-10 h-10 md:w-14 md:h-14 text-emerald-500" />
                 </motion.span>
               </motion.h1>
 
@@ -306,7 +306,10 @@ const LandingPage = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
               >
-                ⭐ Dipercaya oleh 10,000+ organisasi konservasi di Indonesia
+                <span className="inline-flex items-center gap-1">
+                  <FiStar className="text-amber-400" />
+                  <span>Dipercaya oleh 10,000+ organisasi konservasi di Indonesia</span>
+                </span>
               </motion.p>
             </motion.div>
 
@@ -558,8 +561,8 @@ const LandingPage = () => {
                       whileHover={{ scale: 1.1, rotate: 5 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
-                      <div className={`w-20 h-20 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center text-3xl shadow-xl`}>
-                        {feature.icon}
+                      <div className={`w-20 h-20 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center shadow-xl`}>
+                        <feature.icon className="w-9 h-9 text-white" />
                       </div>
                     </motion.div>
                     
@@ -724,8 +727,8 @@ const LandingPage = () => {
                       
                       {/* Author Info */}
                       <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center text-2xl shadow-lg">
-                          {testimonials[activeTestimonial].avatar}
+                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center shadow-lg">
+                          {React.createElement(testimonials[activeTestimonial].avatar, { className: "w-7 h-7 text-white" })}
                         </div>
                         <div>
                           <div className="font-bold text-lg text-gray-900">

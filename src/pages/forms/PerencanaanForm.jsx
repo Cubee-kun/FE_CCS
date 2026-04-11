@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import api from "../../api/axios";
-import { FiMapPin, FiCalendar, FiUser, FiPhone, FiBriefcase, FiCheckCircle, FiNavigation, FiLink } from "react-icons/fi";
+import { FiMapPin, FiCalendar, FiUser, FiPhone, FiBriefcase, FiCheckCircle, FiNavigation, FiLink, FiAlertCircle } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
@@ -35,7 +35,7 @@ function LocationMarker({ onLocationSelect, selectedLocation }) {
   useMapEvents({
     click(e) {
       onLocationSelect(e.latlng);
-      toast.success("📍 Lokasi berhasil ditandai di peta!", {
+      toast.success("Lokasi berhasil ditandai di peta", {
         position: "top-center",
         autoClose: 2000
       });
@@ -346,11 +346,11 @@ const PerencanaanForm = () => {
                   </div>
                   {formik.touched[field.name] && formik.errors[field.name] && (
                     <motion.p
-                      className="text-red-500 text-sm mt-2 flex items-center gap-1"
+                      className="text-red-500 text-sm mt-3 flex items-center gap-1"
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                     >
-                      <span>⚠️</span>
+                      <FiAlertCircle className="w-4 h-4" />
                       {formik.errors[field.name]}
                     </motion.p>
                   )}
@@ -421,7 +421,7 @@ const PerencanaanForm = () => {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <span>⚠️</span>
+                  <FiAlertCircle className="w-4 h-4" />
                   {formik.errors.jenis_kegiatan}
                 </motion.p>
               )}
@@ -446,7 +446,10 @@ const PerencanaanForm = () => {
                   <FiMapPin className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <h4 className="font-bold text-blue-900 dark:text-blue-200 mb-2">
-                      📍 Cara Menandai Lokasi
+                      <span className="inline-flex items-center gap-2">
+                        <FiMapPin className="w-4 h-4" />
+                        <span>Cara Menandai Lokasi</span>
+                      </span>
                     </h4>
                     <ol className="text-sm text-blue-800 dark:text-blue-300 space-y-1 list-decimal list-inside">
                       <li>Klik tombol "Pusatkan ke Lokasi Saya" untuk memudahkan (opsional)</li>
@@ -514,7 +517,7 @@ const PerencanaanForm = () => {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <span>⚠️</span>
+                  <FiAlertCircle className="w-4 h-4" />
                   {formik.errors.lokasi}
                 </motion.p>
               )}

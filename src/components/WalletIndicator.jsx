@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useBlockchain } from '../contexts/BlockchainContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiCopy, FiExternalLink, FiCheckCircle, FiAlertCircle, FiBriefcase } from 'react-icons/fi';
+import { FiX, FiCopy, FiExternalLink, FiCheckCircle, FiAlertCircle, FiBriefcase, FiLock, FiWifiOff } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { createPortal } from 'react-dom';
 
@@ -28,7 +28,7 @@ export default function WalletIndicator() {
     if (account) {
       navigator.clipboard.writeText(account);
       setCopied(true);
-      toast.success('📋 Address berhasil disalin!');
+      toast.success('Address berhasil disalin');
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -56,7 +56,7 @@ export default function WalletIndicator() {
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-white animate-pulse' : 'bg-white/60'}`}></div>
           <FiBriefcase className="w-4 h-4" />
           <span className="hidden sm:inline text-sm">
-            {isConnected ? '💼 Wallet' : '⚠️ Wallet'}
+            {isConnected ? 'Wallet' : 'Wallet Offline'}
           </span>
         </div>
       </motion.button>
@@ -112,9 +112,19 @@ export default function WalletIndicator() {
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                     System Wallet
                   </h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {isConnected ? '✅ Sepolia Testnet' : '❌ Disconnected'}
-                  </p>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-2">
+                    {isConnected ? (
+                      <>
+                        <FiCheckCircle className="w-4 h-4 text-emerald-500" />
+                        <span>Sepolia Testnet</span>
+                      </>
+                    ) : (
+                      <>
+                        <FiWifiOff className="w-4 h-4 text-red-500" />
+                        <span>Disconnected</span>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Status Badge */}
@@ -190,8 +200,12 @@ export default function WalletIndicator() {
                       </motion.div>
 
                       {/* Info Text */}
-                      <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-                        💼 System-managed wallet • 🔒 Private key aman di .env
+                      <p className="text-xs text-center text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
+                        <FiBriefcase className="w-3.5 h-3.5" />
+                        <span>System-managed wallet</span>
+                        <span>•</span>
+                        <FiLock className="w-3.5 h-3.5" />
+                        <span>Private key aman di .env</span>
                       </p>
                     </>
                   ) : (
