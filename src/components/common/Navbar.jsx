@@ -246,10 +246,8 @@ export default function Navbar({ isUser = false }) {
                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-green-900 text-lg font-bold">
                               {(user?.username || user?.name || "U")[0].toUpperCase()}
                             </div>
-                            <div>
+                            <div className="space-y-0.5">
                               <p className="font-semibold text-gray-900 dark:text-gray-100">
-
-                          <div className="h-[88px]" aria-hidden="true" />
                                 {user?.username || user?.name || "User"}
                               </p>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -267,6 +265,18 @@ export default function Navbar({ isUser = false }) {
                         
                         {/* Menu Items */}
                         <div className="p-2">
+                          <motion.button
+                            onClick={() => {
+                              setDropdownOpen(false);
+                              navigate(user?.role === "admin" ? "/admin/dashboard" : "/user/dashboard");
+                            }}
+                            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-green-100 dark:hover:bg-green-800/60 rounded-xl transition-all"
+                            whileHover={{ x: 4 }}
+                          >
+                            <FiGrid className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                            <span className="font-medium">Dashboard</span>
+                          </motion.button>
+
                           <motion.button
                             onClick={() => {
                               setDropdownOpen(false);
@@ -355,22 +365,6 @@ export default function Navbar({ isUser = false }) {
                 )}
               </AnimatePresence>
             </motion.button>
-
-            {/* Dashboard Button - Right side */}
-            {isAuthenticated && (
-              <motion.button
-                onClick={() => handleNavigation(user?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')}
-                className="hidden sm:flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-green-900 bg-white hover:bg-emerald-50 transition-all shadow-md"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                <FiGrid className="w-4 h-4" />
-                <span className="hidden lg:inline">Dashboard</span>
-              </motion.button>
-            )}
           </div>
         </div>
       </div>
