@@ -1004,19 +1004,6 @@ export default function LaporanPage() {
           </div>
         )}
 
-        {/* Top Action - Refresh outside card */}
-        <div className="mb-4 flex justify-end">
-          <motion.button
-            onClick={fetchLaporan}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-medium border border-gray-200 dark:border-gray-600 shadow-sm transition-all"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <FiRefreshCw className="w-4 h-4" />
-            <span>Refresh</span>
-          </motion.button>
-        </div>
-
         {/* Controls */}
         <motion.div 
           className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 border border-gray-100 dark:border-gray-700"
@@ -1024,46 +1011,57 @@ export default function LaporanPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            {/* Search */}
-            <div className="md:col-span-5 relative">
-              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Cari perusahaan atau PIC..."
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
+          <div className="space-y-4">
+            {/* Row 1: Search + Filter */}
+            <div className="grid grid-cols-1 md:grid-cols-8 gap-4">
+              <div className="md:col-span-5 relative">
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Cari perusahaan atau PIC..."
+                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
+              </div>
+
+              <div className="md:col-span-3 relative">
+                <FiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <select
+                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500"
+                  value={filterStatus}
+                  onChange={(e) => {
+                    setFilterStatus(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="all">Semua Status</option>
+                  <option value="implemented">Sudah Implementasi</option>
+                  <option value="pending">Belum Implementasi</option>
+                  <option value="blockchain">Verified Blockchain</option>
+                </select>
+              </div>
             </div>
 
-            {/* Filter */}
-            <div className="md:col-span-3 relative">
-              <FiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <select
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500"
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value);
-                  setCurrentPage(1);
-                }}
+            {/* Row 2: Refresh + Download ZIP (mobile friendly) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <motion.button
+                onClick={fetchLaporan}
+                className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium border border-gray-200 dark:border-gray-600 transition-all"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
-                <option value="all">Semua Status</option>
-                <option value="implemented">Sudah Implementasi</option>
-                <option value="pending">Belum Implementasi</option>
-                <option value="blockchain">Verified Blockchain</option>
-              </select>
-            </div>
+                <FiRefreshCw className="w-4 h-4" />
+                <span>Refresh</span>
+              </motion.button>
 
-            {/* Download ZIP Button */}
-            <div className="md:col-span-4 flex gap-2">
               <motion.button
                 onClick={() => downloadAllAsZip(filteredLaporan)}
                 disabled={downloadingZip || filteredLaporan.length === 0}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
+                className={`inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
                   downloadingZip || filteredLaporan.length === 0
                     ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:from-orange-600 hover:via-red-600 hover:to-pink-600 text-white shadow-md'
@@ -1072,10 +1070,7 @@ export default function LaporanPage() {
                 whileTap={{ scale: 0.98 }}
               >
                 <FiPackage className="w-4 h-4" />
-                <span className="hidden sm:inline">
-                  {downloadingZip ? 'Membuat ZIP...' : `Download ZIP (${filteredLaporan.length})`}
-                </span>
-                <span className="sm:hidden">ZIP</span>
+                <span>{downloadingZip ? 'Membuat ZIP...' : `Download ZIP (${filteredLaporan.length})`}</span>
               </motion.button>
             </div>
           </div>
