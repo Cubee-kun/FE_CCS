@@ -57,13 +57,13 @@ function LocationMarker({ onLocationSelect, selectedLocation }) {
 }
 
 // ✅ Komponen untuk menghandle map view updates
-function MapViewUpdater({ center }) {
+function MapViewUpdater({ center, zoom }) {
   const map = useMap();
   useEffect(() => {
     if (center) {
-      map.setView(center, 13);
+      map.setView(center, zoom);
     }
-  }, [center, map]);
+  }, [center, zoom, map]);
   return null;
 }
 
@@ -72,6 +72,7 @@ const PerencanaanForm = () => {
   const [success, setSuccess] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [mapCenter, setMapCenter] = useState([-2.5489, 118.0149]); // Indonesia center
+  const [mapZoom, setMapZoom] = useState(5); // Default: show Indonesia region
   const [blockchainLoading, setBlockchainLoading] = useState(false);
   const { isReady } = useBlockchain();
 
@@ -239,6 +240,7 @@ const PerencanaanForm = () => {
         const { latitude, longitude } = position.coords;
         const newCenter = [latitude, longitude];
         setMapCenter(newCenter);
+        setMapZoom(13);
         toast.success("✅ Peta dipusatkan ke lokasi Anda!", { autoClose: 2000 });
       },
       (error) => {
@@ -494,7 +496,7 @@ const PerencanaanForm = () => {
               >
                 <MapContainer
                   center={mapCenter}
-                  zoom={13}
+                  zoom={mapZoom}
                   style={{ height: "500px", width: "100%" }}
                   className="z-0"
                 >
@@ -502,7 +504,7 @@ const PerencanaanForm = () => {
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
-                  <MapViewUpdater center={mapCenter} />
+                  <MapViewUpdater center={mapCenter} zoom={mapZoom} />
                   <LocationMarker 
                     onLocationSelect={handleLocationSelect}
                     selectedLocation={selectedLocation}

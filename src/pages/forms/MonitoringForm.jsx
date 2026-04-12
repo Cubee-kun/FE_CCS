@@ -412,15 +412,8 @@ const MonitoringForm = () => {
                   animate={{ opacity: 1, scale: 1 }}
                 >
                   <MapContainer
-                    center={
-                      existingLocations.length > 0
-                        ? [
-                            parseFloat(existingLocations[0].lat) || -2.5489,
-                            parseFloat(existingLocations[0].long) || 118.0149
-                          ]
-                        : [-2.5489, 118.0149]
-                    }
-                    zoom={13}
+                    center={[-2.5489, 118.0149]}
+                    zoom={5}
                     style={{ height: "500px", width: "100%" }}
                     className="z-0"
                   >
