@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
 import { useBlockchain } from "../../contexts/BlockchainContext";
+import blockchainService from "../../services/blockchain";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { 
   FiFileText, FiCalendar, FiShield, FiExternalLink, 
   FiCheck, FiX, FiDownload, FiEye, FiAlertCircle,
   FiRefreshCw, FiFilter, FiSearch, FiChevronLeft, FiChevronRight,
-  FiMonitor, FiPackage
+  FiMonitor, FiPackage, FiLink
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import QRCode from "qrcode";
@@ -32,6 +33,7 @@ export default function LaporanPage() {
   const [qrCodeData, setQrCodeData] = useState(null);
   const [downloadingZip, setDownloadingZip] = useState(false);
   const [blockchainCache, setBlockchainCache] = useState({});
+  const [reuploadingId, setReuploadingId] = useState(null);
   
   // ✅ Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -626,6 +628,76 @@ export default function LaporanPage() {
     }
   };
 
+  // ✅ Re-upload pending item to blockchain and update database status
+  const reuploadToBlockchain = async (item) => {
+    if (!item?.id) return;
+
+    if (!isReady || !blockchainService.isReady) {
+      toast.warning("⚠️ Blockchain service belum siap. Coba lagi beberapa detik.");
+      return;
+    }
+
+    setReuploadingId(item.id);
+    try {
+      const payload = {
+        nama_perusahaan: item.nama_perusahaan,
+        nama_pic: item.nama_pic,
+        narahubung: item.narahubung,
+        jenis_kegiatan: item.jenis_kegiatan,
+        lokasi: item.lokasi,
+        lat: item.lat,
+        lng: item.long || item.lng,
+        jumlah_bibit: item.jumlah_bibit,
+        jenis_bibit: item.jenis_bibit,
+        tanggal_pelaksanaan: item.tanggal_pelaksanaan,
+      };
+
+      const result = await blockchainService.storePerencanaanToBlockchain(payload, item.id);
+
+      if (result?.success && result.txHash) {
+        await api.put(`/perencanaan/${item.id}`, {
+          blockchain_doc_hash: result.docHash,
+          blockchain_tx_hash: result.txHash,
+          blockchain_doc_id: result.docId,
+          blockchain_status: 'confirmed',
+          blockchain_contract_address: result.contractAddress,
+          blockchain_block_number: result.blockNumber,
+          blockchain_gas_used: result.gasUsed,
+          blockchain_error: null,
+        });
+
+        setLaporan((prev) =>
+          prev.map((l) =>
+            l.id === item.id
+              ? {
+                  ...l,
+                  blockchain_doc_hash: result.docHash,
+                  blockchain_tx_hash: result.txHash,
+                  blockchain_doc_id: result.docId,
+                  blockchain_status: 'confirmed',
+                }
+              : l
+          )
+        );
+
+        toast.success("✅ Upload ulang ke blockchain berhasil. Status diperbarui.");
+      } else {
+        await api.put(`/perencanaan/${item.id}`, {
+          blockchain_status: 'failed',
+          blockchain_doc_hash: result?.docHash || item.blockchain_doc_hash,
+          blockchain_error: result?.error || 'Re-upload blockchain failed',
+        });
+
+        toast.error("❌ Upload ulang ke blockchain gagal.");
+      }
+    } catch (err) {
+      console.error('[LaporanPage] Re-upload error:', err);
+      toast.error('❌ Gagal upload ulang: ' + (err?.message || 'Unknown error'));
+    } finally {
+      setReuploadingId(null);
+    }
+  };
+
   // ✅ Toggle status implementasi
   const toggleImplementasiStatus = async (id, currentStatus) => {
     setUpdatingStatus(id);
@@ -873,7 +945,7 @@ export default function LaporanPage() {
       filterStatus === "all" ||
       (filterStatus === "implemented" && item.is_implemented) ||
       (filterStatus === "pending" && !item.is_implemented) ||
-      (filterStatus === "blockchain" && item.blockchainData?.txHash);
+      (filterStatus === "blockchain" && !!item.blockchain_tx_hash);
     
     return matchSearch && matchStatus;
   });
@@ -895,12 +967,32 @@ export default function LaporanPage() {
             <FiFileText className="text-emerald-600" /> 
             Laporan Perencanaan
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
-            <FiShield className="w-4 h-4 text-emerald-500" />
-            {filteredLaporan.length} laporan • 
-            🔗 {laporan.filter(l => l.blockchain_tx_hash).length} with TX Hash •
-            ⛓️ {laporan.filter(l => l.blockchainData?.verified).length} blockchain verified •
-            {isReady ? '✅ Sepolia Ready' : '⏳ Blockchain Loading'}
+          <p className="text-gray-600 dark:text-gray-400 flex flex-wrap items-center gap-3 text-sm md:text-base">
+            <span className="inline-flex items-center gap-1.5">
+              <FiFileText className="w-4 h-4 text-emerald-500" />
+              {filteredLaporan.length} laporan
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <FiLink className="w-4 h-4 text-blue-500" />
+              {laporan.filter(l => l.blockchain_tx_hash).length} with TX Hash
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <FiShield className="w-4 h-4 text-emerald-500" />
+              {laporan.filter(l => l.blockchain_tx_hash || l.blockchainData?.verified).length} blockchain verified
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              {isReady ? (
+                <>
+                  <FiCheck className="w-4 h-4 text-emerald-500" />
+                  Sepolia Ready
+                </>
+              ) : (
+                <>
+                  <FiRefreshCw className="w-4 h-4 text-amber-500 animate-spin" />
+                  Blockchain Loading
+                </>
+              )}
+            </span>
           </p>
         </motion.div>
 
@@ -911,6 +1003,19 @@ export default function LaporanPage() {
             <p className="text-red-700 dark:text-red-300">{error}</p>
           </div>
         )}
+
+        {/* Top Action - Refresh outside card */}
+        <div className="mb-4 flex justify-end">
+          <motion.button
+            onClick={fetchLaporan}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-medium border border-gray-200 dark:border-gray-600 shadow-sm transition-all"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <FiRefreshCw className="w-4 h-4" />
+            <span>Refresh</span>
+          </motion.button>
+        </div>
 
         {/* Controls */}
         <motion.div 
@@ -953,16 +1058,24 @@ export default function LaporanPage() {
               </select>
             </div>
 
-            {/* Refresh Button */}
+            {/* Download ZIP Button */}
             <div className="md:col-span-4 flex gap-2">
               <motion.button
-                onClick={fetchLaporan}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium transition-all"
+                onClick={() => downloadAllAsZip(filteredLaporan)}
+                disabled={downloadingZip || filteredLaporan.length === 0}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
+                  downloadingZip || filteredLaporan.length === 0
+                    ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:from-orange-600 hover:via-red-600 hover:to-pink-600 text-white shadow-md'
+                }`}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <FiRefreshCw className="w-4 h-4" />
-                <span className="hidden sm:inline">Refresh</span>
+                <FiPackage className="w-4 h-4" />
+                <span className="hidden sm:inline">
+                  {downloadingZip ? 'Membuat ZIP...' : `Download ZIP (${filteredLaporan.length})`}
+                </span>
+                <span className="sm:hidden">ZIP</span>
               </motion.button>
             </div>
           </div>
@@ -1070,27 +1183,16 @@ export default function LaporanPage() {
                         )}
 
                         {/* Blockchain Verification Status */}
-                        {item.blockchainData?.verified ? (
-                          <motion.div
-                            className="flex items-center gap-2 bg-green-100 dark:bg-green-900/30 rounded-lg p-2 border border-green-200 dark:border-green-700"
-                            initial={{ scale: 0.9 }}
-                            animate={{ scale: 1 }}
-                          >
-                            <FiCheck className="w-4 h-4 text-green-700 dark:text-green-300 flex-shrink-0" />
-                            <span className="text-xs font-bold text-green-700 dark:text-green-300">
-                              ✅ Smart contract verified (Doc ID: {item.blockchainData.docId})
-                            </span>
-                          </motion.div>
-                        ) : (
-                          <motion.div
-                            className="flex items-center gap-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg p-2 border border-amber-200 dark:border-amber-700"
-                          >
-                            <FiAlertCircle className="w-4 h-4 text-amber-700 dark:text-amber-300 flex-shrink-0" />
-                            <span className="text-xs font-bold text-amber-700 dark:text-amber-300">
-                              ⏳ TX confirmed, verifying smart contract...
-                            </span>
-                          </motion.div>
-                        )}
+                        <motion.div
+                          className="flex items-center gap-2 bg-green-100 dark:bg-green-900/30 rounded-lg p-2 border border-green-200 dark:border-green-700"
+                          initial={{ scale: 0.9 }}
+                          animate={{ scale: 1 }}
+                        >
+                          <FiCheck className="w-4 h-4 text-green-700 dark:text-green-300 flex-shrink-0" />
+                          <span className="text-xs font-bold text-green-700 dark:text-green-300">
+                            ✅ Full Verified{item.blockchainData?.docId ? ` (Doc ID: ${item.blockchainData.docId})` : ""}
+                          </span>
+                        </motion.div>
                       </motion.div>
 
                     ) : item.blockchain_doc_hash ? (
@@ -1128,6 +1230,19 @@ export default function LaporanPage() {
                             <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
                               ⏱️ Transaction processing on Sepolia network...
                             </p>
+                            <motion.button
+                              onClick={() => reuploadToBlockchain(item)}
+                              disabled={reuploadingId === item.id}
+                              className={`mt-3 w-full px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                                reuploadingId === item.id
+                                  ? 'bg-yellow-300/70 text-yellow-900 cursor-not-allowed'
+                                  : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-sm'
+                              }`}
+                              whileHover={reuploadingId === item.id ? undefined : { scale: 1.02 }}
+                              whileTap={reuploadingId === item.id ? undefined : { scale: 0.98 }}
+                            >
+                              {reuploadingId === item.id ? '⏳ Re-uploading...' : '🔄 Upload Ulang ke Blockchain'}
+                            </motion.button>
                           </div>
                         </div>
                       </motion.div>
@@ -1145,7 +1260,7 @@ export default function LaporanPage() {
                   <div className="md:col-span-3">
                     <div className="flex gap-2 flex-wrap items-center">
                       {/* ✅ Status badges berdasarkan real blockchain state */}
-                      {item.blockchain_tx_hash && item.blockchainData?.verified ? (
+                      {item.blockchain_tx_hash ? (
                         <motion.span 
                           className="px-2 py-1 rounded text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 flex items-center gap-1"
                           initial={{ scale: 0.8 }}
@@ -1153,15 +1268,6 @@ export default function LaporanPage() {
                         >
                           <FiCheck className="w-3 h-3" />
                           Full Verified
-                        </motion.span>
-                      ) : item.blockchain_tx_hash ? (
-                        <motion.span 
-                          className="px-2 py-1 rounded text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center gap-1"
-                          initial={{ scale: 0.8 }}
-                          animate={{ scale: 1 }}
-                        >
-                          <FiExternalLink className="w-3 h-3" />
-                          TX Confirmed
                         </motion.span>
                       ) : item.blockchain_doc_hash ? (
                         <span className="px-2 py-1 rounded text-xs font-bold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 flex items-center gap-1">
@@ -1184,7 +1290,7 @@ export default function LaporanPage() {
                       {/* ✅ Action Buttons */}
                       <div className="flex gap-1 mt-2 w-full">
                         {/* Manual Verify Button - ONLY if doc_hash exists but not verified */}
-                        {item.blockchain_doc_hash && !item.blockchainData?.verified && (
+                        {item.blockchain_doc_hash && !item.blockchain_tx_hash && (
                           <motion.button
                             onClick={() => verifyOnBlockchainAndUpdateDB(item)}
                             disabled={loadingBlockchain}
@@ -1203,13 +1309,13 @@ export default function LaporanPage() {
                           onClick={() => generateBlockchainQRCode(item)}
                           disabled={loadingBlockchain && selectedLaporan?.id === item.id}
                           className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-all ${
-                            item.blockchainData?.verified
+                            item.blockchain_tx_hash || item.blockchainData?.verified
                               ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200'
                               : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200'
                           }`}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          title={item.blockchainData?.verified ? "Generate blockchain-verified QR" : "Generate QR from database"}
+                          title={item.blockchain_tx_hash || item.blockchainData?.verified ? "Generate blockchain-verified QR" : "Generate QR from database"}
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
@@ -1344,31 +1450,6 @@ export default function LaporanPage() {
                 </select>
               </div>
             </div>
-          </motion.div>
-        )}
-
-        {/* Bulk Download Button */}
-        {filteredLaporan.length > 0 && (
-          <motion.div
-            className="mt-6 flex justify-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <motion.button
-              onClick={() => downloadAllAsZip(filteredLaporan)}
-              disabled={downloadingZip}
-              className="px-8 py-4 rounded-xl bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:from-orange-600 hover:via-red-600 hover:to-pink-600 text-white font-bold shadow-xl transition-all flex items-center gap-2"
-              whileHover={{ scale: 1.05, boxShadow: "0 20px 60px -10px rgba(249, 115, 22, 0.5)" }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <FiPackage className="w-5 h-5" />
-              <span>
-                {downloadingZip 
-                  ? `⏳ Membuat ZIP (${currentItems.length} file)...` 
-                  : `📦 Download Semua sebagai ZIP (${filteredLaporan.length} file)`
-                }
-              </span>
-            </motion.button>
           </motion.div>
         )}
 
