@@ -11,39 +11,47 @@ export function BlockchainProvider({ children }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const initializeBlockchain = async () => {
+    try {
+      console.log('[BlockchainContext] Initializing blockchain service...');
+
+      const initialized = await blockchainService.initialize();
+
+      if (initialized) {
+        setIsReady(true);
+        setIsConnected(true);
+        setWalletAddress(blockchainService.getWalletAddress());
+
+        const status = await blockchainService.getWalletStatus();
+        setWalletStatus(status);
+
+        console.log('[BlockchainContext] ✅ Blockchain service ready');
+        setError(null);
+      } else {
+        throw new Error('Failed to initialize blockchain service');
+      }
+    } catch (err) {
+      console.error('[BlockchainContext] ❌ Initialization error:', err.message);
+      setError(err.message);
+      setIsReady(false);
+      setIsConnected(false);
+      setWalletAddress(null);
+      setWalletStatus(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ✅ Initialize blockchain service on mount
   useEffect(() => {
-    const initializeBlockchain = async () => {
-      try {
-        console.log('[BlockchainContext] Initializing blockchain service...');
-        
-        const initialized = await blockchainService.initialize();
-        
-        if (initialized) {
-          setIsReady(true);
-          setIsConnected(true);
-          setWalletAddress(blockchainService.getWalletAddress());
-          
-          const status = await blockchainService.getWalletStatus();
-          setWalletStatus(status);
-          
-          console.log('[BlockchainContext] ✅ Blockchain service ready');
-          setError(null);
-        } else {
-          throw new Error('Failed to initialize blockchain service');
-        }
-      } catch (err) {
-        console.error('[BlockchainContext] ❌ Initialization error:', err.message);
-        setError(err.message);
-        setIsReady(false);
-        setIsConnected(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     initializeBlockchain();
   }, []);
+
+  // ✅ Retry connection manually from UI
+  const connectWallet = async () => {
+    setLoading(true);
+    await initializeBlockchain();
+  };
 
   // ✅ Store document directly to blockchain
   const storeDocumentHash = async (docType, formData, metadata = {}) => {
@@ -161,6 +169,8 @@ export function BlockchainProvider({ children }) {
     error,
     walletAddress,
     walletStatus,
+    account: walletAddress,
+    balance: walletStatus?.balance || 0,
     
     // Functions
     storeDocumentHash,
@@ -170,6 +180,7 @@ export function BlockchainProvider({ children }) {
     getAllDocuments,
     getExplorerUrl,
     getBlockchainStatus,
+    connectWallet,
     
     // Direct access to service (for advanced usage)
     blockchainService

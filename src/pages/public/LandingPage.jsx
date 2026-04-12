@@ -810,7 +810,7 @@ const LandingPage = () => {
             className={`mx-auto max-w-5xl rounded-3xl backdrop-blur-2xl backdrop-saturate-150 px-6 sm:px-10 lg:px-12 py-10 sm:py-12 ${
               theme === 'dark'
                 ? 'border border-white/25 bg-white/10 shadow-[0_30px_80px_-28px_rgba(0,0,0,0.65)]'
-                : 'border border-emerald-300/50 bg-emerald-200/80 shadow-[0_24px_55px_-28px_rgba(16,185,129,0.30)]'
+                : 'border border-emerald-300/50 bg-emerald-100/75 shadow-[0_24px_55px_-28px_rgba(16,185,129,0.30)]'
             }`}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
