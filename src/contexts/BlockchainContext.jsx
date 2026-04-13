@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import blockchainService from '../services/blockchain.js';
+import blockchainService from '../services/blockchain.js'; // ✅ FIXED: Use default import
 
 const BlockchainContext = createContext();
 
@@ -10,38 +10,37 @@ export function BlockchainProvider({ children }) {
   const [walletStatus, setWalletStatus] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState('UNKNOWN'); // READ_ONLY, READ_WRITE, DEGRADED, FAILED
 
-  // ✅ Initialize blockchain service on mount
-  useEffect(() => {
-    const initializeBlockchain = async () => {
-      try {
-        console.log('[BlockchainContext] Initializing blockchain service...');
-        
-        const initialized = await blockchainService.initialize();
-        
-        if (initialized) {
-          setIsReady(true);
-          setIsConnected(true);
-          setWalletAddress(blockchainService.getWalletAddress());
-          
-          const status = await blockchainService.getWalletStatus();
-          setWalletStatus(status);
-          
-          console.log('[BlockchainContext] ✅ Blockchain service ready');
-          setError(null);
-        } else {
-          throw new Error('Failed to initialize blockchain service');
-        }
-      } catch (err) {
-        console.error('[BlockchainContext] ❌ Initialization error:', err.message);
-        setError(err.message);
-        setIsReady(false);
-        setIsConnected(false);
-      } finally {
-        setLoading(false);
+  const initializeBlockchain = async () => {
+    try {
+      console.log('[BlockchainContext] Initializing blockchain service...');
+
+      const initialized = await blockchainService.initialize();
+
+      if (initialized) {
+        setIsReady(true);
+        setIsConnected(true);
+        setWalletAddress(blockchainService.getWalletAddress());
+
+        const status = await blockchainService.getWalletStatus();
+        setWalletStatus(status);
+
+        console.log('[BlockchainContext] ✅ Blockchain service ready');
+        setError(null);
+      } else {
+        throw new Error('Failed to initialize blockchain service');
       }
-    };
+    } catch (err) {
+      console.error('[BlockchainContext] ❌ Initialization error:', err.message);
+      setError(err.message);
+      setIsReady(false);
+      setIsConnected(false);
+      setWalletAddress(null);
+      setWalletStatus(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ✅ Initialize blockchain service on mount
   useEffect(() => {
@@ -58,13 +57,6 @@ export function BlockchainProvider({ children }) {
   const storeDocumentHash = async (docType, formData, metadata = {}) => {
     try {
       if (!isReady) {
-        if (mode === 'DEGRADED') {
-          return {
-            success: false,
-            error: 'Blockchain service temporarily unavailable - data saved locally only',
-            degraded: true
-          };
-        }
         throw new Error('Blockchain service not ready');
       }
 
@@ -82,66 +74,31 @@ export function BlockchainProvider({ children }) {
     }
   };
 
-  // ✅ Get document directly from blockchain with better error handling
+  // ✅ Get document directly from blockchain
   const getDocument = async (docIdOrHash) => {
     try {
       if (!isReady) {
-        if (mode === 'DEGRADED') {
-          return null; // Gracefully return null instead of error
-        }
         throw new Error('Blockchain service not ready');
       }
 
-      // ✅ FIXED: Better validation for document ID vs hash
+      // Check if it's a doc ID (number) or hash (0x...)
       if (typeof docIdOrHash === 'number' || /^\d+$/.test(docIdOrHash)) {
-        console.log('[BlockchainContext] Getting document by ID:', docIdOrHash);
-        
-        const result = await blockchainService.getDocumentById(docIdOrHash);
-        
-        // ✅ Handle "Invalid document ID" gracefully
-        if (!result.verified && result.error?.includes('Invalid document ID')) {
-          console.warn('[BlockchainContext] Document ID not found:', docIdOrHash);
-          return null; // Return null instead of throwing error
-        }
-        
-        return result;
-        
+        return await blockchainService.getDocumentById(docIdOrHash);
       } else if (typeof docIdOrHash === 'string' && docIdOrHash.startsWith('0x')) {
-        console.log('[BlockchainContext] Verifying document by hash:', docIdOrHash.substring(0, 20) + '...');
-        
-        const result = await blockchainService.verifyDocumentOnBlockchain(docIdOrHash);
-        
-        // ✅ Always return result, even if not verified
-        return result;
-        
+        return await blockchainService.verifyDocumentOnBlockchain(docIdOrHash);
       } else {
-        throw new Error(`Invalid document identifier format: ${docIdOrHash}`);
+        throw new Error('Invalid document ID or hash format');
       }
     } catch (error) {
       console.error('[BlockchainContext] Get document error:', error);
-      
-      // ✅ Return structured error response instead of null
-      return {
-        verified: false,
-        error: error.message,
-        docIdOrHash: docIdOrHash,
-        contextError: true
-      };
+      return null;
     }
   };
 
-  // ✅ Enhanced verification with production error handling
+  // ✅ Verify document hash directly on blockchain
   const verifyDocumentHash = async (docHash) => {
     try {
       if (!isReady) {
-        if (mode === 'DEGRADED') {
-          return {
-            verified: false,
-            error: 'Blockchain service temporarily unavailable',
-            docHash,
-            degraded: true
-          };
-        }
         throw new Error('Blockchain service not ready');
       }
 
@@ -150,9 +107,7 @@ export function BlockchainProvider({ children }) {
       console.error('[BlockchainContext] Verification error:', error);
       return {
         verified: false,
-        error: error.message,
-        docHash,
-        contextError: true
+        error: error.message
       };
     }
   };
@@ -161,7 +116,7 @@ export function BlockchainProvider({ children }) {
   const getTransactionProof = async (txHash) => {
     try {
       if (!isReady) {
-        return null;
+        throw new Error('Blockchain service not ready');
       }
 
       return await blockchainService.fetchTransactionFromSepolia(txHash);
@@ -175,11 +130,7 @@ export function BlockchainProvider({ children }) {
   const getAllDocuments = async (startId = 0, limit = 50) => {
     try {
       if (!isReady) {
-        return {
-          documents: [],
-          totalCount: 0,
-          error: mode === 'DEGRADED' ? 'Service temporarily unavailable' : 'Service not ready'
-        };
+        throw new Error('Blockchain service not ready');
       }
 
       return await blockchainService.getAllDocuments(startId, limit);
@@ -206,8 +157,7 @@ export function BlockchainProvider({ children }) {
       walletAddress,
       walletStatus,
       error,
-      loading,
-      mode
+      loading
     };
   };
 
@@ -219,8 +169,10 @@ export function BlockchainProvider({ children }) {
     error,
     walletAddress,
     walletStatus,
+    account: walletAddress,
+    balance: walletStatus?.balance || 0,
     
-    // Functions with enhanced error handling
+    // Functions
     storeDocumentHash,
     getDocument,
     verifyDocumentHash,
