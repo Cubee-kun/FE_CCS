@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { FiPieChart, FiBarChart2 } from "react-icons/fi";
 
 // Register Chart.js components
 ChartJS.register(

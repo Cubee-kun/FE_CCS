@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import api from "../../api/axios";
-import { FiCheckCircle, FiUpload, FiX, FiMapPin, FiAlertCircle, FiCamera, FiFolder } from "react-icons/fi";
+import { FiCheckCircle, FiUpload, FiX, FiMapPin, FiAlertCircle, FiCamera, FiFolder, FiBarChart2, FiHash, FiTrendingUp, FiActivity } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -412,15 +412,8 @@ const MonitoringForm = () => {
                   animate={{ opacity: 1, scale: 1 }}
                 >
                   <MapContainer
-                    center={
-                      existingLocations.length > 0
-                        ? [
-                            parseFloat(existingLocations[0].lat) || -2.5489,
-                            parseFloat(existingLocations[0].long) || 118.0149
-                          ]
-                        : [-2.5489, 118.0149]
-                    }
-                    zoom={13}
+                    center={[-2.5489, 118.0149]}
+                    zoom={5}
                     style={{ height: "500px", width: "100%" }}
                     className="z-0"
                   >
@@ -607,7 +600,7 @@ const MonitoringForm = () => {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <span>⚠️</span>
+                  <FiAlertCircle className="w-4 h-4" />
                   {formik.errors.lokasi}
                 </motion.p>
               )}
@@ -620,16 +613,17 @@ const MonitoringForm = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-                📊 Data Monitoring
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 inline-flex items-center gap-2">
+                <FiBarChart2 className="w-5 h-5 text-green-600" />
+                <span>Data Monitoring</span>
               </h3>
               <div className="grid md:grid-cols-2 gap-6">
                 {[
-                  { name: "jumlah_bibit_ditanam", label: "Jumlah Bibit Ditanam", placeholder: "100", icon: "🌱" },
-                  { name: "jumlah_bibit_mati", label: "Jumlah Bibit Mati", placeholder: "5", icon: "💀" },
-                  { name: "diameter_batang", label: "Diameter Batang (cm)", placeholder: "2.5", step: "0.1", icon: "📏" },
-                  { name: "jumlah_daun", label: "Jumlah Daun", placeholder: "20", icon: "🍃" },
-                  { name: "survival_rate", label: "Survival Rate (%)", placeholder: "95", icon: "📈" },
+                  { name: "jumlah_bibit_ditanam", label: "Jumlah Bibit Ditanam", placeholder: "100", icon: FiCheckCircle },
+                  { name: "jumlah_bibit_mati", label: "Jumlah Bibit Mati", placeholder: "5", icon: FiAlertCircle },
+                  { name: "diameter_batang", label: "Diameter Batang (cm)", placeholder: "2.5", step: "0.1", icon: FiActivity },
+                  { name: "jumlah_daun", label: "Jumlah Daun", placeholder: "20", icon: FiHash },
+                  { name: "survival_rate", label: "Survival Rate (%)", placeholder: "95", icon: FiTrendingUp },
                 ].map((field, index) => (
                   <motion.div
                     key={field.name}
@@ -638,7 +632,7 @@ const MonitoringForm = () => {
                     transition={{ delay: 0.1 * index }}
                   >
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                      <span className="mr-2">{field.icon}</span>
+                      <field.icon className="w-4 h-4 inline mr-2 text-green-600 dark:text-green-400" />
                       {field.label}
                     </label>
                     <input
@@ -665,15 +659,16 @@ const MonitoringForm = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-                🌱 Kondisi Kesehatan Bibit
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 inline-flex items-center gap-2">
+                <FiActivity className="w-5 h-5 text-green-600" />
+                <span>Kondisi Kesehatan Bibit</span>
               </h3>
               <div className="space-y-6">
-                {renderRadioGroup("mengering", "🍂 Daun Mengering")}
-                {renderRadioGroup("layu", "💧 Daun Layu")}
-                {renderRadioGroup("menguning", "🟡 Daun Menguning")}
-                {renderRadioGroup("bercak", "🔴 Bercak Daun")}
-                {renderRadioGroup("hama", "🐛 Terserang Hama")}
+                {renderRadioGroup("mengering", "Daun Mengering")}
+                {renderRadioGroup("layu", "Daun Layu")}
+                {renderRadioGroup("menguning", "Daun Menguning")}
+                {renderRadioGroup("bercak", "Bercak Daun")}
+                {renderRadioGroup("hama", "Terserang Hama")}
               </div>
             </motion.div>
 
@@ -737,7 +732,7 @@ const MonitoringForm = () => {
 
                   <p className="text-center mb-2">
                     <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 block">
-                      {dragActive ? "🎯 Lepaskan gambar di sini" : "📸 Drag & Drop gambar di sini"}
+                      {dragActive ? "Lepaskan gambar di sini" : "Drag & Drop gambar di sini"}
                     </span>
                     <span className="text-xs text-gray-500 dark:text-gray-400 block mt-1">
                       atau gunakan tombol di bawah
@@ -822,7 +817,7 @@ const MonitoringForm = () => {
               whileHover={!submitting ? { scale: 1.02, boxShadow: "0 20px 60px -10px rgba(34, 197, 94, 0.5)" } : {}}
               whileTap={!submitting ? { scale: 0.98 } : {}}
             >
-              {submitting ? "⏳ Menyimpan..." : "Simpan Data Monitoring"}
+              {submitting ? "Menyimpan..." : "Simpan Data Monitoring"}
             </motion.button>
           </form>
         </motion.div>

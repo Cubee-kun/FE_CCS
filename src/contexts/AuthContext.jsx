@@ -256,6 +256,28 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Refresh current authenticated user profile from backend
+  const refreshUserProfile = async () => {
+    try {
+      const response = await api.get('/user-profile');
+      const profile = response.data || {};
+
+      const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const mergedUser = { ...savedUser, ...profile };
+
+      localStorage.setItem('user', JSON.stringify(mergedUser));
+      setUser((prev) => ({ ...(prev || {}), ...mergedUser }));
+
+      return { success: true, user: mergedUser };
+    } catch (error) {
+      console.error('[AuthContext] Failed to refresh user profile:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Gagal memuat profil user'
+      };
+    }
+  };
+
   // ✅ Debug log dengan useEffect terpisah
   useEffect(() => {
     console.log('[AuthContext] State updated:', {
@@ -275,6 +297,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
+        refreshUserProfile,
       }}
     >
       {children}

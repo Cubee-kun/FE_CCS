@@ -12,7 +12,7 @@ export function BlockchainProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState('UNKNOWN'); // READ_ONLY, READ_WRITE, DEGRADED, FAILED
 
-  // ✅ Enhanced initialization with production error handling
+  // ✅ Initialize blockchain service on mount
   useEffect(() => {
     const initializeBlockchain = async () => {
       try {
@@ -27,36 +27,32 @@ export function BlockchainProvider({ children }) {
           
           const status = await blockchainService.getWalletStatus();
           setWalletStatus(status);
-          setMode(status.mode || 'READ_only');
           
-          console.log('[BlockchainContext] ✅ Blockchain service ready:', status);
+          console.log('[BlockchainContext] ✅ Blockchain service ready');
           setError(null);
         } else {
           throw new Error('Failed to initialize blockchain service');
         }
       } catch (err) {
         console.error('[BlockchainContext] ❌ Initialization error:', err.message);
-        
-        // ✅ PRODUCTION: Allow graceful degradation
-        if (import.meta.env.PROD) {
-          console.warn('[BlockchainContext] Production: Running in degraded mode');
-          setError(`Blockchain temporarily unavailable: ${err.message}`);
-          setIsReady(false);
-          setIsConnected(false);
-          setMode('DEGRADED');
-        } else {
-          setError(err.message);
-          setIsReady(false);
-          setIsConnected(false);
-          setMode('FAILED');
-        }
+        setError(err.message);
+        setIsReady(false);
+        setIsConnected(false);
       } finally {
         setLoading(false);
       }
     };
 
+  // ✅ Initialize blockchain service on mount
+  useEffect(() => {
     initializeBlockchain();
   }, []);
+
+  // ✅ Retry connection manually from UI
+  const connectWallet = async () => {
+    setLoading(true);
+    await initializeBlockchain();
+  };
 
   // ✅ Store document directly to blockchain
   const storeDocumentHash = async (docType, formData, metadata = {}) => {
@@ -223,7 +219,6 @@ export function BlockchainProvider({ children }) {
     error,
     walletAddress,
     walletStatus,
-    mode, // ✅ NEW: Service mode indicator
     
     // Functions with enhanced error handling
     storeDocumentHash,
@@ -233,6 +228,7 @@ export function BlockchainProvider({ children }) {
     getAllDocuments,
     getExplorerUrl,
     getBlockchainStatus,
+    connectWallet,
     
     // Direct access to service (for advanced usage)
     blockchainService

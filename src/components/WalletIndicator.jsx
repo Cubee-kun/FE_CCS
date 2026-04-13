@@ -1,34 +1,62 @@
 import { useState, useEffect, useRef } from 'react';
 import { useBlockchain } from '../contexts/BlockchainContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiCopy, FiExternalLink, FiCheckCircle, FiAlertCircle, FiBriefcase } from 'react-icons/fi';
+import { FiCopy, FiCheckCircle, FiAlertCircle, FiBriefcase, FiLock, FiWifiOff } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { createPortal } from 'react-dom';
 
 export default function WalletIndicator() {
-  const { isConnected, account, balance, isReady, error } = useBlockchain();
+  const { isConnected, account, balance, isReady, error, loading, connectWallet } = useBlockchain();
   const [showModal, setShowModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const buttonRef = useRef(null);
-  const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
+  const panelRef = useRef(null);
+  const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
 
-  // ✅ Update button position when modal opens
   useEffect(() => {
-    if (showModal && buttonRef.current) {
+    if (!showModal || !buttonRef.current) return;
+
+    const updatePosition = () => {
       const rect = buttonRef.current.getBoundingClientRect();
-      setButtonPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX,
-        width: rect.width,
+      const width = Math.min(384, window.innerWidth - 32);
+      const left = Math.max(16, Math.min(rect.right - width, window.innerWidth - width - 16));
+      setPanelPosition({
+        top: rect.bottom + 12,
+        left,
       });
-    }
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [showModal]);
+
+  useEffect(() => {
+    if (!showModal) return;
+
+    const handleClickOutside = (event) => {
+      const target = event.target;
+      if (buttonRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setShowModal(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [showModal]);
 
   const copyAddress = () => {
     if (account) {
       navigator.clipboard.writeText(account);
       setCopied(true);
-      toast.success('📋 Address berhasil disalin!');
+      toast.success('Address berhasil disalin');
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -38,12 +66,12 @@ export default function WalletIndicator() {
   }
 
   return (
-    <>
+    <div className="relative z-40">
       {/* Wallet Button */}
       <motion.button
         ref={buttonRef}
         onClick={() => setShowModal(!showModal)}
-        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all shadow-lg relative z-40 ${
+        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all shadow-lg ${
           isConnected
             ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white'
             : 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white'
@@ -56,49 +84,28 @@ export default function WalletIndicator() {
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-white animate-pulse' : 'bg-white/60'}`}></div>
           <FiBriefcase className="w-4 h-4" />
           <span className="hidden sm:inline text-sm">
-            {isConnected ? '💼 Wallet' : '⚠️ Wallet'}
+            {isConnected ? 'Wallet Connected' : 'Wallet Disconnected'}
           </span>
         </div>
       </motion.button>
 
-      {/* ✅ Portal Modal - Render outside DOM hierarchy */}
       {showModal && createPortal(
         <AnimatePresence>
-          <>
-            {/* Overlay Backdrop */}
-            <motion.div
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowModal(false)}
-            />
-
-            {/* Modal Dropdown */}
-            <motion.div
-              style={{
-                position: 'fixed',
-                top: `${buttonPosition.top}px`,
-                left: `${Math.max(16, Math.min(buttonPosition.left, window.innerWidth - 384 - 16))}px`,
-                width: 'min(calc(100% - 32px), 384px)',
-              }}
-              className="z-[9999]"
-              initial={{ opacity: 0, scale: 0.95, y: -8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -8 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            >
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 border border-gray-200 dark:border-gray-700">
-                {/* Close Button */}
-                <motion.button
-                  onClick={() => setShowModal(false)}
-                  className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors z-10"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <FiX className="w-5 h-5" />
-                </motion.button>
-
+          <motion.div
+            ref={panelRef}
+            style={{
+              position: 'fixed',
+              top: `${panelPosition.top}px`,
+              left: `${panelPosition.left}px`,
+              width: 'min(24rem, calc(100vw - 2rem))',
+            }}
+            className="z-[10000]"
+            initial={{ opacity: 0, scale: 0.97, y: -8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.97, y: -8 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          >
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 border border-gray-200 dark:border-gray-700">
                 {/* Header */}
                 <div className="text-center mb-6">
                   <motion.div
@@ -112,15 +119,25 @@ export default function WalletIndicator() {
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                     System Wallet
                   </h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {isConnected ? '✅ Sepolia Testnet' : '❌ Disconnected'}
-                  </p>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-2">
+                    {isConnected ? (
+                      <>
+                        <FiCheckCircle className="w-4 h-4 text-emerald-500" />
+                        <span>Sepolia Testnet</span>
+                      </>
+                    ) : (
+                      <>
+                        <FiWifiOff className="w-4 h-4 text-amber-500" />
+                        <span>Disconnected</span>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Status Badge */}
                 <div className="mb-6 flex items-center justify-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
-                  <span className={`text-sm font-semibold ${isConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></div>
+                  <span className={`text-sm font-semibold ${isConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                     {isConnected ? 'Connected' : 'Disconnected'}
                   </span>
                 </div>
@@ -190,8 +207,12 @@ export default function WalletIndicator() {
                       </motion.div>
 
                       {/* Info Text */}
-                      <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-                        💼 System-managed wallet • 🔒 Private key aman di .env
+                      <p className="text-xs text-center text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
+                        <FiBriefcase className="w-3.5 h-3.5" />
+                        <span>System-managed wallet</span>
+                        <span>•</span>
+                        <FiLock className="w-3.5 h-3.5" />
+                        <span>Private key aman di .env</span>
                       </p>
                     </>
                   ) : (
@@ -209,17 +230,29 @@ export default function WalletIndicator() {
                           <p className="text-sm text-amber-800 dark:text-amber-300">
                             {error || 'Blockchain service sedang offline. Data tetap disimpan di database.'}
                           </p>
+                          <motion.button
+                            onClick={connectWallet}
+                            disabled={loading}
+                            className={`mt-3 inline-flex items-center justify-center px-3.5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                              loading
+                                ? 'bg-amber-300/60 text-amber-800 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md'
+                            }`}
+                            whileHover={loading ? undefined : { scale: 1.03 }}
+                            whileTap={loading ? undefined : { scale: 0.97 }}
+                          >
+                            {loading ? 'Connecting...' : 'Connect Wallet'}
+                          </motion.button>
                         </div>
                       </div>
                     </motion.div>
                   )}
                 </div>
               </div>
-            </motion.div>
-          </>
+          </motion.div>
         </AnimatePresence>,
         document.body
       )}
-    </>
+    </div>
   );
 }

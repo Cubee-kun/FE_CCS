@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiArrowRight, FiPlay, FiStar, FiUsers, FiTrendingUp, FiShield, FiZap, FiHeart, FiCheck } from "react-icons/fi";
+import { FiArrowRight, FiPlay, FiStar, FiUsers, FiTrendingUp, FiShield, FiZap, FiHeart, FiCheck, FiLink, FiFileText, FiGlobe, FiBarChart2, FiUser, FiFeather } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import Footer from "../../components/common/Footer";
 import { useAuth } from "../../contexts/AuthContext";
@@ -23,33 +23,33 @@ const LandingPage = () => {
     {
       title: "Blockchain Recording",
       description: "Sistem pencatatan data menggunakan teknologi blockchain untuk transparansi dan keamanan data yang tidak dapat diubah.",
-      icon: "⛓️",
-      gradient: "from-blue-500 via-blue-600 to-cyan-500",
-      glowColor: "rgba(59, 130, 246, 0.3)",
+      icon: FiLink,
+      gradient: "from-emerald-500 via-green-500 to-teal-500",
+      glowColor: "rgba(16, 185, 129, 0.3)",
       benefits: ["Data immutable", "Transparansi penuh", "Audit trail lengkap"]
     },
     {
       title: "Smart Contracts",
       description: "Otomatisasi proses verifikasi dan validasi data menggunakan smart contract untuk menjamin integritas sistem.",
-      icon: "📋",
-      gradient: "from-purple-500 via-purple-600 to-pink-500",
-      glowColor: "rgba(168, 85, 247, 0.3)",
+      icon: FiFileText,
+      gradient: "from-green-500 via-emerald-500 to-lime-500",
+      glowColor: "rgba(34, 197, 94, 0.3)",
       benefits: ["Verifikasi otomatis", "Validasi real-time", "Kontrak digital"]
     },
     {
       title: "Distributed Ledger",
       description: "Penyimpanan data tersebar dengan sistem ledger yang memastikan keamanan dan aksesibilitas data konservasi.",
-      icon: "🌐",
-      gradient: "from-green-500 via-emerald-600 to-teal-500",
+      icon: FiGlobe,
+      gradient: "from-teal-500 via-emerald-500 to-cyan-500",
       glowColor: "rgba(16, 185, 129, 0.3)",
       benefits: ["Sinkronisasi multi-node", "Backup otomatis", "High availability"]
     },
     {
       title: "Crypto Analytics",
       description: "Analisis data konservasi dengan teknologi blockchain analytics untuk insights yang lebih mendalam dan terverifikasi.",
-      icon: "📈",
-      gradient: "from-orange-500 via-red-500 to-pink-500",
-      glowColor: "rgba(249, 115, 22, 0.3)",
+      icon: FiBarChart2,
+      gradient: "from-emerald-600 via-teal-500 to-green-500",
+      glowColor: "rgba(13, 148, 136, 0.3)",
       benefits: ["Data terenkripsi", "Analytics on-chain", "Reporting terverifikasi"]
     }
   ];
@@ -60,7 +60,7 @@ const LandingPage = () => {
       role: "Environmental Scientist",
       company: "Green Indonesia Foundation",
       content: "Platform ini benar-benar mengubah cara kami mengelola proyek konservasi. Interface yang intuitif dan fitur monitoring real-time sangat membantu!",
-      avatar: "👩‍🔬",
+      avatar: FiUser,
       rating: 5,
       image: "/images/login-bg.jpg"
     },
@@ -69,7 +69,7 @@ const LandingPage = () => {
       role: "Project Manager",
       company: "EcoTech Solutions",
       content: "Dengan AgroPariwisata, produktivitas tim kami meningkat 300%. Fitur kolaborasi dan AI-nya luar biasa!",
-      avatar: "👨‍💼",
+      avatar: FiUser,
       rating: 5,
       image: "/images/login-bg.jpg"
     },
@@ -78,7 +78,7 @@ const LandingPage = () => {
       role: "Research Director",
       company: "Marine Conservation NGO",
       content: "Tool terbaik untuk monitoring proyek marine conservation. Dashboard analytics-nya sangat comprehensive dan mudah dipahami.",
-      avatar: "👩‍🔬",
+      avatar: FiUser,
       rating: 5,
       image: "/images/login-bg.jpg"
     }
@@ -110,24 +110,21 @@ const LandingPage = () => {
     }
   };
 
+  const heroBackgroundClass = theme === "dark"
+    ? "absolute inset-0 bg-[linear-gradient(rgba(4,120,87,0.45),rgba(2,6,23,0.52)),linear-gradient(rgba(6,95,70,0.30),rgba(6,95,70,0.30)),url('/images/login-bg.jpg')] bg-cover bg-center bg-no-repeat bg-blend-overlay opacity-60"
+    : "absolute inset-0 bg-[linear-gradient(rgba(236,253,245,0.78),rgba(255,255,255,0.58)),linear-gradient(rgba(16,185,129,0.10),rgba(16,185,129,0.10)),url('/images/login-bg.jpg')] bg-cover bg-center bg-no-repeat bg-blend-screen opacity-40";
+
   return (
     <div className={`min-h-screen text-gray-900 dark:text-gray-100 overflow-x-hidden transition-colors duration-300 ${
       theme === 'dark' 
-        ? 'bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950' 
-        : 'bg-white'
+        ? 'bg-gradient-to-br from-green-950 via-gray-950 to-green-950' 
+        : 'bg-gradient-to-br from-emerald-50 via-white to-green-50'
     }`}>
       {/* ✅ Hero Section - dengan dark mode support */}
-      <section id="home" className="relative pt-0 md:pt-0 min-h-screen flex items-center overflow-hidden">
+      <section id="home" className="relative pt-20 sm:pt-24 md:pt-28 pb-8 sm:pb-10 min-h-[70vh] flex items-start overflow-hidden">
         {/* Background - Responsive to theme */}
         <div className="absolute inset-0">
-          <div className={`absolute inset-0 bg-gradient-to-br ${
-            theme === 'dark'
-              ? 'from-gray-900 via-gray-800 to-gray-900'
-              : 'from-emerald-50 via-white to-teal-50'
-          }`}></div>
-          <div className={`absolute inset-0 bg-[url('/images/login-bg.jpg')] bg-cover bg-center ${
-            theme === 'dark' ? 'opacity-10' : 'opacity-5'
-          }`}></div>
+          <div className={heroBackgroundClass} />
           
           {/* Floating Elements - Color changes with theme */}
           {Array.from({ length: 15 }).map((_, i) => (
@@ -155,8 +152,9 @@ const LandingPage = () => {
           ))}
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16 lg:py-20">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+          <div className="w-full rounded-3xl border border-white/15 dark:border-emerald-300/10 bg-white/10 dark:bg-green-950/25 backdrop-blur-xl shadow-[0_24px_60px_-32px_rgba(16,185,129,0.45)] p-5 sm:p-6 lg:p-7 overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 lg:gap-8 items-center w-full">
             {/* Left Content */}
             <motion.div
               initial={{ opacity: 0, x: -50 }}
@@ -165,17 +163,17 @@ const LandingPage = () => {
             >
               {/* Badge - Theme adaptive */}
               <motion.div 
-                className={`inline-flex items-center rounded-full px-4 py-2 text-sm mb-6 shadow-lg border transition-colors ${
+                className={`inline-flex items-center rounded-full px-4 py-2 text-sm mb-6 border ring-1 transition-all duration-300 ${
                   theme === 'dark'
-                    ? 'bg-gray-800/80 backdrop-blur-sm border-emerald-500/30'
-                    : 'bg-white backdrop-blur-sm border-emerald-200'
+                    ? 'bg-emerald-950/35 backdrop-blur-2xl backdrop-saturate-150 border-emerald-300/20 ring-emerald-200/10 shadow-[0_12px_40px_-18px_rgba(16,185,129,0.65)]'
+                    : 'bg-white/42 backdrop-blur-2xl backdrop-saturate-150 border-white/55 ring-emerald-200/70 shadow-[0_10px_30px_-18px_rgba(5,150,105,0.40)]'
                 }`}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2 }}
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, y: -1 }}
               >
-                <span className="mr-2">🌱</span>
+                <FiFeather className="mr-2 text-emerald-500" />
                 <span className={`font-medium ${
                   theme === 'dark' 
                     ? 'text-emerald-300' 
@@ -188,7 +186,7 @@ const LandingPage = () => {
 
               {/* Main Heading */}
               <motion.h1
-                className={`text-4xl md:text-6xl font-bold leading-tight mb-6 transition-colors ${
+                className={`text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-5 transition-colors ${
                   theme === 'dark' ? 'text-white' : 'text-gray-900'
                 }`}
                 initial={{ opacity: 0, y: 20 }}
@@ -200,17 +198,17 @@ const LandingPage = () => {
                   Konservasi Digital
                 </span>{" "}
                 <motion.span
-                  className="inline-block"
+                  className="inline-flex align-middle"
                   animate={{ rotate: [0, 5, -5, 0] }}
                   transition={{ duration: 4, repeat: Infinity }}
                 >
-                  🌍
+                  <FiGlobe className="w-10 h-10 md:w-14 md:h-14 text-emerald-400" />
                 </motion.span>
               </motion.h1>
 
               {/* Subtitle */}
               <motion.p
-                className={`text-xl mb-8 leading-relaxed transition-colors ${
+                className={`text-base sm:text-lg mb-7 leading-relaxed transition-colors ${
                   theme === 'dark' 
                     ? 'text-gray-300' 
                     : 'text-gray-600'
@@ -247,8 +245,8 @@ const LandingPage = () => {
                     >
                       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
                         theme === 'dark'
-                          ? 'bg-emerald-900/40 text-emerald-400'
-                          : 'bg-emerald-100 text-emerald-600'
+                          ? 'bg-green-950/40 text-emerald-300'
+                          : 'bg-emerald-100 text-emerald-700'
                       }`}>
                         <Icon className="w-4 h-4" />
                       </div>
@@ -271,7 +269,7 @@ const LandingPage = () => {
               >
                 <motion.button
                   onClick={() => navigate("/register")}
-                  className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center group"
+                  className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center group border border-emerald-300/30"
                   whileHover={{ 
                     scale: 1.05,
                     boxShadow: "0 20px 40px -10px rgba(16, 185, 129, 0.4)"
@@ -286,8 +284,8 @@ const LandingPage = () => {
                   onClick={() => scrollToSection("#features")}
                   className={`px-8 py-4 font-medium rounded-xl shadow-lg hover:shadow-xl transition-all border flex items-center justify-center group ${
                     theme === 'dark'
-                      ? 'bg-gray-800 hover:bg-gray-700 text-gray-100 border-gray-700'
-                      : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200'
+                      ? 'bg-green-950/35 hover:bg-green-900/45 text-gray-100 border-white/10 backdrop-blur-xl'
+                      : 'bg-white/80 hover:bg-white text-gray-700 border-emerald-100 backdrop-blur-xl'
                   }`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -306,7 +304,10 @@ const LandingPage = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
               >
-                ⭐ Dipercaya oleh 10,000+ organisasi konservasi di Indonesia
+                <span className="inline-flex items-center gap-1">
+                  <FiStar className="text-amber-400" />
+                  <span>Dipercaya oleh 10,000+ organisasi konservasi di Indonesia</span>
+                </span>
               </motion.p>
             </motion.div>
 
@@ -346,7 +347,7 @@ const LandingPage = () => {
                   </div>
                   
                   {/* Image Dashboard */}
-                  <div className="relative h-96 overflow-hidden">
+                  <div className="relative h-72 sm:h-80 lg:h-96 overflow-hidden">
                     <motion.img
                       src="/images/login-bg.jpg"
                       alt="Dashboard Preview"
@@ -432,19 +433,20 @@ const LandingPage = () => {
                 </motion.div>
               </div>
             </motion.div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Stats Section - Theme adaptive */}
-      <section className={`py-8 sm:py-12 md:py-16 transition-colors ${
+      <section className={`py-10 sm:py-12 md:py-16 transition-colors ${
         theme === 'dark'
-          ? 'bg-gray-900/50'
+          ? 'bg-green-950/40'
           : 'bg-white'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            className="grid grid-cols-2 md:grid-cols-4 gap-8"
+            className="grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-6"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -453,10 +455,10 @@ const LandingPage = () => {
             {stats.map((stat, index) => (
               <motion.div
                 key={index}
-                className={`text-center group rounded-2xl p-6 transition-all ${
+                className={`text-center group rounded-2xl p-5 transition-all border ${
                   theme === 'dark'
-                    ? 'hover:bg-gray-800'
-                    : 'hover:bg-gray-50'
+                    ? 'bg-green-950/35 border-green-800/40 hover:bg-green-900/35'
+                    : 'bg-white/85 border-emerald-100 hover:bg-emerald-50/70'
                 }`}
                 whileHover={{ scale: 1.05 }}
                 transition={{ type: "spring", stiffness: 300 }}
@@ -481,10 +483,10 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section - Theme adaptive (simplified for brevity) */}
-      <section id="features" className={`py-16 sm:py-24 md:py-32 relative overflow-hidden transition-colors ${
+      <section id="features" className={`py-16 sm:py-24 md:py-28 relative overflow-hidden transition-colors ${
         theme === 'dark'
-          ? 'bg-gray-900'
-          : 'bg-gradient-to-b from-white via-gray-50 to-white'
+          ? 'bg-gradient-to-b from-green-950 via-gray-950 to-green-950'
+          : 'bg-gradient-to-b from-white via-emerald-50/40 to-white'
       }`}>
         {/* Background blobs - theme adaptive */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -503,13 +505,13 @@ const LandingPage = () => {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Header */}
           <motion.div 
-            className="text-center mb-20"
+            className="text-center mb-14 md:mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <h2 className={`text-5xl md:text-6xl font-black mb-6 leading-tight transition-colors ${
+            <h2 className={`text-4xl md:text-5xl font-extrabold mb-6 leading-tight transition-colors ${
               theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
               Teknologi{" "}
@@ -521,7 +523,7 @@ const LandingPage = () => {
               <br />untuk Konservasi
             </h2>
             
-            <p className={`text-xl max-w-3xl mx-auto leading-relaxed transition-colors ${
+            <p className={`text-lg md:text-xl max-w-3xl mx-auto leading-relaxed transition-colors ${
               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
             }`}>
               Sistem pencatatan data konservasi yang <span className="font-semibold">transparan</span>, <span className="font-semibold">aman</span>, dan <span className="font-semibold">tidak dapat diubah</span> menggunakan teknologi blockchain terdepan
@@ -529,11 +531,11 @@ const LandingPage = () => {
           </motion.div>
 
           {/* Features Grid - Theme adaptive */}
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-6 lg:gap-8 items-stretch">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                className="group relative"
+                className="group relative h-full"
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
@@ -546,25 +548,25 @@ const LandingPage = () => {
                 }`}></div>
                 <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 rounded-3xl transition-all duration-500`}></div>
                 
-                <div className={`relative rounded-3xl p-8 border transition-all duration-500 shadow-lg group-hover:shadow-2xl ${
+                <div className={`relative h-full rounded-3xl p-6 md:p-7 border transition-all duration-500 shadow-lg group-hover:shadow-2xl flex flex-col ${
                   theme === 'dark'
-                    ? 'bg-gray-800/80 backdrop-blur-xl border-gray-700/50 group-hover:border-gray-600/50'
+                    ? 'bg-green-950/70 backdrop-blur-xl border-green-800/50 group-hover:border-green-700/60'
                     : 'bg-white/80 backdrop-blur-xl border-gray-200/50 group-hover:border-gray-300/50'
                 }`}>
                   {/* Content */}
-                  <div className="flex items-start gap-6 mb-6">
+                  <div className="flex items-start gap-5 mb-5">
                     <motion.div 
                       className="relative flex-shrink-0"
                       whileHover={{ scale: 1.1, rotate: 5 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
-                      <div className={`w-20 h-20 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center text-3xl shadow-xl`}>
-                        {feature.icon}
+                      <div className={`w-20 h-20 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center shadow-xl`}>
+                        <feature.icon className="w-9 h-9 text-white" />
                       </div>
                     </motion.div>
                     
-                    <div className="flex-1">
-                      <h3 className={`text-2xl font-bold mb-3 transition-colors ${
+                    <div className="flex-1 min-h-[120px] md:min-h-[132px]">
+                      <h3 className={`text-xl md:text-2xl font-bold mb-3 transition-colors ${
                         theme === 'dark' ? 'text-white' : 'text-gray-900'
                       }`}>
                         {feature.title}
@@ -578,7 +580,7 @@ const LandingPage = () => {
                   </div>
                   
                   {/* Benefits */}
-                  <div className="space-y-3 mb-6">
+                  <div className="space-y-3 mt-auto pt-2">
                     {feature.benefits.map((benefit, i) => (
                       <motion.div
                         key={i}
@@ -607,7 +609,11 @@ const LandingPage = () => {
       </section>
 
       {/* Testimonials Section - Kurangi padding */}
-      <section id="testimonials" className="py-16 sm:py-24 md:py-32 bg-gradient-to-b from-white via-emerald-50/30 to-white relative overflow-hidden">
+      <section id="testimonials" className={`py-16 sm:py-24 md:py-28 relative overflow-hidden transition-colors ${
+        theme === 'dark'
+          ? 'bg-gradient-to-b from-green-950 via-gray-950 to-green-950'
+          : 'bg-gradient-to-b from-white via-emerald-50/30 to-white'
+      }`}>
         {/* Decorative Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-0 left-0 w-96 h-96 bg-emerald-200/20 rounded-full blur-3xl"></div>
@@ -633,13 +639,17 @@ const LandingPage = () => {
               <span className="text-sm font-semibold text-amber-700">Testimoni Pengguna</span>
             </motion.div>
 
-            <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-6 leading-tight">
+            <h2 className={`text-4xl md:text-5xl font-extrabold mb-6 leading-tight transition-colors ${
+              theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>
               Apa Kata{" "}
               <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
                 Pengguna Kami
               </span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className={`text-lg md:text-xl max-w-3xl mx-auto transition-colors ${
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            }`}>
               Bergabunglah dengan <span className="font-bold text-emerald-600">10,000+</span> profesional yang telah merasakan transformasi digital dalam konservasi
             </p>
           </motion.div>
@@ -724,8 +734,8 @@ const LandingPage = () => {
                       
                       {/* Author Info */}
                       <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center text-2xl shadow-lg">
-                          {testimonials[activeTestimonial].avatar}
+                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center shadow-lg">
+                          {React.createElement(testimonials[activeTestimonial].avatar, { className: "w-7 h-7 text-white" })}
                         </div>
                         <div>
                           <div className="font-bold text-lg text-gray-900">
@@ -793,27 +803,35 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* CTA Section - Kurangi padding */}
-      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-br from-emerald-600 to-teal-600 relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
+      {/* CTA Section - Modern card */}
+      <section className="py-14 sm:py-18 md:py-24 relative overflow-hidden">
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
+            className={`mx-auto max-w-5xl rounded-3xl backdrop-blur-2xl backdrop-saturate-150 px-6 sm:px-10 lg:px-12 py-10 sm:py-12 ${
+              theme === 'dark'
+                ? 'border border-white/25 bg-white/10 shadow-[0_30px_80px_-28px_rgba(0,0,0,0.65)]'
+                : 'border border-emerald-300/50 bg-emerald-100/75 shadow-[0_24px_55px_-28px_rgba(16,185,129,0.30)]'
+            }`}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 sm:mb-6">
+            <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 tracking-tight ${
+              theme === 'dark' ? 'text-white' : 'text-emerald-900'
+            }`}>
               Siap Memulai Revolusi Konservasi?
             </h2>
-            <p className="text-base sm:text-lg md:text-xl text-emerald-100 mb-6 sm:mb-8 max-w-3xl mx-auto">
+            <p className={`text-base sm:text-lg md:text-xl mb-7 sm:mb-9 max-w-3xl mx-auto leading-relaxed ${
+              theme === 'dark' ? 'text-emerald-50/90' : 'text-emerald-800/80'
+            }`}>
               Bergabunglah dengan ribuan organisasi yang telah mempercayakan proyek konservasi mereka pada platform kami
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mb-8">
               <motion.button
                 onClick={() => navigate("/register")}
-                className="px-6 sm:px-8 py-3 sm:py-4 bg-white text-emerald-600 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
+                className="px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-semibold rounded-2xl shadow-[0_16px_30px_-18px_rgba(16,185,129,0.45)] hover:shadow-[0_22px_38px_-18px_rgba(16,185,129,0.55)] transition-all text-sm sm:text-base border border-emerald-300/60"
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -821,7 +839,11 @@ const LandingPage = () => {
               </motion.button>
               <motion.button
                 onClick={() => navigate("/contact")}
-                className="px-6 sm:px-8 py-3 sm:py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-emerald-600 transition-all text-sm sm:text-base"
+                className={`px-6 sm:px-8 py-3.5 sm:py-4 font-semibold rounded-2xl transition-all text-sm sm:text-base backdrop-blur-xl border ${
+                  theme === 'dark'
+                    ? 'border-white/45 bg-white/10 text-white hover:bg-white/20'
+                    : 'border-emerald-300/70 bg-emerald-100/80 text-emerald-800 hover:bg-emerald-200/80'
+                }`}
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
