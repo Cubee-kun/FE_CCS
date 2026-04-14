@@ -9,12 +9,14 @@ import {
   FiRefreshCw, FiFilter, FiSearch, FiChevronLeft, FiChevronRight,
   FiMonitor, FiPackage, FiLink, FiHash, FiClock, FiCheckCircle, FiArchive, FiCopy
 } from "react-icons/fi";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import QRCode from "qrcode";
 import { toast } from "react-toastify";
 import JSZip from "jszip";
 import { ethers } from 'ethers';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import QrCodeModal from "../../components/admin/laporan/QrCodeModal";
+import PdfPreviewModal from "../../components/admin/laporan/PdfPreviewModal";
+import { buildLaporanPdfBlob } from "../../utils/laporanPdf";
 
 // ✅ GLOBAL RATE LIMITING CONTROLS
 let lastEnrichmentTime = 0;
@@ -548,7 +550,7 @@ export default function LaporanPage() {
   // ✅ ENRICHMENT: Fetch real blockchain tx hashes dari Sepolia dengan parallel processing
   // Note: Duplicate function removed, using the one defined earlier
 
-  const addLogoToQRCode = (qrDataUrl, logoPath = '/images/icon.png') => {
+  const addLogoToQRCode = (qrDataUrl, logoPath = '/vite.png') => {
     return new Promise((resolve) => {
       const qrImage = new Image();
       const logoImage = new Image();
@@ -880,281 +882,7 @@ export default function LaporanPage() {
     if (!item) return;
 
     try {
-      const progress = getProgressInfo(item);
-      const { implementasi, monitoring } = getStageDetails(item);
-      const pdfDoc = await PDFDocument.create();
-      const pageSize = [595.28, 841.89];
-      let page = null;
-      const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-      const margin = 42;
-      const contentWidth = 595.28 - margin * 2;
-      const labelWidth = 178;
-      const valueWidth = contentWidth - labelWidth - 16;
-      let y = 800;
-      let pageNumber = 0;
-
-      let logoImage = null;
-      try {
-        const logoRes = await fetch('/images/icon.png');
-        if (logoRes.ok) {
-          const logoBytes = await logoRes.arrayBuffer();
-          logoImage = await pdfDoc.embedPng(logoBytes);
-        }
-      } catch (logoErr) {
-        console.warn('[LaporanPage] logo load skipped:', logoErr?.message || logoErr);
-      }
-
-      let qrCodeImage = null;
-      try {
-        const qrContent = item.blockchain_tx_hash 
-          ? `https://sepolia.etherscan.io/tx/${item.blockchain_tx_hash}`
-          : `${window.location.origin}/public/laporan/${item.id}`;
-        
-        const qrDataUrl = await QRCode.toDataURL(
-          qrContent,
-          {
-            errorCorrectionLevel: 'H',
-            type: 'image/png',
-            quality: 0.95,
-            margin: 1,
-            width: 200,
-            color: { dark: '#1f2937', light: '#ffffff' },
-          }
-        );
-        const qrBytes = await fetch(qrDataUrl).then(r => r.arrayBuffer());
-        qrCodeImage = await pdfDoc.embedPng(qrBytes);
-      } catch (qrErr) {
-        console.warn('[LaporanPage] QR code generation skipped:', qrErr?.message || qrErr);
-      }
-
-      const drawText = (text, x, yPos, opts = {}) => {
-        page.drawText(String(text ?? '-'), {
-          x,
-          y: yPos,
-          size: opts.size || 11,
-          font: opts.bold ? bold : regular,
-          color: opts.color || rgb(0.1, 0.1, 0.1),
-        });
-      };
-
-      const wrapText = (text, maxWidth, size = 11, fontRef = regular) => {
-        const source = String(text ?? '-');
-        const words = source.split(' ');
-        const lines = [];
-        let line = '';
-
-        const breakLongWord = (word) => {
-          if (fontRef.widthOfTextAtSize(word, size) <= maxWidth) return [word];
-          const chunks = [];
-          let chunk = '';
-          for (const ch of word) {
-            const test = `${chunk}${ch}`;
-            if (fontRef.widthOfTextAtSize(test, size) > maxWidth && chunk) {
-              chunks.push(chunk);
-              chunk = ch;
-            } else {
-              chunk = test;
-            }
-          }
-          if (chunk) chunks.push(chunk);
-          return chunks;
-        };
-
-        for (const word of words) {
-          const chunks = breakLongWord(word);
-          for (const chunk of chunks) {
-            const testLine = line ? `${line} ${chunk}` : chunk;
-            const testWidth = fontRef.widthOfTextAtSize(testLine, size);
-            if (testWidth > maxWidth && line) {
-              lines.push(line);
-              line = chunk;
-            } else {
-              line = testLine;
-            }
-          }
-        }
-
-        if (line) lines.push(line);
-        return lines;
-      };
-
-      const drawHeader = () => {
-        const headerTopY = 810;
-
-        if (logoImage) {
-          page.drawImage(logoImage, {
-            x: margin,
-            y: headerTopY - 35,
-            width: 35,
-            height: 35,
-          });
-        }
-
-        const headerX = logoImage ? margin + 42 : margin;
-        const maxTitleWidth = contentWidth - 80;
-        drawText('3TREESIFY CCS', headerX, headerTopY, { size: 13, bold: true, color: rgb(0.1, 0.32, 0.25) });
-        drawText('Sistem Konservasi Berbasis Blockchain', headerX, headerTopY - 13, { size: 9, color: rgb(0.33, 0.33, 0.33) });
-        drawText('Pelaporan Perencanaan, Implementasi, dan Monitoring', headerX, headerTopY - 25, { size: 8, color: rgb(0.4, 0.4, 0.4) });
-
-        if (qrCodeImage) {
-          page.drawImage(qrCodeImage, {
-            x: margin + contentWidth - 62,
-            y: headerTopY - 65,
-            width: 60,
-            height: 60,
-          });
-          drawText('Verifikasi', margin + contentWidth - 64, headerTopY - 68, { size: 7, color: rgb(0.45, 0.45, 0.45), bold: true });
-          drawText('Dokumen', margin + contentWidth - 54, headerTopY - 75, { size: 7, color: rgb(0.45, 0.45, 0.45), bold: true });
-        }
-
-        drawText('Halaman ' + String(pageNumber), margin + contentWidth - 52, headerTopY, { size: 8.5, color: rgb(0.4, 0.4, 0.4) });
-
-        page.drawLine({ start: { x: margin, y: headerTopY - 105 }, end: { x: margin + contentWidth, y: headerTopY - 105 }, thickness: 1.2, color: rgb(0.12, 0.42, 0.32) });
-        page.drawLine({ start: { x: margin, y: headerTopY - 108 }, end: { x: margin + contentWidth, y: headerTopY - 108 }, thickness: 0.5, color: rgb(0.5, 0.5, 0.5) });
-      };
-
-      const drawMetaBlock = () => {
-        page.drawRectangle({
-          x: margin,
-          y: 660,
-          width: contentWidth,
-          height: 50,
-          color: rgb(0.96, 0.98, 0.97),
-          borderColor: rgb(0.8, 0.9, 0.86),
-          borderWidth: 1,
-        });
-
-        drawText('Nomor Laporan', margin + 12, 702, { size: 9, bold: true, color: rgb(0.35, 0.35, 0.35) });
-        drawText(String(item.id), margin + 12, 690, { size: 10.5, color: rgb(0.1, 0.1, 0.1) });
-
-        drawText('Tanggal Cetak', margin + 190, 702, { size: 9, bold: true, color: rgb(0.35, 0.35, 0.35) });
-        drawText(new Date().toLocaleString('id-ID'), margin + 190, 690, { size: 10.5, color: rgb(0.1, 0.1, 0.1) });
-
-        drawText('Tahap Saat Ini', margin + 390, 702, { size: 9, bold: true, color: rgb(0.35, 0.35, 0.35) });
-        drawText(progress.currentStage, margin + 390, 690, { size: 10.5, bold: true, color: rgb(0.1, 0.32, 0.25) });
-      };
-
-      const startNewPage = () => {
-        page = pdfDoc.addPage(pageSize);
-        pageNumber += 1;
-        drawHeader();
-        drawMetaBlock();
-        y = 645;
-      };
-
-      const ensureSpace = (neededHeight = 28) => {
-        if (y - neededHeight < 60) {
-          startNewPage();
-        }
-      };
-
-      const addField = (label, value) => {
-        const lines = wrapText(value, valueWidth, 10.5, regular);
-        const rowHeight = Math.max(1, lines.length) * 14 + 8;
-        ensureSpace(rowHeight);
-
-        page.drawRectangle({
-          x: margin,
-          y: y - rowHeight + 5,
-          width: contentWidth,
-          height: rowHeight,
-          color: rgb(0.995, 0.995, 0.995),
-          borderColor: rgb(0.92, 0.92, 0.92),
-          borderWidth: 0.4,
-        });
-
-        drawText(label, margin + 8, y - 7, { size: 9.5, bold: true, color: rgb(0.35, 0.35, 0.35) });
-        drawText(':', margin + labelWidth, y - 7, { size: 9.5, bold: true, color: rgb(0.4, 0.4, 0.4) });
-
-        let valueY = y - 7;
-        lines.forEach((line) => {
-          drawText(line, margin + labelWidth + 10, valueY, { size: 10.5, color: rgb(0.1, 0.1, 0.1) });
-          valueY -= 14;
-        });
-
-        y -= rowHeight;
-      };
-
-      const addSection = (title) => {
-        ensureSpace(30);
-        page.drawRectangle({
-          x: margin,
-          y: y - 16,
-          width: contentWidth,
-          height: 20,
-          color: rgb(0.9, 0.96, 0.93),
-          borderColor: rgb(0.72, 0.84, 0.78),
-          borderWidth: 0.8,
-        });
-        drawText(title, margin + 8, y - 2, { size: 11, bold: true, color: rgb(0.08, 0.32, 0.25) });
-        y -= 24;
-      };
-
-      const boolLabel = (value) => (value === undefined || value === null ? '-' : value ? 'Sesuai' : 'Tidak Sesuai');
-
-      startNewPage();
-
-      addSection('DATA PERENCANAAN');
-
-      addField('ID Laporan', item.id);
-      addField('Nama Perusahaan', item.nama_perusahaan);
-      addField('Nama PIC', item.nama_pic);
-      addField('Narahubung', item.narahubung || '-');
-      addField('Jenis Kegiatan', item.jenis_kegiatan);
-      addField('Jenis Bibit', item.jenis_bibit || '-');
-      addField('Jumlah Bibit', item.jumlah_bibit ? `${item.jumlah_bibit} Unit` : '-');
-      addField('Lokasi', item.lokasi || '-');
-      addField('Tanggal Pelaksanaan', item.tanggal_pelaksanaan || '-');
-      addField('Koordinat', `${item.lat ?? '-'}, ${item.long ?? '-'}`);
-
-      addSection('STATUS DAN VERIFIKASI');
-      addField('Status Implementasi', item.is_implemented ? 'Sudah Implementasi' : 'Belum Implementasi');
-      addField('Tahap Saat Ini', progress.currentStage);
-      addField('Progress Perencanaan', 'Aktif');
-      addField('Progress Implementasi', progress.hasImplementasi ? 'Aktif' : 'Belum');
-      addField('Progress Monitoring', progress.hasMonitoring ? 'Aktif' : 'Belum');
-      addField('Progress Evaluasi', progress.hasEvaluasi ? 'Aktif' : 'Belum');
-      addField('Blockchain Doc Hash', item.blockchain_doc_hash || '-');
-      addField('Blockchain TX Hash', item.blockchain_tx_hash || '-');
-      addField('Blockchain Verification', item.blockchainData?.verified ? 'Full Verified' : (item.blockchain_tx_hash ? 'Uploaded (Pending Verify)' : 'Not Uploaded'));
-
-      if (progress.hasImplementasi || implementasi) {
-        const implementasiDocs = parseStoredFiles(implementasi?.dokumentasi_kegiatan);
-        addSection('DETAIL IMPLEMENTASI');
-        addField('PIC Koorlap', implementasi?.pic_koorlap || '-');
-        addField('Kesesuaian Nama Perusahaan', boolLabel(implementasi?.nama_perusahaan_sesuai));
-        addField('Kesesuaian Lokasi', boolLabel(implementasi?.lokasi_sesuai));
-        addField('Kesesuaian Jenis Kegiatan', boolLabel(implementasi?.jenis_kegiatan_sesuai));
-        addField('Kesesuaian Jumlah Bibit', boolLabel(implementasi?.jumlah_bibit_sesuai));
-        addField('Kesesuaian Jenis Bibit', boolLabel(implementasi?.jenis_bibit_sesuai));
-        addField('Kesesuaian Tanggal', boolLabel(implementasi?.tanggal_sesuai));
-        addField('Geotagging Implementasi', implementasi?.geotagging || '-');
-        addField('Koordinat Implementasi', `${implementasi?.lat ?? '-'}, ${implementasi?.long ?? '-'}`);
-        addField('Dokumentasi Implementasi', implementasiDocs.length > 0 ? `${implementasiDocs.length} file` : '-');
-      }
-
-      if (progress.hasMonitoring || monitoring) {
-        const monitoringDocs = parseStoredFiles(monitoring?.dokumentasi_monitoring);
-        addSection('DETAIL MONITORING');
-        addField('Jumlah Bibit Ditanam', monitoring?.jumlah_bibit_ditanam ?? '-');
-        addField('Jumlah Bibit Mati', monitoring?.jumlah_bibit_mati ?? '-');
-        addField('Diameter Batang', monitoring?.diameter_batang ? `${monitoring.diameter_batang} cm` : '-');
-        addField('Jumlah Daun', monitoring?.jumlah_daun ?? '-');
-        addField('Survival Rate', monitoring?.survival_rate !== undefined && monitoring?.survival_rate !== null ? `${monitoring.survival_rate}%` : '-');
-        addField('Kondisi Daun Mengering', monitoring?.daun_mengering ?? '-');
-        addField('Kondisi Daun Layu', monitoring?.daun_layu ?? '-');
-        addField('Kondisi Daun Menguning', monitoring?.daun_menguning ?? '-');
-        addField('Bercak Daun', monitoring?.bercak_daun ?? '-');
-        addField('Serangan Hama/Serangga', monitoring?.daun_serangga ?? '-');
-        addField('Dokumentasi Monitoring', monitoringDocs.length > 0 ? `${monitoringDocs.length} file` : '-');
-      }
-
-      page.drawLine({ start: { x: margin, y: 46 }, end: { x: margin + contentWidth, y: 46 }, thickness: 0.6, color: rgb(0.76, 0.76, 0.76) });
-      drawText('Dokumen ini dihasilkan otomatis oleh 3TREESIFY CCS. QR code di atas dapat digunakan untuk memverifikasi keaslian dokumen.', margin, 33, { size: 8.5, color: rgb(0.45, 0.45, 0.45) });
-
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blob = await buildLaporanPdfBlob(item);
       downloadBlob(blob, `laporan-perencanaan-${item.id}.pdf`);
       notifySingle('success', 'PDF berhasil diunduh');
       setPdfPreviewOpen(false);
@@ -1704,186 +1432,22 @@ export default function LaporanPage() {
         )}
 
         {/* ✅ QR Code Modal - FIXED */}
-        <AnimatePresence>
-          {qrModalOpen && qrCodeData && (
-            <>
-              <motion.div
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setQrModalOpen(false)}
-              />
-              <motion.div
-                className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-              >
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
-                  <button
-                    onClick={() => setQrModalOpen(false)}
-                    className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <FiX className="w-5 h-5" />
-                  </button>
+        <QrCodeModal
+          open={qrModalOpen}
+          qrCodeData={qrCodeData}
+          onClose={() => setQrModalOpen(false)}
+          onDownload={downloadQRCode}
+        />
 
-                  <div className="text-center mb-6">
-                    <motion.div
-                      className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                        qrCodeData.verified
-                          ? 'bg-gradient-to-br from-green-500 to-emerald-500'
-                          : 'bg-gradient-to-br from-blue-500 to-cyan-500'
-                      }`}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 200 }}
-                    >
-                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                    </svg>
-                    </motion.div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                      QR Code Blockchain
-                    </h2>
-                    <p className={`text-sm font-semibold ${
-                      qrCodeData.verified
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-blue-600 dark:text-blue-400'
-                    }`}>
-                      {qrCodeData.verified ? 'Verified dari Blockchain' : 'Data dari Database'}
-                    </p>
-                  </div>
-
-                  {/* QR Display */}
-                  <div className="bg-white p-6 rounded-xl shadow-inner mb-6 flex items-center justify-center border-4 border-gray-100">
-                    <motion.img 
-                      src={qrCodeData.url} 
-                      alt="QR Code" 
-                      className="w-64 h-64 object-contain"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                    />
-                  </div>
-
-                  {/* Download Button */}
-                  <motion.button
-                    onClick={downloadQRCode}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-medium shadow-lg transition-all"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <FiDownload className="w-5 h-5" />
-                    <span>Download QR (PNG)</span>
-                  </motion.button>
-                </div>
-              </motion.div>
-            </>
-          )}
-
-          {pdfPreviewOpen && pdfPreviewData && (
-            <>
-              <motion.div
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setPdfPreviewOpen(false)}
-              />
-              <motion.div
-                className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                onClick={() => setPdfPreviewOpen(false)}
-              >
-                <div
-                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    onClick={() => setPdfPreviewOpen(false)}
-                    className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <FiX className="w-5 h-5" />
-                  </button>
-
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                    Preview Laporan PDF
-                  </h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
-                    Semua isi form dan status akan dimasukkan ke PDF.
-                  </p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-6">
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">ID:</span> {pdfPreviewData.id}</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Tahap Saat Ini:</span> {previewProgress?.currentStage}</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 md:col-span-2"><span className="font-semibold">Nama Perusahaan:</span> {pdfPreviewData.nama_perusahaan}</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Nama PIC:</span> {pdfPreviewData.nama_pic || '-'}</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Narahubung:</span> {pdfPreviewData.narahubung || '-'}</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Jenis Kegiatan:</span> {pdfPreviewData.jenis_kegiatan || '-'}</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Jenis Bibit:</span> {pdfPreviewData.jenis_bibit || '-'}</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Jumlah Bibit:</span> {pdfPreviewData.jumlah_bibit || '-'} Unit</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Status Implementasi:</span> {pdfPreviewData.is_implemented ? 'Sudah Implementasi' : 'Belum Implementasi'}</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 md:col-span-2"><span className="font-semibold">Lokasi:</span> {pdfPreviewData.lokasi || '-'}</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Tanggal Pelaksanaan:</span> {pdfPreviewData.tanggal_pelaksanaan || '-'}</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Koordinat:</span> {pdfPreviewData.lat ?? '-'}, {pdfPreviewData.long ?? '-'}</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 md:col-span-2"><span className="font-semibold">Blockchain Doc Hash:</span> {pdfPreviewData.blockchain_doc_hash || '-'}</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 md:col-span-2"><span className="font-semibold">Blockchain TX Hash:</span> {pdfPreviewData.blockchain_tx_hash || '-'}</div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 md:col-span-2"><span className="font-semibold">Status Verifikasi Blockchain:</span> {pdfPreviewData.blockchainData?.verified ? 'Full Verified' : (pdfPreviewData.blockchain_tx_hash ? 'Uploaded (Pending Verify)' : 'Not Uploaded')}</div>
-
-                    {(previewProgress?.hasImplementasi || previewDetails?.implementasi) && (
-                      <>
-                        <div className="md:col-span-2 mt-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 font-semibold">
-                          Detail Implementasi
-                        </div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">PIC Koorlap:</span> {previewDetails?.implementasi?.pic_koorlap || '-'}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Geotagging:</span> {previewDetails?.implementasi?.geotagging || '-'}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Nama Perusahaan Sesuai:</span> {previewDetails?.implementasi?.nama_perusahaan_sesuai === undefined || previewDetails?.implementasi?.nama_perusahaan_sesuai === null ? '-' : (previewDetails?.implementasi?.nama_perusahaan_sesuai ? 'Sesuai' : 'Tidak Sesuai')}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Lokasi Sesuai:</span> {previewDetails?.implementasi?.lokasi_sesuai === undefined || previewDetails?.implementasi?.lokasi_sesuai === null ? '-' : (previewDetails?.implementasi?.lokasi_sesuai ? 'Sesuai' : 'Tidak Sesuai')}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Jenis Kegiatan Sesuai:</span> {previewDetails?.implementasi?.jenis_kegiatan_sesuai === undefined || previewDetails?.implementasi?.jenis_kegiatan_sesuai === null ? '-' : (previewDetails?.implementasi?.jenis_kegiatan_sesuai ? 'Sesuai' : 'Tidak Sesuai')}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Jumlah Bibit Sesuai:</span> {previewDetails?.implementasi?.jumlah_bibit_sesuai === undefined || previewDetails?.implementasi?.jumlah_bibit_sesuai === null ? '-' : (previewDetails?.implementasi?.jumlah_bibit_sesuai ? 'Sesuai' : 'Tidak Sesuai')}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Jenis Bibit Sesuai:</span> {previewDetails?.implementasi?.jenis_bibit_sesuai === undefined || previewDetails?.implementasi?.jenis_bibit_sesuai === null ? '-' : (previewDetails?.implementasi?.jenis_bibit_sesuai ? 'Sesuai' : 'Tidak Sesuai')}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Tanggal Sesuai:</span> {previewDetails?.implementasi?.tanggal_sesuai === undefined || previewDetails?.implementasi?.tanggal_sesuai === null ? '-' : (previewDetails?.implementasi?.tanggal_sesuai ? 'Sesuai' : 'Tidak Sesuai')}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 md:col-span-2"><span className="font-semibold">Dokumentasi Implementasi:</span> {parseStoredFiles(previewDetails?.implementasi?.dokumentasi_kegiatan).length > 0 ? `${parseStoredFiles(previewDetails?.implementasi?.dokumentasi_kegiatan).length} file` : '-'}</div>
-                      </>
-                    )}
-
-                    {(previewProgress?.hasMonitoring || previewDetails?.monitoring) && (
-                      <>
-                        <div className="md:col-span-2 mt-2 p-3 rounded-lg bg-cyan-50 dark:bg-cyan-900/20 text-cyan-800 dark:text-cyan-300 font-semibold">
-                          Detail Monitoring
-                        </div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Jumlah Bibit Ditanam:</span> {previewDetails?.monitoring?.jumlah_bibit_ditanam ?? '-'}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Jumlah Bibit Mati:</span> {previewDetails?.monitoring?.jumlah_bibit_mati ?? '-'}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Diameter Batang:</span> {previewDetails?.monitoring?.diameter_batang ? `${previewDetails?.monitoring?.diameter_batang} cm` : '-'}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Jumlah Daun:</span> {previewDetails?.monitoring?.jumlah_daun ?? '-'}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Survival Rate:</span> {previewDetails?.monitoring?.survival_rate !== undefined && previewDetails?.monitoring?.survival_rate !== null ? `${previewDetails?.monitoring?.survival_rate}%` : '-'}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Daun Mengering:</span> {previewDetails?.monitoring?.daun_mengering ?? '-'}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Daun Layu:</span> {previewDetails?.monitoring?.daun_layu ?? '-'}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Daun Menguning:</span> {previewDetails?.monitoring?.daun_menguning ?? '-'}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Bercak Daun:</span> {previewDetails?.monitoring?.bercak_daun ?? '-'}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Daun Serangga:</span> {previewDetails?.monitoring?.daun_serangga ?? '-'}</div>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 md:col-span-2"><span className="font-semibold">Dokumentasi Monitoring:</span> {parseStoredFiles(previewDetails?.monitoring?.dokumentasi_monitoring).length > 0 ? `${parseStoredFiles(previewDetails?.monitoring?.dokumentasi_monitoring).length} file` : '-'}</div>
-                      </>
-                    )}
-                  </div>
-
-                  <motion.button
-                    onClick={() => downloadPDFReport(pdfPreviewData)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white font-medium shadow-lg transition-all"
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <FiDownload className="w-5 h-5" />
-                    <span>Download PDF</span>
-                  </motion.button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+        <PdfPreviewModal
+          open={pdfPreviewOpen}
+          data={pdfPreviewData}
+          progress={previewProgress}
+          details={previewDetails}
+          onClose={() => setPdfPreviewOpen(false)}
+          onDownload={() => downloadPDFReport(pdfPreviewData)}
+          parseStoredFiles={parseStoredFiles}
+        />
       </div>
     </div>
   );
