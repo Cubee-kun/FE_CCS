@@ -1,4 +1,5 @@
 // src/App.jsx
+import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import AppRoutes from "./routes/AppRoutes";
@@ -14,6 +15,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 
 // ✅ Komponen terpisah yang menggunakan useAuth - harus di dalam AuthProvider
 function AppContent() {
+  const IDLE_RELOAD_MS = 8 * 60 * 60 * 1000;
   const location = useLocation();
   const { isAuthenticated, loading } = useAuth();
 
@@ -29,6 +31,38 @@ function AppContent() {
   });
 
   const showNavbar = isAlwaysShowNavbar || (!isNoNavbarRoute && !isAuthenticated);
+
+  useEffect(() => {
+    let idleTimeout = null;
+
+    const resetIdleTimer = () => {
+      if (idleTimeout) {
+        window.clearTimeout(idleTimeout);
+      }
+
+      idleTimeout = window.setTimeout(() => {
+        window.location.reload();
+      }, IDLE_RELOAD_MS);
+    };
+
+    const activityEvents = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"];
+
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, resetIdleTimer, { passive: true });
+    });
+
+    resetIdleTimer();
+
+    return () => {
+      if (idleTimeout) {
+        window.clearTimeout(idleTimeout);
+      }
+
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, resetIdleTimer);
+      });
+    };
+  }, [IDLE_RELOAD_MS]);
 
   console.log('[App] Render state:', {
     path: location.pathname,

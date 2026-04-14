@@ -23,6 +23,7 @@ import LandingPage from "../pages/public/LandingPage";
 import About from "../pages/public/About";
 import Contact from "../pages/public/Contact";
 import Verifikasi from "../pages/public/Verifikasi";
+import NotFound from "../pages/public/NotFound";
 
 // Auth pages
 import Login from "../pages/auth/Login";
@@ -118,7 +119,7 @@ export default function AppRoutes() {
       </Route>
 
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
