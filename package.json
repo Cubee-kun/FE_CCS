@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node ./scripts/build.mjs",
+    "build": "npm exec --yes vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "clean": "node -e \"const fs = require('fs'); const path = require('path'); const dirs = ['node_modules', 'dist']; dirs.forEach(d => { const p = path.join(process.cwd(), d); if(fs.existsSync(p)) fs.rmSync(p, {recursive: true}); });\" && npm cache clean --force",
@@ -70,7 +70,6 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
     "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.18",
-    "vite": "^5.4.21"
+    "tailwindcss": "^3.4.18"
   }
 }
