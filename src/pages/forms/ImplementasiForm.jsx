@@ -152,9 +152,20 @@ const ImplementasiForm = () => {
   // ✅ Handle marker selection
   const handleLocationSelect = (location) => {
     setSelectedLocation(location);
+    setSelectedPerencanaan(location);
+
+    if (location?.id) {
+      formik.setFieldValue("perencanaan_id", String(location.id));
+    }
+
     // Format geotagging as "lat,long"
-    const geotagging = `${location.lat},${location.long}`;
-    formik.setFieldValue("geotagging", geotagging);
+    const lat = location?.lat;
+    const lng = location?.long ?? location?.lng;
+
+    if (lat !== undefined && lng !== undefined) {
+      const geotagging = `${lat},${lng}`;
+      formik.setFieldValue("geotagging", geotagging);
+    }
   };
 
   // ✅ HANDLE DRAG AND DROP
@@ -351,11 +362,11 @@ const ImplementasiForm = () => {
                     />
                     {existingLocations.map((location) => {
                       const lat = parseFloat(location.lat);
-                      const lng = parseFloat(location.long);
+                      const lng = parseFloat(location.long ?? location.lng);
                       const isSelected = selectedLocation?.id === location.id;
                       
                       // Skip invalid coordinates
-                      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+                      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
                         return null;
                       }
                       
@@ -664,37 +675,100 @@ const ImplementasiForm = () => {
                 {/* Content */}
                 <motion.div
                   className="flex flex-col items-center justify-center"
-                  animate={dragActive ? { scale: 1.05 } : { scale: 1 }}
+                  animate={dragActive ? { scale: 1.03 } : { scale: 1 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <motion.div
-                    className="w-16 h-16 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center mb-4"
-                    animate={dragActive ? { rotate: 360 } : { rotate: 0 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    <FiUpload className={`w-8 h-8 ${dragActive ? 'text-teal-600' : 'text-teal-600 dark:text-teal-400'}`} />
-                  </motion.div>
+                  {formik.values.dokumentasi && formik.values.dokumentasi.length > 0 ? (
+                    <>
+                      <div className="w-full flex items-center justify-between mb-4">
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          Preview Dokumentasi ({formik.values.dokumentasi.length})
+                        </p>
+                        <motion.button
+                          type="button"
+                          onClick={() => setShowUploadModal(true)}
+                          className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white text-xs font-medium shadow-md transition-all"
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          Tambah Foto
+                        </motion.button>
+                      </div>
 
-                  <p className="text-center mb-2">
-                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 block">
-                      {dragActive ? "🎯 Lepaskan gambar di sini" : "📸 Drag & Drop gambar di sini"}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 block mt-1">
-                      atau gunakan tombol di bawah
-                    </span>
-                  </p>
+                      <motion.div
+                        className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                      >
+                        {formik.values.dokumentasi.map((file, index) => (
+                          <motion.div
+                            key={index}
+                            className="relative group"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.05 * index }}
+                            whileHover={{ scale: 1.03 }}
+                          >
+                            <div className="relative w-full h-32 rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-600 shadow-md bg-white dark:bg-gray-800">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={`Preview ${index}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-all" />
+                              <motion.button
+                                type="button"
+                                onClick={() => {
+                                  const newFiles = [...formik.values.dokumentasi];
+                                  newFiles.splice(index, 1);
+                                  formik.setFieldValue("dokumentasi", newFiles);
+                                }}
+                                className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                              >
+                                <FiX className="w-4 h-4 text-white" />
+                              </motion.button>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 truncate">
+                              {file.name}
+                            </p>
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                    </>
+                  ) : (
+                    <>
+                      <motion.div
+                        className="w-16 h-16 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center mb-4"
+                        animate={dragActive ? { rotate: 360 } : { rotate: 0 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <FiUpload className={`w-8 h-8 ${dragActive ? 'text-teal-600' : 'text-teal-600 dark:text-teal-400'}`} />
+                      </motion.div>
 
-                  {/* Upload Buttons - ONLY SHOWN WHEN NOT DRAGGING */}
-                  {!dragActive && (
-                    <motion.button
-                      type="button"
-                      onClick={() => setShowUploadModal(true)}
-                      className="mt-4 px-6 py-2 rounded-lg bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-medium shadow-lg transition-all"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      Pilih Gambar
-                    </motion.button>
+                      <p className="text-center mb-2">
+                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 block">
+                          {dragActive ? "Lepaskan gambar di sini" : "Drag & Drop gambar di sini"}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 block mt-1">
+                          atau gunakan tombol di bawah
+                        </span>
+                      </p>
+
+                      {/* Upload Buttons - ONLY SHOWN WHEN NOT DRAGGING */}
+                      {!dragActive && (
+                        <motion.button
+                          type="button"
+                          onClick={() => setShowUploadModal(true)}
+                          className="mt-4 px-6 py-2 rounded-lg bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-medium shadow-lg transition-all"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          Pilih Gambar
+                        </motion.button>
+                      )}
+                    </>
                   )}
                 </motion.div>
               </div>
@@ -703,51 +777,6 @@ const ImplementasiForm = () => {
                 <p className="text-red-500 text-sm mt-2">{formik.errors.dokumentasi}</p>
               )}
 
-              {/* ✅ PREVIEW GRID */}
-              {formik.values.dokumentasi && formik.values.dokumentasi.length > 0 && (
-                <motion.div
-                  className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  {formik.values.dokumentasi.map((file, index) => (
-                    <motion.div
-                      key={index}
-                      className="relative group"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.1 * index }}
-                      whileHover={{ scale: 1.05 }}
-                    >
-                      <div className="relative w-full h-32 rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-600 shadow-md">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`Preview ${index}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all" />
-                        <motion.button
-                          type="button"
-                          onClick={() => {
-                            const newFiles = [...formik.values.dokumentasi];
-                            newFiles.splice(index, 1);
-                            formik.setFieldValue("dokumentasi", newFiles);
-                          }}
-                          className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all"
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                        >
-                          <FiX className="w-4 h-4 text-white" />
-                        </motion.button>
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 truncate">
-                        {file.name}
-                      </p>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              )}
             </motion.div>
 
             {/* Submit Button */}
