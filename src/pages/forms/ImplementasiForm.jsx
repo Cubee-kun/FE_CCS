@@ -84,6 +84,9 @@ const ImplementasiForm = () => {
         });
 
         if (response.status === 201 || response.status === 200) {
+          const submittedPerencanaanId = String(values.perencanaan_id);
+          setPerencanaans((prev) => prev.filter((item) => String(item.id) !== submittedPerencanaanId));
+          setExistingLocations((prev) => prev.filter((item) => String(item.id) !== submittedPerencanaanId));
           setSuccess(true);
           toast.success("✅ Implementasi berhasil disimpan!");
           setTimeout(() => {
@@ -109,15 +112,31 @@ const ImplementasiForm = () => {
 
     const fetchData = async () => {
       try {
-        const response = await api.get("/perencanaan");
-        const data = response.data?.data || response.data || [];
+        const [perencanaanResponse, implementasiResponse] = await Promise.all([
+          api.get("/perencanaan"),
+          api.get("/implementasi"),
+        ]);
+
+        const data = perencanaanResponse.data?.data || perencanaanResponse.data || [];
+        const implementasiData = implementasiResponse.data?.data || implementasiResponse.data || [];
+        const usedPerencanaanIds = new Set(
+          (Array.isArray(implementasiData) ? implementasiData : [])
+            .map((impl) => String(impl?.perencanaan_id ?? ""))
+            .filter(Boolean)
+        );
+
+        const availableData = data.filter((item) => {
+          const alreadyImplemented = item?.is_implemented === true || item?.is_implemented === 1 || item?.is_implemented === "1";
+          const alreadyUsedInImplementasi = usedPerencanaanIds.has(String(item?.id));
+          return !alreadyImplemented && !alreadyUsedInImplementasi;
+        });
         
         if (isMounted) {
-          setPerencanaans(data);
-          setExistingLocations(data);
+          setPerencanaans(availableData);
+          setExistingLocations(availableData);
           
-          if (data.length > 0) {
-            console.log(`✅ ${data.length} lokasi perencanaan ditemukan`);
+          if (availableData.length > 0) {
+            console.log(`✅ ${availableData.length} lokasi perencanaan siap implementasi ditemukan`);
           }
         }
       } catch (error) {

@@ -1195,16 +1195,15 @@ export default function LaporanPage() {
       item.nama_perusahaan.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.nama_pic.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const hasImplementasi = !!item.is_implemented || !!item.implementasi;
-    const hasMonitoring = !!item.implementasi?.monitoring || Array.isArray(item.monitoring) && item.monitoring.length > 0;
-    const hasEvaluasi = !!item.evaluasi || !!item.implementasi?.evaluasi || !!item.implementasi?.monitoring?.evaluasi;
+    const progress = getProgressInfo(item);
+    const currentStage = progress.currentStage;
 
     const matchStatus =
       filterStatus === "all" ||
-      (filterStatus === "perencanaan") ||
-      (filterStatus === "implementasi" && hasImplementasi) ||
-      (filterStatus === "monitoring" && hasMonitoring) ||
-      (filterStatus === "evaluasi" && hasEvaluasi);
+      (filterStatus === "perencanaan" && currentStage === "Perencanaan") ||
+      (filterStatus === "implementasi" && currentStage === "Implementasi") ||
+      (filterStatus === "monitoring" && currentStage === "Monitoring") ||
+      (filterStatus === "evaluasi" && progress.hasEvaluasi);
     
     return matchSearch && matchStatus;
   });
