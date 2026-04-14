@@ -907,8 +907,12 @@ export default function LaporanPage() {
 
       let qrCodeImage = null;
       try {
+        const qrContent = item.blockchain_tx_hash 
+          ? `https://sepolia.etherscan.io/tx/${item.blockchain_tx_hash}`
+          : `${window.location.origin}/public/laporan/${item.id}`;
+        
         const qrDataUrl = await QRCode.toDataURL(
-          `${window.location.origin}/public/laporan/${item.id}`,
+          qrContent,
           {
             errorCorrectionLevel: 'H',
             type: 'image/png',
