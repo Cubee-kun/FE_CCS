@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { FiHome, FiUsers, FiFileText, FiActivity, FiClipboard, FiX, FiCheckCircle, FiSettings, FiLogOut, FiSun, FiMoon, FiMonitor } from "react-icons/fi";
+import { FiHome, FiUsers, FiFileText, FiActivity, FiClipboard, FiX, FiCheckCircle, FiSettings, FiLogOut, FiSun, FiMoon, FiBarChart2 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -19,6 +19,7 @@ export default function Sidebar({ isUser = false, onClose }) {
     { label: "Perencanaan", path: "/admin/perencanaan", icon: <FiClipboard /> },
     { label: "Implementasi", path: "/admin/implementasi", icon: <FiCheckCircle /> },
     { label: "Monitoring", path: "/admin/monitoring", icon: <FiActivity /> },
+    { label: "Evaluasi", path: "/admin/evaluasi", icon: <FiBarChart2 /> },
   ];
 
   // ✅ User menu items - Lengkap dengan semua menu
@@ -26,6 +27,7 @@ export default function Sidebar({ isUser = false, onClose }) {
     { label: "Dashboard", path: "/user/dashboard", icon: <FiHome /> },
     { label: "Implementasi", path: "/user/implementasi", icon: <FiCheckCircle /> },
     { label: "Monitoring", path: "/user/monitoring", icon: <FiActivity /> },
+    { label: "Evaluasi", path: "/user/evaluasi", icon: <FiBarChart2 /> },
   ];
 
   const menuItems = isUser ? userMenuItems : adminMenuItems;

@@ -183,9 +183,17 @@ const MonitoringForm = () => {
 
   const handleLocationSelect = (location) => {
     setSelectedLocation(location);
+    setSelectedImplementasi(location);
+
+    if (location?.id) {
+      formik.setFieldValue("implementasi_id", String(location.id));
+      formik.setFieldTouched("implementasi_id", true, false);
+    }
+
     // Format geotagging as "lat,long"
     const geotagging = `${location.lat},${location.long}`;
     formik.setFieldValue("lokasi", geotagging);
+    formik.setFieldTouched("lokasi", true, false);
   };
 
   // ✅ HANDLE DRAG AND DROP
@@ -573,7 +581,14 @@ const MonitoringForm = () => {
                   <div className="flex gap-3 mt-6 pt-6 border-t border-green-200 dark:border-green-700">
                     <motion.button
                       type="button"
-                      onClick={() => setSelectedLocation(null)}
+                      onClick={() => {
+                        setSelectedLocation(null);
+                        setSelectedImplementasi(null);
+                        formik.setFieldValue("lokasi", "");
+                        formik.setFieldValue("implementasi_id", "");
+                        formik.setFieldTouched("lokasi", false, false);
+                        formik.setFieldTouched("implementasi_id", false, false);
+                      }}
                       className="flex-1 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -582,6 +597,7 @@ const MonitoringForm = () => {
                     </motion.button>
                     <motion.button
                       type="button"
+                      onClick={() => handleLocationSelect(selectedLocation)}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-medium transition-all shadow-md"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -602,6 +618,17 @@ const MonitoringForm = () => {
                 >
                   <FiAlertCircle className="w-4 h-4" />
                   {formik.errors.lokasi}
+                </motion.p>
+              )}
+
+              {formik.touched.implementasi_id && formik.errors.implementasi_id && (
+                <motion.p
+                  className="text-red-500 text-sm mt-2 flex items-center gap-1"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <FiAlertCircle className="w-4 h-4" />
+                  {formik.errors.implementasi_id}
                 </motion.p>
               )}
             </motion.div>

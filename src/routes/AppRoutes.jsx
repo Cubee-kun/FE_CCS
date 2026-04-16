@@ -14,6 +14,7 @@ import ActivityPage from "../pages/admin/ActivityPage";
 import PerencanaanForm from "../pages/forms/PerencanaanForm";
 import ImplementasiForm from "../pages/forms/ImplementasiForm";
 import MonitoringForm from "../pages/forms/MonitoringForm";
+import EvaluasiPage from "../pages/forms/EvaluasiPage";
 
 // User pages
 import DashboardUser from "../pages/user/DashboardUser";
@@ -95,6 +96,7 @@ export default function AppRoutes() {
         <Route path="implementasi" element={<ImplementasiForm />} />
         <Route path="laporan" element={<LaporanPage />} />
         <Route path="monitoring" element={<MonitoringForm />} />
+        <Route path="evaluasi" element={<EvaluasiPage />} />
         <Route path="verifikasi" element={<Verifikasi />} />
         <Route path="settings" element={<Settings />} />
         <Route index element={<Navigate to="dashboard" replace />} />
@@ -113,6 +115,7 @@ export default function AppRoutes() {
         <Route path="perencanaan" element={<PerencanaanForm />} />
         <Route path="implementasi" element={<ImplementasiForm />} />
         <Route path="monitoring" element={<MonitoringForm />} />
+        <Route path="evaluasi" element={<EvaluasiPage />} />
         <Route path="verifikasi" element={<Verifikasi />} />
         <Route path="settings" element={<Settings />} />
         <Route index element={<Navigate to="dashboard" replace />} />
