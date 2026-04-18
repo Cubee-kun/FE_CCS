@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { FiBarChart2, FiRefreshCw, FiX } from "react-icons/fi";
+import { FiBarChart2, FiDownload, FiRefreshCw, FiX } from "react-icons/fi";
 import api from "../../api/axios";
 import { useAuth } from "../../contexts/AuthContext";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import SummaryCards from "../../components/evaluasi/SummaryCards";
+import NarrativeEditor from "../../components/evaluasi/NarrativeEditor";
+import RecommendationsSection from "../../components/evaluasi/RecommendationsSection";
+import IntroductionSection from "../../components/evaluasi/IntroductionSection";
+import MethodologySection from "../../components/evaluasi/MethodologySection";
+import { buildEvaluasiPdfBlob } from "../../utils/evaluasiPdf";
+import { generateFullNarrative, getSuccessStatus, getRecommendations } from "../../utils/evaluasiNarrator";
 
 const toArray = (payload) => payload?.data || payload || [];
 
@@ -124,6 +131,17 @@ const resolveMonitoringDate = (monitoring) => {
   return null;
 };
 
+const downloadBlob = (blob, fileName) => {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};
+
 export default function EvaluasiPage() {
   const { user } = useAuth();
 
@@ -133,6 +151,10 @@ export default function EvaluasiPage() {
   const [implementasiList, setImplementasiList] = useState([]);
   const [monitoringList, setMonitoringList] = useState([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
+  const [narratives, setNarratives] = useState({});
+  const [recommendations, setRecommendations] = useState([]);
+  const [savedNarratives, setSavedNarratives] = useState({});
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const fetchEvaluasiData = async () => {
     setLoading(true);
@@ -251,6 +273,39 @@ export default function EvaluasiPage() {
     return companyReports.find((item) => String(item.id) === String(selectedCompanyId)) || null;
   }, [companyReports, selectedCompanyId]);
 
+  // Generate narratives dan recommendations ketika company berubah
+  useEffect(() => {
+    if (!selectedCompanyReport) {
+      setNarratives({});
+      setRecommendations([]);
+      setSavedNarratives({});
+      return;
+    }
+
+    // Generate narratives
+    const generated = generateFullNarrative(selectedCompanyReport);
+    setNarratives(generated);
+    setSavedNarratives(generated);
+
+    // Generate recommendations
+    const recs = getRecommendations(selectedCompanyReport);
+    setRecommendations(recs);
+  }, [selectedCompanyReport]);
+
+  const handleDownloadPdf = async () => {
+    if (!selectedCompanyReport) return;
+
+    setIsGeneratingPdf(true);
+    try {
+      const blob = await buildEvaluasiPdfBlob(selectedCompanyReport, narratives, recommendations);
+      downloadBlob(blob, `evaluasi-${selectedCompanyReport.namaPerusahaan}-${selectedCompanyReport.id}.pdf`);
+    } catch (error) {
+      console.error("[EvaluasiPage] PDF generation error:", error);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   useEffect(() => {
     if (!selectedCompanyReport) return undefined;
 
@@ -355,109 +410,110 @@ export default function EvaluasiPage() {
               onClick={() => setSelectedCompanyId(null)}
             >
               <div
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl p-6 relative max-h-[90vh] overflow-y-auto"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl p-6 md:p-8 relative max-h-[95vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
               >
                 <button
                   onClick={() => setSelectedCompanyId(null)}
-                  className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors z-10"
                 >
                   <FiX className="w-5 h-5" />
                 </button>
 
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                  Template Evaluasi - {selectedCompanyReport.namaPerusahaan}
-                </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
-                  Template ini disusun otomatis berdasarkan data perusahaan terpilih.
-                </p>
+                {/* Header */}
+                <div className="mb-6">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Evaluasi Restorasi - {selectedCompanyReport.namaPerusahaan}
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Laporan evaluasi otomatis berdasarkan data monitoring. Anda dapat mengedit narasi sesuai kebutuhan.
+                  </p>
+                </div>
 
-                <div className="space-y-5 text-sm leading-7 text-gray-700 dark:text-gray-300">
+                <div className="space-y-6">
+                  {/* Summary Cards */}
                   <div>
-                    <h3 className="font-bold text-base text-gray-900 dark:text-gray-100">Pendahuluan:</h3>
-                    <p>
-                      Degradasi lahan di Teluk Jakarta menjadi sebuah tantangan lingkungan yang signifikan,
-                      disebabkan oleh urbanisasi yang cepat, aktivitas industri, dan pertumbuhan populasi yang tak
-                      terkendali. Penelitian telah menunjukkan bahwa selama periode 43 tahun dari 1972 hingga 2015,
-                      tingkat abrasi rata-rata pesisir mencapai 2,24 meter per tahun, menyebabkan kehilangan total
-                      sebesar 76,55 meter (Libriyono et al., 2018). Kerusakan ekosistem mangrove menjadi salah satu
-                      faktor yang memperparah masalah tersebut. Faktor-faktor seperti kebutuhan ekonomi, kegagalan
-                      politik, pencemaran, konversi hutan mangrove tanpa mempertimbangkan faktor lingkungan, serta
-                      penebangan berlebihan, menjadi penyebab umum kerusakan hutan mangrove (Farhaby dan Anwar 2021).
-                      Meskipun memiliki peran penting untuk keberlanjutan di wilayah pesisir, hutan mangrove di
-                      Jakarta dan Kepulauan Seribu mengalami kondisi yang semakin memburuk.
-                    </p>
-                    <p>
-                      Mangrove sebagai jenis pohon yang hidup di kawasan pasang surut air laut, memiliki peran yang
-                      sangat vital dalam ekosistem pesisir. Selain melindungi pantai dari abrasi dan intrusi air laut,
-                      mangrove juga memecah gelombang, menyediakan habitat bagi berbagai jenis satwa, serta menjaga
-                      keseimbangan ekologi perairan. Terkait dengan isu perubahan iklim, Donato et al., (2011)
-                      Estrada, Soares, Fernadez, & de Almeida (2015) mengidentifikasi bahwa hutan mangrove memiliki
-                      simpanan karbon yang relatif tinggi.
-                    </p>
-                    <p>
-                      Kawasan mangrove Angke Kapuk, sebagai salah satu hutan mangrove di Teluk Jakarta, memiliki
-                      peran yang sangat penting dalam melindungi pesisir dari abrasi, intrusi air laut, dan banjir.
-                      Namun, kawasan ini menghadapi ancaman serius akibat aktivitas manusia yang tidak terencana dan
-                      kenaikan permukaan laut sebagai dampak perubahan iklim. Untuk memulihkan fungsi ekosistem
-                      mangrove yang optimal, diperlukan upaya perbaikan dan pemeliharaan, termasuk melalui kegiatan
-                      restorasi.
-                    </p>
-                    <p>
-                      (
-                      {selectedCompanyReport.namaPerusahaan} mempunyai CSR Program dan berkontribusi terhadap upaya
-                      restorasi coastal ecosystem terutama di Area Teluk Jakarta melalui kegiatan
-                      {" "}{selectedCompanyReport.jenisKegiatan}. Pada tanggal {selectedCompanyReport.tanggalPelaksanaan}
-                      {" "}telah dilakukan penanaman mangrove sejumlah {selectedCompanyReport.jumlahBibit} individu
-                      di titik geotagging ({selectedCompanyReport.lokasiGeotagging}) pada area
-                      {" "}{selectedCompanyReport.lokasi}. Evaluasi berkala untuk melihat persentase tumbuh,
-                      parameter pertumbuhan
-                      (tinggi dan diameter batang), dan kondisi kesehatan bibit menjadi kunci dalam memastikan
-                      keberhasilan upaya restorasi tersebut.
-                      )
-                    </p>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Ringkasan Data</h3>
+                    <SummaryCards 
+                      report={selectedCompanyReport}
+                      survivalStatus={getSuccessStatus(selectedCompanyReport.survivalRate)}
+                      healthStatus={selectedCompanyReport.healthCondition}
+                    />
                   </div>
 
-                  <div>
-                    <h3 className="font-bold text-base text-gray-900 dark:text-gray-100">Metode Pengamatan:</h3>
-                    <p>
-                      Kegiatan monitoring dilakukan pada tanggal ({selectedCompanyReport.monitoringDate}) pada titik
-                      geotagging ({selectedCompanyReport.lokasiGeotagging}) di area
-                      {" "}{selectedCompanyReport.lokasi}. Kawasan ini dikelola oleh Balai Konservasi
-                      Sumber Daya Alam (BKSDA) DKI Jakarta di bawah Kementerian Lingkungan Hidup dan Kehutanan.
-                      Dalam pelaksanaan monitoring, digunakan metode kuantitatif lapangan dengan pendekatan
-                      observasi langsung. Alat yang digunakan pada pengamatan bibit mangrove yang telah ditanam
-                      antara lain pita ukur, jangka sorong, kamera, laptop, tally sheet, dan alat tulis.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-bold text-base text-gray-900 dark:text-gray-100">Hasil & Pembahasan:</h3>
-                    <div className="mt-3 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                      <table className="w-full text-sm border-collapse">
-                        <tbody>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="px-3 py-2 font-medium w-[290px]">a. Survival Rate</td>
-                            <td className="px-2 py-2 w-4 text-center">:</td>
-                            <td className="px-3 py-2 text-right font-semibold">{selectedCompanyReport.survivalRate}</td>
-                          </tr>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="px-3 py-2 font-medium">b. Tinggi Bibit Rata-rata</td>
-                            <td className="px-2 py-2 text-center">:</td>
-                            <td className="px-3 py-2 text-right font-semibold">{selectedCompanyReport.avgHeight} cm</td>
-                          </tr>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="px-3 py-2 font-medium">c. Diameter Batang Bibit Rata-rata</td>
-                            <td className="px-2 py-2 text-center">:</td>
-                            <td className="px-3 py-2 text-right font-semibold">{selectedCompanyReport.avgDiameter} cm</td>
-                          </tr>
-                          <tr>
-                            <td className="px-3 py-2 font-medium">d. Kondisi Kesehatan Bibit Tanaman</td>
-                            <td className="px-2 py-2 text-center">:</td>
-                            <td className="px-3 py-2 text-right font-semibold">{selectedCompanyReport.healthCondition}</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                  {/* Info Perusahaan */}
+                  <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Informasi Proyek</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Jenis Kegiatan</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100 mt-1">{selectedCompanyReport.jenisKegiatan}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Lokasi</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100 mt-1">{selectedCompanyReport.lokasi}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Jumlah Bibit</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100 mt-1">{selectedCompanyReport.jumlahBibit}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Tanggal Pelaksanaan</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100 mt-1">{selectedCompanyReport.tanggalPelaksanaan}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Tanggal Monitoring</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100 mt-1">{selectedCompanyReport.monitoringDate}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Geotagging</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100 mt-1 text-xs">{selectedCompanyReport.lokasiGeotagging}</p>
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Introduction Section */}
+                  <IntroductionSection report={selectedCompanyReport} />
+
+                  {/* Methodology Section */}
+                  <MethodologySection report={selectedCompanyReport} />
+
+                  {/* Narrative Editor */}
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Hasil & Pembahasan (Dapat Diedit)</h3>
+                    <NarrativeEditor 
+                      narratives={narratives}
+                      onSave={(field, value) => {
+                        setNarratives(prev => ({ ...prev, [field]: value }));
+                      }}
+                    />
+                  </div>
+
+                  {/* Recommendations */}
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Rekomendasi & Tindakan Perbaikan</h3>
+                    <RecommendationsSection recommendations={recommendations} />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col md:flex-row gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      type="button"
+                      onClick={handleDownloadPdf}
+                      disabled={isGeneratingPdf}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white text-sm font-semibold transition-colors"
+                    >
+                      <FiDownload size={16} />
+                      {isGeneratingPdf ? "Membuat PDF..." : "Unduh PDF Laporan"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNarratives({ ...savedNarratives })}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 text-sm font-semibold transition-colors"
+                    >
+                      <FiRefreshCw size={16} />
+                      Reset Narasi
+                    </button>
                   </div>
                 </div>
               </div>

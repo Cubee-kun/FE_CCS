@@ -2,9 +2,9 @@ import QRCode from "qrcode";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 export const getProgressInfo = (item) => {
-  const hasImplementasi = !!item?.is_implemented || !!item?.implementasi;
   const hasMonitoring = !!item?.implementasi?.monitoring || (Array.isArray(item?.monitoring) && item.monitoring.length > 0);
-  const hasEvaluasi = !!item?.evaluasi || !!item?.implementasi?.evaluasi || !!item?.implementasi?.monitoring?.evaluasi;
+  const hasImplementasi = hasMonitoring || !!item?.is_implemented || !!item?.implementasi;
+  const hasEvaluasi = hasMonitoring || !!item?.evaluasi || !!item?.implementasi?.evaluasi || !!item?.implementasi?.monitoring?.evaluasi;
   const currentStage = hasMonitoring ? "Monitoring" : hasImplementasi ? "Implementasi" : "Perencanaan";
 
   return {
@@ -167,6 +167,32 @@ const addLogoToQRCode = async (qrDataUrl, logoPath = "/images/icon.png") => {
     qrImage.src = qrDataUrl;
     logoImage.src = logoPath;
   });
+};
+
+const normalizeBoolean = (value) => {
+  if (value === true || value === false) return value;
+  if (value === 1 || value === "1") return true;
+  if (value === 0 || value === "0") return false;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "ya", "yes", "sesuai"].includes(normalized)) return true;
+    if (["false", "tidak", "no", "tidak sesuai"].includes(normalized)) return false;
+  }
+  return null;
+};
+
+const getKesesuaianValue = (implementasi, key) => {
+  const directMap = {
+    nama_perusahaan: implementasi?.nama_perusahaan_sesuai,
+    lokasi: implementasi?.lokasi_sesuai,
+    jenis_kegiatan: implementasi?.jenis_kegiatan_sesuai,
+    jumlah_bibit: implementasi?.jumlah_bibit_sesuai,
+    jenis_bibit: implementasi?.jenis_bibit_sesuai,
+    tanggal: implementasi?.tanggal_sesuai,
+  };
+
+  const nested = implementasi?.kesesuaian?.[key];
+  return normalizeBoolean(directMap[key] ?? nested);
 };
 
 export const buildLaporanPdfBlob = async (item) => {
@@ -356,12 +382,12 @@ export const buildLaporanPdfBlob = async (item) => {
   addField("Koordinat", `${item.lat ?? "-"}, ${item.long ?? "-"}`);
 
   addSection("STATUS DAN VERIFIKASI");
-  addField("Status Implementasi", item.is_implemented ? "Sudah Implementasi" : "Belum Implementasi");
+  addField("Status Implementasi", progress.hasImplementasi ? "Sudah Implementasi" : "Belum Implementasi");
   addField("Tahap Saat Ini", progress.currentStage);
-  addField("Progress Perencanaan", "Aktif");
-  addField("Progress Implementasi", progress.hasImplementasi ? "Aktif" : "Belum");
-  addField("Progress Monitoring", progress.hasMonitoring ? "Aktif" : "Belum");
-  addField("Progress Evaluasi", progress.hasEvaluasi ? "Aktif" : "Belum");
+  addField("Progress Perencanaan", "Selesai");
+  addField("Progress Implementasi", progress.hasImplementasi ? "Selesai" : "Belum");
+  addField("Progress Monitoring", progress.hasMonitoring ? "Selesai" : "Belum");
+  addField("Progress Evaluasi", progress.hasEvaluasi ? "Selesai" : "Belum");
   addField("Blockchain Doc Hash", item.blockchain_doc_hash || "-");
   addField("Blockchain TX Hash", item.blockchain_tx_hash || "-");
   addField("Blockchain Verification", item.blockchainData?.verified ? "Full Verified" : (item.blockchain_tx_hash ? "Uploaded (Pending Verify)" : "Not Uploaded"));
@@ -370,12 +396,12 @@ export const buildLaporanPdfBlob = async (item) => {
     const implementasiDocs = parseStoredFiles(implementasi?.dokumentasi_kegiatan);
     addSection("DETAIL IMPLEMENTASI");
     addField("PIC Koorlap", implementasi?.pic_koorlap || "-");
-    addField("Kesesuaian Nama Perusahaan", boolLabel(implementasi?.nama_perusahaan_sesuai));
-    addField("Kesesuaian Lokasi", boolLabel(implementasi?.lokasi_sesuai));
-    addField("Kesesuaian Jenis Kegiatan", boolLabel(implementasi?.jenis_kegiatan_sesuai));
-    addField("Kesesuaian Jumlah Bibit", boolLabel(implementasi?.jumlah_bibit_sesuai));
-    addField("Kesesuaian Jenis Bibit", boolLabel(implementasi?.jenis_bibit_sesuai));
-    addField("Kesesuaian Tanggal", boolLabel(implementasi?.tanggal_sesuai));
+    addField("Kesesuaian Nama Perusahaan", boolLabel(getKesesuaianValue(implementasi, "nama_perusahaan")));
+    addField("Kesesuaian Lokasi", boolLabel(getKesesuaianValue(implementasi, "lokasi")));
+    addField("Kesesuaian Jenis Kegiatan", boolLabel(getKesesuaianValue(implementasi, "jenis_kegiatan")));
+    addField("Kesesuaian Jumlah Bibit", boolLabel(getKesesuaianValue(implementasi, "jumlah_bibit")));
+    addField("Kesesuaian Jenis Bibit", boolLabel(getKesesuaianValue(implementasi, "jenis_bibit")));
+    addField("Kesesuaian Tanggal", boolLabel(getKesesuaianValue(implementasi, "tanggal")));
     addField("Geotagging Implementasi", implementasi?.geotagging || "-");
     addField("Koordinat Implementasi", `${implementasi?.lat ?? "-"}, ${implementasi?.long ?? "-"}`);
     addField("Dokumentasi Implementasi", implementasiDocs.length > 0 ? `${implementasiDocs.length} file` : "-");

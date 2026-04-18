@@ -832,9 +832,9 @@ export default function LaporanPage() {
   };
 
   const getProgressInfo = (item) => {
-    const hasImplementasi = !!item?.is_implemented || !!item?.implementasi;
     const hasMonitoring = !!item?.implementasi?.monitoring || (Array.isArray(item?.monitoring) && item.monitoring.length > 0);
-    const hasEvaluasi = !!item?.evaluasi || !!item?.implementasi?.evaluasi || !!item?.implementasi?.monitoring?.evaluasi;
+    const hasImplementasi = hasMonitoring || !!item?.is_implemented || !!item?.implementasi;
+    const hasEvaluasi = hasMonitoring || !!item?.evaluasi || !!item?.implementasi?.evaluasi || !!item?.implementasi?.monitoring?.evaluasi;
     const currentStage = hasMonitoring ? 'Monitoring' : hasImplementasi ? 'Implementasi' : 'Perencanaan';
 
     return {
@@ -1248,12 +1248,13 @@ export default function LaporanPage() {
                   <div className="md:col-span-3 flex justify-center">
                     <div className="flex flex-col items-center justify-center gap-2 w-full">
                       {(() => {
-                        const hasImplementasi = !!item.is_implemented || !!item.implementasi;
                         const hasMonitoring = !!item.implementasi?.monitoring || (Array.isArray(item.monitoring) && item.monitoring.length > 0);
+                        const hasImplementasi = hasMonitoring || !!item.is_implemented || !!item.implementasi;
+                        const hasEvaluasi = hasMonitoring || !!item.evaluasi || !!item.implementasi?.evaluasi || !!item.implementasi?.monitoring?.evaluasi;
                         const currentStage = hasMonitoring ? 'Monitoring' : hasImplementasi ? 'Implementasi' : 'Perencanaan';
 
-                        const stageClass = (active) =>
-                          active
+                        const stageClass = (done) =>
+                          done
                             ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
                             : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600';
 
@@ -1266,15 +1267,19 @@ export default function LaporanPage() {
 
                             <div className="flex items-center justify-center gap-1.5 w-full">
                               <span className={`px-2 py-1 rounded-full border text-[10px] font-semibold ${stageClass(true)}`}>
-                                Perencanaan
+                                Perencanaan: Selesai
                               </span>
                               <FiChevronRight className="w-3 h-3 text-gray-400" />
                               <span className={`px-2 py-1 rounded-full border text-[10px] font-semibold ${stageClass(hasImplementasi)}`}>
-                                Implementasi
+                                Implementasi: {hasImplementasi ? 'Selesai' : 'Belum'}
                               </span>
                               <FiChevronRight className="w-3 h-3 text-gray-400" />
                               <span className={`px-2 py-1 rounded-full border text-[10px] font-semibold ${stageClass(hasMonitoring)}`}>
-                                Monitoring
+                                Monitoring: {hasMonitoring ? 'Selesai' : 'Belum'}
+                              </span>
+                              <FiChevronRight className="w-3 h-3 text-gray-400" />
+                              <span className={`px-2 py-1 rounded-full border text-[10px] font-semibold ${stageClass(hasEvaluasi)}`}>
+                                Evaluasi: {hasEvaluasi ? 'Selesai' : 'Belum'}
                               </span>
                             </div>
                           </>
