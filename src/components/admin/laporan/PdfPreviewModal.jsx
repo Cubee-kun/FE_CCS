@@ -207,6 +207,7 @@ export default function PdfPreviewModal({
                 </div>
                 <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Jumlah Bibit Ditanam:</span> {details?.monitoring?.jumlah_bibit_ditanam ?? "-"}</div>
                 <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Jumlah Bibit Mati:</span> {details?.monitoring?.jumlah_bibit_mati ?? "-"}</div>
+                <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Tinggi Bibit:</span> {details?.monitoring?.tinggi_bibit ? `${details?.monitoring?.tinggi_bibit} cm` : "-"}</div>
                 <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Diameter Batang:</span> {details?.monitoring?.diameter_batang ? `${details?.monitoring?.diameter_batang} cm` : "-"}</div>
                 <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Jumlah Daun:</span> {details?.monitoring?.jumlah_daun ?? "-"}</div>
                 <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"><span className="font-semibold">Survival Rate:</span> {details?.monitoring?.survival_rate !== undefined && details?.monitoring?.survival_rate !== null ? `${details?.monitoring?.survival_rate}%` : "-"}</div>

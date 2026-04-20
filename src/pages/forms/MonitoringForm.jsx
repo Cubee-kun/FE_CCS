@@ -48,6 +48,7 @@ const MonitoringForm = () => {
     implementasi_id: Yup.string().required("Wajib pilih implementasi terlebih dahulu"),
     jumlah_bibit_ditanam: Yup.number().required("Wajib diisi").positive("Harus positif"),
     jumlah_bibit_mati: Yup.number().required("Wajib diisi").min(0, "Tidak boleh negatif"),
+    tinggi_bibit: Yup.number().required("Wajib diisi").positive("Harus positif"),
     diameter_batang: Yup.number().required("Wajib diisi").positive("Harus positif"),
     jumlah_daun: Yup.number().required("Wajib diisi").positive("Harus positif"),
     survival_rate: Yup.number().required("Wajib diisi").min(0).max(100),
@@ -67,6 +68,7 @@ const MonitoringForm = () => {
       implementasi_id: "",
       jumlah_bibit_ditanam: "",
       jumlah_bibit_mati: "",
+      tinggi_bibit: "",
       diameter_batang: "",
       jumlah_daun: "",
       survival_rate: "",
@@ -93,6 +95,7 @@ const MonitoringForm = () => {
         formData.append("daun_serangga", values.kondisi_daun.hama);
         formData.append("jumlah_bibit_ditanam", values.jumlah_bibit_ditanam);
         formData.append("jumlah_bibit_mati", values.jumlah_bibit_mati);
+        formData.append("tinggi_bibit", values.tinggi_bibit);
         formData.append("diameter_batang", values.diameter_batang);
         formData.append("jumlah_daun", values.jumlah_daun);
         formData.append("survival_rate", values.survival_rate);
@@ -648,6 +651,7 @@ const MonitoringForm = () => {
                 {[
                   { name: "jumlah_bibit_ditanam", label: "Jumlah Bibit Ditanam", placeholder: "100", icon: FiCheckCircle },
                   { name: "jumlah_bibit_mati", label: "Jumlah Bibit Mati", placeholder: "5", icon: FiAlertCircle },
+                  { name: "tinggi_bibit", label: "Tinggi Bibit (cm)", placeholder: "35.5", step: "0.1", icon: FiTrendingUp },
                   { name: "diameter_batang", label: "Diameter Batang (cm)", placeholder: "2.5", step: "0.1", icon: FiActivity },
                   { name: "jumlah_daun", label: "Jumlah Daun", placeholder: "20", icon: FiHash },
                   { name: "survival_rate", label: "Survival Rate (%)", placeholder: "95", icon: FiTrendingUp },
