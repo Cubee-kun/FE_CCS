@@ -1,8 +1,9 @@
 import axios from 'axios';
+import { getApiBaseUrl } from '../config/apiConfig';
 
-// Gunakan environment variable dari Vite
+// Gunakan resolver terpusat agar mudah switch local/production
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',

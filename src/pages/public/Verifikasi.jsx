@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import axios from "axios";
 import { 
   FiCamera, FiCheckCircle, FiAlertCircle, FiRefreshCw, 
   FiX, FiDownload, FiCopy, FiChevronDown, FiChevronUp, FiUpload,
@@ -409,10 +408,9 @@ export default function Verifikasi() {
         console.log(`[Verifikasi] Step 2: Trying public endpoint: /perencanaan/${laporanId}/public`);
         
         // Create request with short timeout for public endpoint
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/perencanaan/${laporanId}/public`,
-          { timeout: 5000 } // 5 second timeout for public page
-        );
+        const response = await api.get(`/perencanaan/${laporanId}/public`, {
+          timeout: 5000,
+        }); // 5 second timeout for public page
         
         laporan = response.data?.data || response.data;
         

@@ -206,14 +206,6 @@ export default function WalletIndicator() {
                         </div>
                       </motion.div>
 
-                      {/* Info Text */}
-                      <p className="text-xs text-center text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
-                        <FiBriefcase className="w-3.5 h-3.5" />
-                        <span>System-managed wallet</span>
-                        <span>•</span>
-                        <FiLock className="w-3.5 h-3.5" />
-                        <span>Private key aman di .env</span>
-                      </p>
                     </>
                   ) : (
                     <motion.div
