@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { FiDownload, FiX } from "react-icons/fi";
+import { getApiOrigin } from "../../../config/apiConfig";
 
 export default function PdfPreviewModal({
   open,
@@ -17,14 +18,7 @@ export default function PdfPreviewModal({
   const implementasiDocs = parseStoredFiles?.(details?.implementasi?.dokumentasi_kegiatan) || [];
   const monitoringDocs = parseStoredFiles?.(details?.monitoring?.dokumentasi_monitoring) || [];
 
-  const apiBase = import.meta.env.VITE_API_URL || "";
-  const apiOrigin = (() => {
-    try {
-      return new URL(apiBase).origin;
-    } catch {
-      return "";
-    }
-  })();
+  const apiOrigin = getApiOrigin();
 
   const toAbsoluteFileUrl = (path) => {
     if (!path) return "";
