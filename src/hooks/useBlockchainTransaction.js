@@ -23,7 +23,7 @@ export function useBlockchainTransaction() {
 
       console.log('[useBlockchainTransaction] Starting direct blockchain storage...');
       
-      toast.info('Storing data to Sepolia blockchain...', {
+      toast.info('Storing data to Polygon mainnet...', {
         autoClose: false,
         icon: <FiSend />,
       });
@@ -52,7 +52,7 @@ export function useBlockchainTransaction() {
               className="text-sm underline mt-1 flex items-center gap-1 text-blue-600 hover:text-blue-800"
             >
               <FiExternalLink />
-              <span>View on Sepolia Etherscan</span>
+              <span>View on PolygonScan</span>
             </a>
           </div>,
           { autoClose: 8000 }

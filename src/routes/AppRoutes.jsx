@@ -24,6 +24,7 @@ import LandingPage from "../pages/public/LandingPage";
 import About from "../pages/public/About";
 import Contact from "../pages/public/Contact";
 import Verifikasi from "../pages/public/Verifikasi";
+import MonitoringAccess from "../pages/public/MonitoringAccess";
 import NotFound from "../pages/public/NotFound";
 
 // Auth pages
@@ -77,6 +78,7 @@ export default function AppRoutes() {
       <Route path="/register" element={<Register />} />
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/monitoring-access/:perencanaanId" element={<MonitoringAccess />} />
       
       {/* ✅ Smart Verifikasi Route - berdasarkan autentikasi */}
       <Route path="/verifikasi" element={<VerifikasiRouter />} />

@@ -13,6 +13,7 @@ import {
   FiClock,
 } from "react-icons/fi";
 import api from "../../api/axios";
+import WalletIndicator from "../../components/WalletIndicator";
 
 // ✅ FIXED: Default stats dengan format chart yang benar
 const defaultStats = {
@@ -199,24 +200,32 @@ export default function Dashboard() {
 
         {/* Header */}
         <header className="bg-white dark:bg-gray-800 rounded-xl p-6 mb-8 shadow-md sticky top-0 z-10 transition">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-green-900 dark:text-green-200">
-            Selamat datang, {user?.name || "User"}!
-          </h2>
-          <p className="text-green-800 dark:text-green-400">
-            Anda login sebagai{" "}
-            <span className="font-semibold">{user?.role || "-"}</span>
-          </p>
-          <div className="flex items-center mt-2 text-sm text-green-700 dark:text-green-400">
-            <FiClock className="mr-2" />
-            Terakhir login:{" "}
-            {new Date().toLocaleDateString("id-ID", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-extrabold text-green-900 dark:text-green-200">
+                Selamat datang, {user?.name || "User"}!
+              </h2>
+              <p className="text-green-800 dark:text-green-400">
+                Anda login sebagai{" "}
+                <span className="font-semibold">{user?.role || "-"}</span>
+              </p>
+              <div className="flex items-center mt-2 text-sm text-green-700 dark:text-green-400">
+                <FiClock className="mr-2" />
+                Terakhir login:{" "}
+                {new Date().toLocaleDateString("id-ID", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+            </div>
+
+            <div className="self-start md:self-auto">
+              <WalletIndicator />
+            </div>
           </div>
         </header>
 

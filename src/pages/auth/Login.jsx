@@ -20,6 +20,7 @@ export default function Login() {
   const location = useLocation();
   
   const from = location.state?.from?.pathname || null;
+  const fromSearch = location.state?.from?.search || "";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,7 +52,7 @@ export default function Login() {
       console.log('[Login] ✅ Login successful');
 
       if (from && from !== '/login') {
-        navigate(from, { replace: true });
+        navigate(`${from}${fromSearch}`, { replace: true });
       } else if (result.data.user.role === "admin") {
         navigate("/admin/dashboard", { replace: true });
       } else if (result.data.user.role === "user") {
@@ -76,7 +77,7 @@ export default function Login() {
         localStorage.setItem("user", JSON.stringify(result.data.user));
         
         if (from && from !== '/login') {
-          navigate(from, { replace: true });
+          navigate(`${from}${fromSearch}`, { replace: true });
         } else if (result.data.user.role === "admin") {
           navigate("/admin/dashboard", { replace: true });
         } else if (result.data.user.role === "user") {

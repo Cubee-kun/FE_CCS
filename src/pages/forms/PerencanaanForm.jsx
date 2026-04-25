@@ -256,8 +256,26 @@ const PerencanaanForm = () => {
     { name: "nama_pic", label: "Nama PIC", icon: FiUser, placeholder: "John Doe" },
     { name: "narahubung", label: "Narahubung", icon: FiPhone, placeholder: "+62 812-3456-7890" },
     { name: "jumlah_bibit", label: "Jumlah Bibit", icon: FiCheckCircle, type: "number", placeholder: "100" },
-    { name: "jenis_bibit", label: "Jenis Bibit", icon: FiCheckCircle, placeholder: "Mangrove, Bakau, dll" },
+    { name: "jenis_bibit", label: "Jenis Bibit", icon: FiCheckCircle, placeholder: "Pilih jenis pohon atau tulis manual" },
     { name: "tanggal_pelaksanaan", label: "Tanggal Pelaksanaan", icon: FiCalendar, type: "date" },
+  ];
+
+  const treeSpeciesOptions = [
+    "Rhizophora apiculata",
+    "Rhizophora mucronata",
+    "Avicennia marina",
+    "Bruguiera gymnorrhiza",
+    "Sonneratia alba",
+    "Bakau",
+    "Mahoni",
+    "Trembesi",
+    "Pine",
+    "Oak",
+    "Maple",
+    "Eucalyptus",
+    "Acacia",
+    "Cedar",
+    "Mangrove campuran",
   ];
 
   return (
@@ -339,12 +357,20 @@ const PerencanaanForm = () => {
                       value={formik.values[field.name]}
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
+                      list={field.name === "jenis_bibit" ? "global-tree-species" : undefined}
                       className={`w-full px-4 py-3.5 rounded-xl border-2 bg-white dark:bg-gray-700 dark:text-gray-100 transition-all duration-300 ${
                         formik.touched[field.name] && formik.errors[field.name]
                           ? "border-red-400 focus:ring-4 focus:ring-red-200"
                           : "border-gray-200 dark:border-gray-600 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 dark:focus:ring-emerald-900/50"
                       }`}
                     />
+                    {field.name === "jenis_bibit" && (
+                      <datalist id="global-tree-species">
+                        {treeSpeciesOptions.map((species) => (
+                          <option key={species} value={species} />
+                        ))}
+                      </datalist>
+                    )}
                   </div>
                   {formik.touched[field.name] && formik.errors[field.name] && (
                     <motion.p

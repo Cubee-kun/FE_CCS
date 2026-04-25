@@ -23,6 +23,8 @@ let lastEnrichmentTime = 0;
 const MIN_ENRICHMENT_INTERVAL = 60000; // Increased to 60 seconds
 const POLL_TIMEOUT = 8000; // Increased timeout
 const SINGLE_TOAST_ID = 'laporan-page-single-toast';
+const POLYGON_RPC_URL = import.meta.env.VITE_POLYGON_MAINNET_RPC_URL || import.meta.env.VITE_POLYGON_RPC_URL;
+const POLYGONSCAN_BASE_URL = import.meta.env.VITE_BLOCKCHAIN_EXPLORER_BASE_URL || 'https://polygonscan.com';
 
 export default function LaporanPage() {
   const [laporan, setLaporan] = useState([]);
@@ -417,27 +419,27 @@ export default function LaporanPage() {
     }
   };
 
-  // ✅ HELPER: Generate sample Sepolia transaction hashes untuk demo
+  // ✅ HELPER: Generate sample Polygon transaction hashes untuk demo
   const generateSampleSepoliaHash = (itemId) => {
     // Generate deterministic hash berdasarkan item ID
     const baseNum = 1000000 + itemId;
     return `0x${baseNum.toString(16).padStart(64, '0')}`;
   };
 
-  // ✅ REAL-TIME: Fetch transaction data dari Sepolia RPC dengan retry logic
+  // ✅ REAL-TIME: Fetch transaction data dari Polygon RPC dengan retry logic
   const fetchTransactionFromSepolia = async (txHash, retries = 3) => {
     try {
       if (!txHash || txHash === '0x') {
         return null;
       }
 
-      const rpcUrl = import.meta.env.VITE_SEPOLIA_RPC_URL;
+      const rpcUrl = POLYGON_RPC_URL;
       if (!rpcUrl) {
         console.warn('[LaporanPage] No RPC URL configured');
         return null;
       }
 
-      console.log(`[LaporanPage] Fetching TX from Sepolia (attempt 1/${retries}):`, txHash);
+      console.log(`[LaporanPage] Fetching TX from Polygon (attempt 1/${retries}):`, txHash);
 
       // ✅ Retry logic jika tx belum muncul di blockchain
       for (let attempt = 1; attempt <= retries; attempt++) {
@@ -458,7 +460,7 @@ export default function LaporanPage() {
           const data = await response.json();
 
           if (data.result) {
-            console.log(`[LaporanPage] ✅ TX found on Sepolia (attempt ${attempt}):`, data.result);
+            console.log(`[LaporanPage] ✅ TX found on Polygon (attempt ${attempt}):`, data.result);
             
             const tx = data.result;
             const blockNumber = parseInt(tx.blockNumber, 16);
@@ -519,7 +521,7 @@ export default function LaporanPage() {
               status: receipt?.status === '0x1' ? 'success' : receipt?.status === '0x0' ? 'failed' : 'pending',
               verified: !!receipt,
               confirmations: confirmations,
-              explorerUrl: `https://sepolia.etherscan.io/tx/${txHash}`,
+              explorerUrl: `${POLYGONSCAN_BASE_URL}/tx/${txHash}`,
               fetchedAt: new Date().toISOString()
             };
           } else if (data.error) {
@@ -547,7 +549,7 @@ export default function LaporanPage() {
     }
   };
 
-  // ✅ ENRICHMENT: Fetch real blockchain tx hashes dari Sepolia dengan parallel processing
+  // ✅ ENRICHMENT: Fetch real blockchain tx hashes dari Polygon dengan parallel processing
   // Note: Duplicate function removed, using the one defined earlier
 
   const addLogoToQRCode = (qrDataUrl, logoPath = '/vite.png') => {
@@ -633,6 +635,7 @@ export default function LaporanPage() {
       
       // ✅ SIMPLIFIED: No blockchain verification needed
       const isBlockchainComplete = !!item.blockchain_tx_hash;
+      const monitoringAccessUrl = `${window.location.origin}/monitoring-access/${item.id}?docHash=${encodeURIComponent(item.blockchain_doc_hash || '')}&txHash=${encodeURIComponent(item.blockchain_tx_hash || '')}`;
       
       // ✅ MINIMAL QR data
       const qrData = {
@@ -640,10 +643,11 @@ export default function LaporanPage() {
         docHash: item.blockchain_doc_hash || null,
         txHash: item.blockchain_tx_hash || null,
         status: isBlockchainComplete ? "Verified" : item.blockchain_doc_hash ? "PROCESSING" : "DATABASE_ONLY",
-        source: isBlockchainComplete ? "BLOCKCHAIN" : "DATABASE"
+        source: isBlockchainComplete ? "BLOCKCHAIN" : "DATABASE",
+        monitoringAccessUrl,
       };
 
-      const qrUrl = await QRCode.toDataURL(JSON.stringify(qrData), {
+      const qrUrl = await QRCode.toDataURL(monitoringAccessUrl, {
         width: 400,
         margin: 3,
         color: {
@@ -659,13 +663,15 @@ export default function LaporanPage() {
       const fullData = {
         type: 'PERENCANAAN_BLOCKCHAIN',
         timestamp: new Date().toISOString(),
+        monitoringAccessUrl,
         verification: {
           status: qrData.status,
           blockchainComplete: isBlockchainComplete,
           docHash: item.blockchain_doc_hash || null,
           txHash: item.blockchain_tx_hash || null,
-          explorerUrl: item.blockchain_tx_hash ? `https://sepolia.etherscan.io/tx/${item.blockchain_tx_hash}` : null,
-          source: qrData.source
+          explorerUrl: item.blockchain_tx_hash ? `${POLYGONSCAN_BASE_URL}/tx/${item.blockchain_tx_hash}` : null,
+          source: qrData.source,
+          monitoringAccessUrl,
         },
         data: {
           id: item.id,
@@ -975,7 +981,7 @@ export default function LaporanPage() {
                   : 'bg-amber-50 text-amber-700 border-amber-200'
               }`}>
                 {isReady ? <FiCheck className="w-3.5 h-3.5" /> : <FiClock className="w-3.5 h-3.5" />}
-                {isReady ? 'Sepolia Ready' : 'Blockchain Loading'}
+                {isReady ? 'Polygon Ready' : 'Blockchain Loading'}
               </span>
             </div>
           </div>
@@ -1080,7 +1086,7 @@ export default function LaporanPage() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-gray-700 dark:to-gray-600 px-4 py-3 border-b border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-200 text-sm">
               <div className="md:col-span-1 text-center">No</div>
               <div className="md:col-span-4">Perusahaan</div>
-              <div className="md:col-span-4 flex items-center gap-1.5"><FiHash className="w-4 h-4" />Hash Transaksi Blockchain (Sepolia)</div>
+              <div className="md:col-span-4 flex items-center gap-1.5"><FiHash className="w-4 h-4" />Hash Transaksi Blockchain (Polygon)</div>
               <div className="md:col-span-3 text-center">Status</div>
             </div>
 
@@ -1143,25 +1149,25 @@ export default function LaporanPage() {
                             transition={{ duration: 2, repeat: Infinity }}
                           ></motion.div>
                           <span className="text-xs font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
-                            <FiCheckCircle className="w-3 h-3" /> Uploaded to Blockchain (Sepolia)
+                            <FiCheckCircle className="w-3 h-3" /> Uploaded to Blockchain (Polygon)
                           </span>
                         </div>
 
                         {/* Real TX Hash Display */}
                         <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2">
                           <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
-                            Sepolia Transaction Hash
+                            Polygon Transaction Hash
                           </p>
                           <code className="text-xs font-mono text-emerald-700 dark:text-emerald-300 break-all flex items-center gap-2">
                             {item.blockchain_tx_hash.substring(0, 30)}...
                             <motion.a
-                              href={`https://sepolia.etherscan.io/tx/${item.blockchain_tx_hash}`}
+                              href={`${POLYGONSCAN_BASE_URL}/tx/${item.blockchain_tx_hash}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 flex-shrink-0"
                               whileHover={{ scale: 1.2 }}
                               whileTap={{ scale: 0.95 }}
-                              title="View on Etherscan Sepolia"
+                              title="View on PolygonScan"
                             >
                               <FiExternalLink className="w-3.5 h-3.5" />
                             </motion.a>
@@ -1216,7 +1222,7 @@ export default function LaporanPage() {
                               <strong>Status:</strong> Waiting for blockchain transaction to be mined
                             </p>
                             <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                              This usually takes 1-5 minutes on Sepolia network
+                              This usually takes 1-5 minutes on Polygon network
                             </p>
                             <motion.button
                               onClick={() => reuploadToBlockchain(item)}

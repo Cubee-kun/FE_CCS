@@ -28,7 +28,10 @@ export function BlockchainProvider({ children }) {
         console.log('[BlockchainContext] ✅ Blockchain service ready');
         setError(null);
       } else {
-        throw new Error('Failed to initialize blockchain service');
+        const detail = typeof blockchainService.getLastError === 'function'
+          ? blockchainService.getLastError()
+          : null;
+        throw new Error(detail || 'Failed to initialize blockchain service');
       }
     } catch (err) {
       console.error('[BlockchainContext] ❌ Initialization error:', err.message);
@@ -117,6 +120,10 @@ export function BlockchainProvider({ children }) {
     try {
       if (!isReady) {
         throw new Error('Blockchain service not ready');
+      }
+
+      if (typeof blockchainService.fetchTransactionFromMainnet === 'function') {
+        return await blockchainService.fetchTransactionFromMainnet(txHash);
       }
 
       return await blockchainService.fetchTransactionFromSepolia(txHash);

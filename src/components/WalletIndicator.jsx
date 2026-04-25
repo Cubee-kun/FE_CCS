@@ -5,6 +5,9 @@ import { FiCopy, FiCheckCircle, FiAlertCircle, FiBriefcase, FiLock, FiWifiOff } 
 import { toast } from 'react-toastify';
 import { createPortal } from 'react-dom';
 
+const NETWORK_LABEL = import.meta.env.VITE_BLOCKCHAIN_NETWORK_LABEL || 'Polygon';
+const CHAIN_ID_LABEL = import.meta.env.VITE_POLYGON_CHAIN_ID || '137';
+
 export default function WalletIndicator() {
   const { isConnected, account, balance, isReady, error, loading, connectWallet } = useBlockchain();
   const [showModal, setShowModal] = useState(false);
@@ -60,10 +63,6 @@ export default function WalletIndicator() {
       setTimeout(() => setCopied(false), 2000);
     }
   };
-
-  if (!isReady) {
-    return null;
-  }
 
   return (
     <div className="relative z-40">
@@ -123,7 +122,7 @@ export default function WalletIndicator() {
                     {isConnected ? (
                       <>
                         <FiCheckCircle className="w-4 h-4 text-emerald-500" />
-                        <span>Sepolia Testnet</span>
+                        <span>{NETWORK_LABEL}</span>
                       </>
                     ) : (
                       <>
@@ -179,10 +178,10 @@ export default function WalletIndicator() {
                         whileHover={{ translateY: -2 }}
                       >
                         <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-                          Sepolia ETH Balance
+                          MATIC Balance
                         </p>
                         <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                          {Number(balance).toFixed(4)} ETH
+                          {Number(balance).toFixed(4)} MATIC
                         </p>
                       </motion.div>
 
@@ -197,11 +196,11 @@ export default function WalletIndicator() {
                         <div className="space-y-1 text-sm">
                           <div className="flex items-center justify-between">
                             <span className="text-gray-700 dark:text-gray-300">Network:</span>
-                            <span className="font-mono font-semibold text-blue-600 dark:text-blue-400">Sepolia</span>
+                            <span className="font-mono font-semibold text-blue-600 dark:text-blue-400">{NETWORK_LABEL}</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-gray-700 dark:text-gray-300">Chain ID:</span>
-                            <span className="font-mono font-semibold text-blue-600 dark:text-blue-400">11155111</span>
+                            <span className="font-mono font-semibold text-blue-600 dark:text-blue-400">{CHAIN_ID_LABEL}</span>
                           </div>
                         </div>
                       </motion.div>

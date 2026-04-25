@@ -74,6 +74,15 @@ export default function QrCodeModal({ open, qrCodeData, onClose, onDownload }) {
             />
           </div>
 
+          <div className="mb-6 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/20 p-4 text-left">
+            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 mb-1">
+              QR ini mengarah ke form monitoring
+            </p>
+            <p className="text-xs text-emerald-700/90 dark:text-emerald-300/90">
+              Konten QR memuat dokumen verifikasi blockchain dan akan mengarahkan user ke halaman monitoring. Login diperlukan sebelum mengisi form monitoring 6 bulan.
+            </p>
+          </div>
+
           <motion.button
             onClick={onDownload}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-medium shadow-lg transition-all"

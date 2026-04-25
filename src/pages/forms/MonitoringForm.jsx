@@ -8,6 +8,7 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { toast } from "react-toastify";
+import { useLocation } from "react-router-dom";
 
 // ✅ Blue marker untuk lokasi implementasi (URL stabil)
 const implementationMarkerIcon = new L.Icon({
@@ -37,15 +38,23 @@ const MonitoringForm = () => {
   const [loadingImplementasi, setLoadingImplementasi] = useState(true);
   const [existingLocations, setExistingLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [monitoringByImplementasi, setMonitoringByImplementasi] = useState({});
   const [loading, setLoading] = useState(true);
   // ✅ ADD NEW STATES FOR UPLOAD
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+  const location = useLocation();
+
+  const getMonitoringMonths = (implementasiId) => {
+    if (!implementasiId) return [];
+    return monitoringByImplementasi[String(implementasiId)] || [];
+  };
 
   const validationSchema = Yup.object({
     implementasi_id: Yup.string().required("Wajib pilih implementasi terlebih dahulu"),
+    bulan_monitoring: Yup.number().required("Wajib pilih bulan monitoring").min(1).max(6),
     jumlah_bibit_ditanam: Yup.number().required("Wajib diisi").positive("Harus positif"),
     jumlah_bibit_mati: Yup.number().required("Wajib diisi").min(0, "Tidak boleh negatif"),
     tinggi_bibit: Yup.number().required("Wajib diisi").positive("Harus positif"),
@@ -66,6 +75,7 @@ const MonitoringForm = () => {
   const formik = useFormik({
     initialValues: {
       implementasi_id: "",
+      bulan_monitoring: "",
       jumlah_bibit_ditanam: "",
       jumlah_bibit_mati: "",
       tinggi_bibit: "",
@@ -88,6 +98,7 @@ const MonitoringForm = () => {
       try {
         const formData = new FormData();
         formData.append("implementasi_id", values.implementasi_id);
+        formData.append("bulan_monitoring", values.bulan_monitoring);
         formData.append("daun_mengering", values.kondisi_daun.mengering);
         formData.append("daun_layu", values.kondisi_daun.layu);
         formData.append("daun_menguning", values.kondisi_daun.menguning);
@@ -112,6 +123,7 @@ const MonitoringForm = () => {
 
         console.log('[Monitoring Form] Submitting:', {
           implementasi_id: values.implementasi_id,
+          bulan_monitoring: values.bulan_monitoring,
           files: values.dokumentasi?.length || 0
         });
 
@@ -141,15 +153,60 @@ const MonitoringForm = () => {
   // ✅ Fetch implementasi dan lokasi
   useEffect(() => {
     let isMounted = true;
+    const queryParams = new URLSearchParams(location.search);
+    const preselectedPerencanaanId = queryParams.get("perencanaan_id");
 
     const fetchData = async () => {
       try {
-        const response = await api.get("/implementasi");
-        const data = response.data?.data || response.data || [];
+        const [implementasiResponse, monitoringResponse] = await Promise.all([
+          api.get("/implementasi"),
+          api.get("/monitoring")
+        ]);
+
+        const data = implementasiResponse.data?.data || implementasiResponse.data || [];
+        const monitoringData = monitoringResponse.data?.data || monitoringResponse.data || [];
+
+        const monitoringMap = monitoringData.reduce((acc, item) => {
+          const key = String(item.implementasi_id);
+          const month = Number(item.bulan_monitoring);
+          if (!acc[key]) acc[key] = [];
+          if (!Number.isNaN(month) && month >= 1 && month <= 6 && !acc[key].includes(month)) {
+            acc[key].push(month);
+          }
+          return acc;
+        }, {});
+
+        Object.keys(monitoringMap).forEach((key) => {
+          monitoringMap[key].sort((a, b) => a - b);
+        });
+
+        const availableImplementasi = data.filter((item) => {
+          const usedMonths = monitoringMap[String(item.id)] || [];
+          return usedMonths.length < 6;
+        });
         
         if (isMounted) {
           setImplementasis(data);
-          setExistingLocations(data);
+          setExistingLocations(availableImplementasi);
+          setMonitoringByImplementasi(monitoringMap);
+
+          if (preselectedPerencanaanId) {
+            const preselectedImplementasi = data.find(
+              (item) => String(item.perencanaan_id) === String(preselectedPerencanaanId)
+            );
+
+            if (preselectedImplementasi) {
+              const usedMonths = monitoringMap[String(preselectedImplementasi.id)] || [];
+              const nextMonth = [1, 2, 3, 4, 5, 6].find((month) => !usedMonths.includes(month));
+              if (nextMonth) {
+                handleLocationSelect(preselectedImplementasi, monitoringMap);
+                formik.setFieldValue("bulan_monitoring", String(nextMonth));
+                toast.info(`Monitoring diarahkan dari QR untuk bulan ke-${nextMonth}`);
+              } else {
+                toast.warning("Implementasi ini sudah lengkap 6 bulan monitoring");
+              }
+            }
+          }
           
           if (data.length > 0) {
             console.log(`✅ ${data.length} data implementasi ditemukan`);
@@ -174,7 +231,7 @@ const MonitoringForm = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [location.search]);
 
   // ✅ Handle implementasi selection
   const handleImplementasiSelect = (implementasi) => {
@@ -184,7 +241,8 @@ const MonitoringForm = () => {
     handleLocationSelect(implementasi);
   };
 
-  const handleLocationSelect = (location) => {
+  const handleLocationSelect = (location, monitoringMapOverride = null) => {
+    const monitoringMap = monitoringMapOverride || monitoringByImplementasi;
     setSelectedLocation(location);
     setSelectedImplementasi(location);
 
@@ -197,6 +255,14 @@ const MonitoringForm = () => {
     const geotagging = `${location.lat},${location.long}`;
     formik.setFieldValue("lokasi", geotagging);
     formik.setFieldTouched("lokasi", true, false);
+
+    const usedMonths = monitoringMap[String(location.id)] || [];
+    const suggestedMonth = [1, 2, 3, 4, 5, 6].find((month) => !usedMonths.includes(month));
+    if (suggestedMonth) {
+      formik.setFieldValue("bulan_monitoring", String(suggestedMonth));
+    } else {
+      formik.setFieldValue("bulan_monitoring", "");
+    }
   };
 
   // ✅ HANDLE DRAG AND DROP
@@ -499,6 +565,33 @@ const MonitoringForm = () => {
                     </div>
                   </div>
 
+                  <div className="mt-5 rounded-xl bg-white dark:bg-gray-800 border border-green-100 dark:border-green-800 p-4">
+                    <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-2">
+                      Progress Monitoring 6 Bulan
+                    </p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                      Bulan terisi: {(getMonitoringMonths(selectedLocation.id).length > 0)
+                        ? getMonitoringMonths(selectedLocation.id).join(", ")
+                        : "Belum ada"}
+                    </p>
+                    <div className="grid grid-cols-6 gap-2">
+                      {[1, 2, 3, 4, 5, 6].map((month) => {
+                        const filled = getMonitoringMonths(selectedLocation.id).includes(month);
+                        return (
+                          <div
+                            key={month}
+                            className={`text-center text-xs py-2 rounded-md border ${filled
+                              ? "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700"
+                              : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
+                            }`}
+                          >
+                            Bln {month}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Detail Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Perusahaan */}
@@ -647,6 +740,33 @@ const MonitoringForm = () => {
                 <FiBarChart2 className="w-5 h-5 text-green-600" />
                 <span>Data Monitoring</span>
               </h3>
+
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  Bulan Monitoring (1 - 6) <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="bulan_monitoring"
+                  value={formik.values.bulan_monitoring}
+                  onChange={formik.handleChange}
+                  disabled={!formik.values.implementasi_id}
+                  className="w-full md:w-72 px-4 py-3.5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-100 focus:border-green-500 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/50 transition-all disabled:opacity-60"
+                >
+                  <option value="">Pilih bulan monitoring</option>
+                  {[1, 2, 3, 4, 5, 6].map((month) => {
+                    const used = selectedLocation ? getMonitoringMonths(selectedLocation.id).includes(month) : false;
+                    return (
+                      <option key={month} value={month} disabled={used}>
+                        Bulan ke-{month}{used ? " (sudah terisi)" : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+                {formik.touched.bulan_monitoring && formik.errors.bulan_monitoring && (
+                  <p className="text-red-500 text-sm mt-2">{formik.errors.bulan_monitoring}</p>
+                )}
+              </div>
+
               <div className="grid md:grid-cols-2 gap-6">
                 {[
                   { name: "jumlah_bibit_ditanam", label: "Jumlah Bibit Ditanam", placeholder: "100", icon: FiCheckCircle },

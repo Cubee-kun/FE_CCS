@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { FiCheck, FiLoader, FiCopy, FiExternalLink, FiWifi, FiWifiOff, FiLink } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 
+const EXPLORER_BASE_URL = import.meta.env.VITE_BLOCKCHAIN_EXPLORER_BASE_URL || 'https://polygonscan.com';
+
 export default function BlockchainStatus() {
   const { 
     isReady, 
@@ -56,7 +58,7 @@ export default function BlockchainStatus() {
 
   const viewOnExplorer = () => {
     if (!walletAddress) return;
-    window.open(`https://sepolia.etherscan.io/address/${walletAddress}`, '_blank');
+    window.open(`${EXPLORER_BASE_URL}/address/${walletAddress}`, '_blank');
   };
 
   return (
@@ -103,7 +105,7 @@ export default function BlockchainStatus() {
       {/* Balance */}
       {walletStatus?.balance && (
         <div className="text-xs font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">
-          {parseFloat(walletStatus.balance).toFixed(4)} ETH
+          {parseFloat(walletStatus.balance).toFixed(4)} MATIC
         </div>
       )}
 

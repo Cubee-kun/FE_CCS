@@ -13,6 +13,8 @@ import { useBlockchain } from "../../contexts/BlockchainContext";
 import api from "../../api/axios";
 import "leaflet/dist/leaflet.css";
 
+const EXPLORER_BASE_URL = import.meta.env.VITE_BLOCKCHAIN_EXPLORER_BASE_URL || 'https://polygonscan.com';
+
 // ✅ Lazy load Scanner
 const Scanner = null;
 
@@ -26,7 +28,7 @@ const getMockLaporanDetail = (id) => {
   };
 };
 
-// ✅ Fungsi baru untuk fetch dari Sepolia Blockchain
+// ✅ Fungsi baru untuk fetch dari Polygon Blockchain
 const fetchFromBlockchain = async (docHash, blockchainContext) => {
   try {
     if (!blockchainContext?.contract) {
@@ -56,7 +58,7 @@ const fetchFromBlockchain = async (docHash, blockchainContext) => {
       blockchain_doc_hash: docHash,
       blockchain_timestamp: documentData.timestamp?.toNumber?.() || Date.now(),
       blockchain_verified: true,
-      source: 'BLOCKCHAIN_SEPOLIA'
+      source: 'BLOCKCHAIN_POLYGON'
     };
     
     return parsedData;
@@ -384,21 +386,21 @@ export default function Verifikasi() {
         setLaporanDetail(immediateData);
       }
 
-      // ✅ 1. PRIORITY: Fetch dari Sepolia Blockchain jika ada doc hash
+      // ✅ 1. PRIORITY: Fetch dari Polygon Blockchain jika ada doc hash
       if (blockchainReady && qrDataParsed?.blockchain_doc_hash) {
         try {
-          console.log('[Verifikasi] Step 1: Trying Sepolia Blockchain...');
+          console.log('[Verifikasi] Step 1: Trying Polygon Blockchain...');
           laporan = await blockchainContext.getDocument(qrDataParsed.blockchain_doc_hash);
           
           if (laporan) {
-            console.log('[Verifikasi] ✅ Data fetched from Sepolia Blockchain successfully');
+            console.log('[Verifikasi] ✅ Data fetched from Polygon Blockchain successfully');
             setLaporanDetail(laporan);
-            toast.success("🔗 Data berhasil diambil dari Sepolia Blockchain!");
+            toast.success("🔗 Data berhasil diambil dari Polygon Blockchain!");
             setLoadingLaporan(false);
             return;
           }
         } catch (blockchainErr) {
-          console.warn('[Verifikasi] Sepolia Blockchain fetch failed:', blockchainErr.message);
+          console.warn('[Verifikasi] Polygon Blockchain fetch failed:', blockchainErr.message);
           lastError = blockchainErr;
         }
       }
@@ -562,7 +564,7 @@ export default function Verifikasi() {
 
     try {
       // ✅ Show instant loading feedback
-      toast.info("🔍 Verifying on Sepolia blockchain...", { autoClose: 2000 });
+      toast.info("🔍 Verifying on Polygon blockchain...", { autoClose: 2000 });
       
       if (blockchainContext?.isReady) {
         // ✅ Fast verification with timeout
@@ -576,7 +578,7 @@ export default function Verifikasi() {
         if (blockchainVerified.verified) {
           console.log('[Verifikasi] ✅ Blockchain verification successful');
           
-          toast.success("🔗 ✅ Verified on Sepolia blockchain!", { autoClose: 4000 });
+          toast.success("🔗 ✅ Verified on Polygon blockchain!", { autoClose: 4000 });
           
           // ✅ Update laporan dengan blockchain data
           setLaporanDetail({
@@ -739,6 +741,52 @@ export default function Verifikasi() {
         }
       }
       
+      // ✅ URL-based QR (monitoring access flow)
+      if (/^https?:\/\//i.test(trimmedData)) {
+        try {
+          const parsedUrl = new URL(trimmedData);
+          if (parsedUrl.pathname.includes('/monitoring-access/')) {
+            const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+            const perencanaanId = pathParts[pathParts.length - 1];
+            const docHash = parsedUrl.searchParams.get('docHash');
+            const txHash = parsedUrl.searchParams.get('txHash');
+
+            playBeepSound('success');
+            setScanResult(qrData);
+            setScanning(false);
+            setError(null);
+
+            const qrPayload = {
+              type: 'MONITORING_ACCESS_URL',
+              id: perencanaanId,
+              monitoringAccessUrl: trimmedData,
+              verification: {
+                docHash,
+                txHash,
+              },
+            };
+
+            setQrDataParsed(qrPayload);
+            setParsedData({
+              id: perencanaanId,
+              blockchain_doc_hash: docHash,
+              blockchain_tx_hash: txHash,
+              source: 'MONITORING_ACCESS_URL',
+            });
+            setBlockchainData({
+              blockchain_doc_hash: docHash,
+              blockchain_tx_hash: txHash,
+            });
+
+            toast.success('✅ QR terdeteksi, mengarahkan ke akses monitoring...');
+            window.location.href = trimmedData;
+            return;
+          }
+        } catch (urlErr) {
+          console.warn('[Verifikasi] URL parse failed:', urlErr.message);
+        }
+      }
+
       // ✅ NUMERIC ID
       if (/^\d+$/.test(trimmedData)) {
         const numericId = parseInt(trimmedData);
@@ -1328,7 +1376,7 @@ export default function Verifikasi() {
                           <div>
                             <p className="text-xs text-gray-600 dark:text-gray-400">TX Hash:</p>
                             <a
-                              href={`https://sepolia.etherscan.io/tx/${laporanDetail?.blockchain_tx_hash || blockchainData?.blockchain_tx_hash}`}
+                              href={`${EXPLORER_BASE_URL}/tx/${laporanDetail?.blockchain_tx_hash || blockchainData?.blockchain_tx_hash}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs font-mono text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 break-all flex items-center gap-1"

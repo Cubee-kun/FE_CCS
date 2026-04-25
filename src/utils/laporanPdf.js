@@ -1,6 +1,8 @@
 import QRCode from "qrcode";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
+const EXPLORER_BASE_URL = import.meta.env.VITE_BLOCKCHAIN_EXPLORER_BASE_URL || "https://polygonscan.com";
+
 export const getProgressInfo = (item) => {
   const hasMonitoring = !!item?.implementasi?.monitoring || (Array.isArray(item?.monitoring) && item.monitoring.length > 0);
   const hasImplementasi = hasMonitoring || !!item?.is_implemented || !!item?.implementasi;
@@ -224,7 +226,7 @@ export const buildLaporanPdfBlob = async (item) => {
   let qrCodeImage = null;
   try {
     const qrContent = item.blockchain_tx_hash
-      ? `https://sepolia.etherscan.io/tx/${item.blockchain_tx_hash}`
+      ? `${EXPLORER_BASE_URL}/tx/${item.blockchain_tx_hash}`
       : `${window.location.origin}/public/laporan/${item.id}`;
 
     const qrDataUrl = await QRCode.toDataURL(qrContent, {
