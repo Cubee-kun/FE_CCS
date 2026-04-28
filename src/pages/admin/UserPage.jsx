@@ -11,7 +11,7 @@ import {
 
 export default function UserPage() {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
@@ -24,18 +24,36 @@ export default function UserPage() {
   const [form, setForm] = useState({ name: "", email: "", role: "user", password: "" });
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    try {
+      const cachedUsers = sessionStorage.getItem("users_cache");
+      if (cachedUsers) {
+        const parsed = JSON.parse(cachedUsers);
+        if (Array.isArray(parsed)) {
+          setUsers(parsed);
+        }
+      }
+    } catch (cacheError) {
+      console.warn("[UserPage] Failed to read cached users:", cacheError);
+    }
+  }, []);
+
   // Fetch users
   useEffect(() => {
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
-    setLoading(true);
     try {
-      const response = await api.get("/users");
+      const response = await api.get("/users", { timeout: 8000 });
       const userData = response.data?.data || response.data || [];
       console.log('[UserPage] Users fetched:', userData);
       setUsers(userData);
+      try {
+        sessionStorage.setItem("users_cache", JSON.stringify(userData));
+      } catch (cacheError) {
+        console.warn("[UserPage] Failed to store users cache:", cacheError);
+      }
       setError(null);
     } catch (err) {
       console.error("Fetch users error:", err);
@@ -46,7 +64,9 @@ export default function UserPage() {
       } else {
         setError("Gagal memuat data user. Silakan coba lagi.");
       }
-      setUsers([]);
+      if (users.length === 0) {
+        setUsers([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -163,7 +183,7 @@ export default function UserPage() {
     }
   };
 
-  if (loading) return <LoadingSpinner show={true} message="Memuat data users..." />;
+  if (loading && users.length === 0 && !error) return <LoadingSpinner show={true} message="Memuat data users..." size="small" />;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-950">
