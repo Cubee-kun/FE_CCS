@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { PieChart, BarChart } from "../../components/charts/Charts";
@@ -333,212 +333,191 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/30 to-teal-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header Section - Natural Theme */}
-        <motion.div 
-          className="mb-8"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="glass bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-3xl p-6 md:p-8 shadow-xl border border-emerald-100/50 dark:border-gray-700/30">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              {/* Welcome Section */}
-              <div className="flex items-center gap-4">
-                <motion.div
-                  className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-gray-200 to-white-600 flex items-center justify-center shadow-xl shadow-emerald-500/20 p-2"
-                  whileHover={{ scale: 1.05, rotate: 5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <motion.img
-                    src="/images/icon.png"
-                    alt="Logo"
-                    className="w-full h-full object-contain"
-                    whileHover={{ rotate: [0, -10, 10, 0] }}
-                    transition={{ duration: 0.5 }}
-                  />
-                </motion.div>
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-emerald-700 via-teal-600 to-green-600 bg-clip-text text-transparent">
-                    Selamat Datang, {user?.name?.split(' ')[0] || "Admin"}!
-                  </h1>
-                  <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2 mt-1">
-                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                    <span className="text-sm font-medium">{user?.role || "Administrator"}</span>
-                    <span className="text-xs text-gray-400">•</span>
-                    <FiClock className="w-3 h-3" />
-                    <span className="text-xs">
-                      {new Date().toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </p>
-                </div>
+    <div className="h-screen flex flex-col overflow-hidden bg-gradient-to-br from-gray-50 via-emerald-50/30 to-teal-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+      {/* Compact Header Section */}
+      <motion.div 
+        className="flex-shrink-0 px-4 sm:px-6 lg:px-8 py-3 md:py-4"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="glass bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-4 md:p-5 shadow-xl border border-emerald-100/50 dark:border-gray-700/30">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            {/* Welcome Section */}
+            <div className="flex items-center gap-3">
+              <motion.div
+                className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-gray-200 to-white-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 p-1.5 flex-shrink-0"
+                whileHover={{ scale: 1.05, rotate: 5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <motion.img
+                  src="/images/icon.png"
+                  alt="Logo"
+                  className="w-full h-full object-contain"
+                  whileHover={{ rotate: [0, -10, 10, 0] }}
+                  transition={{ duration: 0.5 }}
+                />
+              </motion.div>
+              <div className="min-w-0">
+                <h1 className="text-lg md:text-xl font-black bg-gradient-to-r from-emerald-700 via-teal-600 to-green-600 bg-clip-text text-transparent truncate">
+                  Selamat Datang, {user?.name?.split(' ')[0] || "Admin"}!
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2 mt-0.5 text-xs">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></span>
+                  <span className="font-medium">{user?.role || "Administrator"}</span>
+                  <span className="text-gray-400">•</span>
+                  <FiClock className="w-3 h-3 flex-shrink-0" />
+                  <span>
+                    {new Date().toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                </p>
               </div>
+            </div>
 
-              {/* Action Buttons - UPDATED */}
-              <div className="flex gap-3">
-                <motion.button
-                  onClick={handleRefresh}
-                  className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium transition-all flex items-center gap-2 shadow-sm"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  disabled={refreshing}
-                >
-                  <FiRefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  <span className="hidden sm:inline">Refresh</span>
-                </motion.button>
-                {/* ✅ Replace Export with Wallet Indicator */}
-                <WalletIndicator />
-              </div>
+            {/* Action Buttons */}
+            <div className="flex gap-2 flex-shrink-0">
+              <motion.button
+                onClick={handleRefresh}
+                className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium transition-all flex items-center gap-1.5 shadow-sm text-sm"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                disabled={refreshing}
+              >
+                <FiRefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline text-xs">Refresh</span>
+              </motion.button>
+              <WalletIndicator />
             </div>
           </div>
-        </motion.div>
-
-        {/* Error Alert */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-center gap-3"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-            >
-              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-                <FiActivity className="w-5 h-5 text-red-600 dark:text-red-400" />
-              </div>
-              <p className="text-red-700 dark:text-red-300 font-medium">{error}</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Stats Cards - Natural Palette */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {statCards.map((card, index) => (
-            <motion.div
-              key={index}
-              className="group relative"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              whileHover={{ y: -8 }}
-            >
-              {/* Subtle Background Gradient */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${card.bgGradient} rounded-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300`}></div>
-              
-              {/* Card Content */}
-              <div className="relative glass bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl p-6 border border-white/50 dark:border-gray-700/50 shadow-lg group-hover:shadow-2xl transition-all">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                      {card.title}
-                    </p>
-                    <h3 className="text-3xl font-black text-gray-900 dark:text-gray-100">
-                      {card.value}
-                    </h3>
-                  </div>
-                  <motion.div
-                    className={`w-14 h-14 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 group-hover:shadow-xl group-hover:shadow-emerald-500/30`}
-                    whileHover={{ scale: 1.15, rotate: 10 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  >
-                    {card.icon}
-                  </motion.div>
-                </div>
-
-                {/* Trend Indicator */}
-                <div className="flex items-center justify-between">
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${
-                    card.trendUp 
-                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' 
-                      : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                  }`}>
-                    {card.trendUp ? (
-                      <FiTrendingUp className="w-3.5 h-3.5" />
-                    ) : (
-                      <FiTrendingDown className="w-3.5 h-3.5" />
-                    )}
-                    <span className="text-xs font-bold">{card.trend}</span>
-                  </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                    {card.subtitle}
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          ))}
         </div>
+      </motion.div>
 
-        {/* Charts Section - Natural Theme dengan data yang benar */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Pie Chart */}
+      {/* Error Alert */}
+      <AnimatePresence>
+        {error && (
           <motion.div
-            className="glass bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl border border-white/50 dark:border-gray-700/50 shadow-xl overflow-hidden"
+            className="flex-shrink-0 px-4 sm:px-6 lg:px-8 py-1.5"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
+            exit={{ opacity: 0, x: -20 }}
           >
-            <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                    Jenis Kegiatan
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Distribusi aktivitas ({(stats.kegiatan_stats || []).reduce((sum, item) => sum + (item.value || 0), 0)} total)
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <select className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 border-none focus:ring-2 focus:ring-emerald-500">
-                    <option>Last 7 days</option>
-                    <option>Last month</option>
-                    <option>Last year</option>
-                  </select>
-                </div>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                <FiActivity className="w-4 h-4 text-red-600 dark:text-red-400" />
               </div>
-            </div>
-            <div className="p-6">
-              <div className="h-80 flex items-center justify-center">
-                <PieChart data={stats.kegiatan_stats || []} />
-              </div>
+              <p className="text-red-700 dark:text-red-300 font-medium text-sm">{error}</p>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
 
-          {/* Bar Chart */}
-          <motion.div
-            className="glass bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl border border-white/50 dark:border-gray-700/50 shadow-xl overflow-hidden"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-          >
-            <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                    Progress Bulan Ini
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Tren aktivitas bulanan ({(stats.monthly_stats || []).reduce((sum, item) => sum + (item.value || 0), 0)} total)
-                  </p>
+      {/* Main Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-4 sm:px-6 lg:px-8 py-3">
+          {/* Stats Cards - Compact Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            {statCards.map((card, index) => (
+              <motion.div
+                key={index}
+                className="group relative"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                whileHover={{ y: -4 }}
+              >
+                {/* Subtle Background Gradient */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${card.bgGradient} rounded-lg opacity-60 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                
+                {/* Card Content - Compact */}
+                <div className="relative glass bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-lg p-4 border border-white/50 dark:border-gray-700/50 shadow-sm group-hover:shadow-lg transition-all">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 truncate">
+                        {card.title}
+                      </p>
+                      <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100">
+                        {card.value}
+                      </h3>
+                    </div>
+                    <motion.div
+                      className={`w-10 h-10 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center text-white shadow-md flex-shrink-0`}
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                    >
+                      <span className="text-sm">{React.cloneElement(card.icon, { className: "w-5 h-5" })}</span>
+                    </motion.div>
+                  </div>
+
+                  {/* Trend Indicator */}
+                  <div className="flex items-center justify-between gap-1">
+                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold ${
+                      card.trendUp 
+                        ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' 
+                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                    }`}>
+                      {card.trendUp ? (
+                        <FiTrendingUp className="w-2.5 h-2.5" />
+                      ) : (
+                        <FiTrendingDown className="w-2.5 h-2.5" />
+                      )}
+                      <span>{card.trend}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <select className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 border-none focus:ring-2 focus:ring-emerald-500">
-                    <option>This month</option>
-                    <option>Last month</option>
-                    <option>This year</option>
-                  </select>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Charts Section - Side by Side, Compact */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {/* Pie Chart */}
+            <motion.div
+              className="glass bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-lg border border-white/50 dark:border-gray-700/50 shadow-lg overflow-hidden flex flex-col"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              <div className="p-3 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                  Jenis Kegiatan
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  ({(stats.kegiatan_stats || []).reduce((sum, item) => sum + (item.value || 0), 0)} total)
+                </p>
+              </div>
+              <div className="p-3 flex-1 flex items-center justify-center min-h-0 overflow-hidden">
+                <div className="w-full h-full flex items-center justify-center">
+                  <PieChart data={stats.kegiatan_stats || []} />
                 </div>
               </div>
-            </div>
-            <div className="p-6">
-              <div className="h-80 flex items-center justify-center">
-                <BarChart data={stats.monthly_stats || []} />
+            </motion.div>
+
+            {/* Bar Chart */}
+            <motion.div
+              className="glass bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-lg border border-white/50 dark:border-gray-700/50 shadow-lg overflow-hidden flex flex-col"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+            >
+              <div className="p-3 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                  Progress Bulan Ini
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  ({(stats.monthly_stats || []).reduce((sum, item) => sum + (item.value || 0), 0)} total)
+                </p>
               </div>
-            </div>
-          </motion.div>
+              <div className="p-3 flex-1 flex items-center justify-center min-h-0 overflow-hidden">
+                <div className="w-full h-full flex items-center justify-center">
+                  <BarChart data={stats.monthly_stats || []} />
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </div>
     </div>
