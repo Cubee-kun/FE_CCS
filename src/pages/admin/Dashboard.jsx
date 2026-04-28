@@ -33,6 +33,8 @@ const defaultStats = {
   monthly_stats: [],
 };
 
+const DASHBOARD_REQUEST_TIMEOUT = 30000;
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState(defaultStats);
@@ -75,7 +77,7 @@ export default function Dashboard() {
 
         setLoading(false);
 
-        const { data } = await api.get("/dashboard/stats", { timeout: 8000 });
+        const { data } = await api.get("/dashboard/stats", { timeout: DASHBOARD_REQUEST_TIMEOUT });
         if (isMounted) {
           // ✅ Extract stats from nested response structure
           const statsData = data?.stats || {};
@@ -179,6 +181,20 @@ export default function Dashboard() {
             return;
           }
           
+          const hasCachedStats = (() => {
+            try {
+              return Boolean(sessionStorage.getItem('dashboard_stats_cache'));
+            } catch {
+              return false;
+            }
+          })();
+
+          if (error.code === 'ECONNABORTED' && hasCachedStats) {
+            console.warn('[Dashboard] Stats request timed out, keeping cached data');
+            setError('Data dashboard sedang diperbarui di latar belakang');
+            return;
+          }
+
           // ✅ Use demo data ketika error
           const demoStats = {
             ...defaultStats,
@@ -238,7 +254,7 @@ export default function Dashboard() {
         return;
       }
 
-      const { data } = await api.get("/dashboard/stats");
+      const { data } = await api.get("/dashboard/stats", { timeout: DASHBOARD_REQUEST_TIMEOUT });
       
       // ✅ Extract stats from nested response structure
       const statsData = data?.stats || {};
