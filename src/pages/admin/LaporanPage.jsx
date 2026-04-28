@@ -840,8 +840,9 @@ export default function LaporanPage() {
   const getProgressInfo = (item) => {
     const hasMonitoring = !!item?.implementasi?.monitoring || (Array.isArray(item?.monitoring) && item.monitoring.length > 0);
     const hasImplementasi = hasMonitoring || !!item?.is_implemented || !!item?.implementasi;
-    const hasEvaluasi = hasMonitoring || !!item?.evaluasi || !!item?.implementasi?.evaluasi || !!item?.implementasi?.monitoring?.evaluasi;
-    const currentStage = hasMonitoring ? 'Monitoring' : hasImplementasi ? 'Implementasi' : 'Perencanaan';
+    const hasEvaluasiDetail = !!item?.evaluasi || !!item?.implementasi?.evaluasi || !!item?.implementasi?.monitoring?.evaluasi;
+    const hasEvaluasi = hasImplementasi && hasMonitoring && hasEvaluasiDetail;
+    const currentStage = hasEvaluasi ? 'Evaluasi' : hasMonitoring ? 'Monitoring' : hasImplementasi ? 'Implementasi' : 'Perencanaan';
 
     return {
       hasImplementasi,
@@ -1256,38 +1257,26 @@ export default function LaporanPage() {
                       {(() => {
                         const hasMonitoring = !!item.implementasi?.monitoring || (Array.isArray(item.monitoring) && item.monitoring.length > 0);
                         const hasImplementasi = hasMonitoring || !!item.is_implemented || !!item.implementasi;
-                        const hasEvaluasi = hasMonitoring || !!item.evaluasi || !!item.implementasi?.evaluasi || !!item.implementasi?.monitoring?.evaluasi;
-                        const currentStage = hasMonitoring ? 'Monitoring' : hasImplementasi ? 'Implementasi' : 'Perencanaan';
+                        const hasEvaluasiDetail = !!item.evaluasi || !!item.implementasi?.evaluasi || !!item.implementasi?.monitoring?.evaluasi;
+                        const hasEvaluasi = hasImplementasi && hasMonitoring && hasEvaluasiDetail;
 
-                        const stageClass = (done) =>
-                          done
-                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600';
+                        const statusClass = hasEvaluasi
+                          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600';
+                        const statusLabel = hasEvaluasi
+                          ? 'Evaluasi: Selesai'
+                          : !hasImplementasi
+                            ? 'Menunggu implementasi'
+                            : !hasMonitoring
+                              ? 'Menunggu monitoring'
+                              : 'Menunggu evaluasi';
 
                         return (
                           <>
-                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 inline-flex items-center gap-1">
+                            <span className={`px-3 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1.5 border ${statusClass}`}>
                               <FiCheckCircle className="w-3 h-3" />
-                              Tahap Saat Ini: {currentStage}
+                              {statusLabel}
                             </span>
-
-                            <div className="flex items-center justify-center gap-1.5 w-full">
-                              <span className={`px-2 py-1 rounded-full border text-[10px] font-semibold ${stageClass(true)}`}>
-                                Perencanaan: Selesai
-                              </span>
-                              <FiChevronRight className="w-3 h-3 text-gray-400" />
-                              <span className={`px-2 py-1 rounded-full border text-[10px] font-semibold ${stageClass(hasImplementasi)}`}>
-                                Implementasi: {hasImplementasi ? 'Selesai' : 'Belum'}
-                              </span>
-                              <FiChevronRight className="w-3 h-3 text-gray-400" />
-                              <span className={`px-2 py-1 rounded-full border text-[10px] font-semibold ${stageClass(hasMonitoring)}`}>
-                                Monitoring: {hasMonitoring ? 'Selesai' : 'Belum'}
-                              </span>
-                              <FiChevronRight className="w-3 h-3 text-gray-400" />
-                              <span className={`px-2 py-1 rounded-full border text-[10px] font-semibold ${stageClass(hasEvaluasi)}`}>
-                                Evaluasi: {hasEvaluasi ? 'Selesai' : 'Belum'}
-                              </span>
-                            </div>
                           </>
                         );
                       })()}

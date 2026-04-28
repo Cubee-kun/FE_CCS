@@ -36,11 +36,26 @@ const defaultStats = {
 export default function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState(defaultStats);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
   const pollingRef = useRef();
+
+  useEffect(() => {
+    try {
+      const cachedStats = sessionStorage.getItem('dashboard_stats_cache');
+      if (cachedStats) {
+        const parsed = JSON.parse(cachedStats);
+        setStats((prev) => ({
+          ...prev,
+          ...parsed,
+        }));
+      }
+    } catch (cacheError) {
+      console.warn('[Dashboard] Failed to read cached stats:', cacheError);
+    }
+  }, []);
 
   // Polling function for realtime data
   useEffect(() => {
@@ -58,7 +73,9 @@ export default function Dashboard() {
           return;
         }
 
-        const { data } = await api.get("/dashboard/stats");
+        setLoading(false);
+
+        const { data } = await api.get("/dashboard/stats", { timeout: 8000 });
         if (isMounted) {
           // ✅ Extract stats from nested response structure
           const statsData = data?.stats || {};
@@ -124,6 +141,22 @@ export default function Dashboard() {
             charts: chartsData,
             recent_activities: recentActivities,
           });
+
+          try {
+            sessionStorage.setItem(
+              'dashboard_stats_cache',
+              JSON.stringify({
+                ...defaultStats,
+                ...statsData,
+                kegiatan_stats: kegiatanStats,
+                monthly_stats: monthlyStats,
+                charts: chartsData,
+                recent_activities: recentActivities,
+              })
+            );
+          } catch (cacheError) {
+            console.warn('[Dashboard] Failed to store cached stats:', cacheError);
+          }
           
           console.log('[Dashboard] Final transformed stats:', {
             kegiatanStats,
@@ -169,6 +202,12 @@ export default function Dashboard() {
           
           setError("Menggunakan data demo - API tidak tersedia");
           setStats(demoStats);
+
+          try {
+            sessionStorage.setItem('dashboard_stats_cache', JSON.stringify(demoStats));
+          } catch (cacheError) {
+            console.warn('[Dashboard] Failed to store demo cache:', cacheError);
+          }
           console.log('[Dashboard] Using demo stats:', demoStats);
         }
       } finally {
@@ -324,10 +363,10 @@ export default function Dashboard() {
     },
   ];
 
-  if (loading) {
+  if (loading && stats.total_perencanaan === 0 && !error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner show={true} message="Memuat dashboard..." />
+        <LoadingSpinner show={true} message="Memuat dashboard..." size="small" />
       </div>
     );
   }
