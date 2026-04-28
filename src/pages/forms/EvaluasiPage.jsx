@@ -80,6 +80,18 @@ const getMonitoringListFromAnyShape = (value) => {
   return [value];
 };
 
+const deriveSurvivalRate = (monitoring) => {
+  const planted = parseNumber(monitoring?.jumlah_bibit_ditanam);
+  const dead = parseNumber(monitoring?.jumlah_bibit_mati);
+
+  if (planted === null || planted <= 0 || dead === null || dead < 0) {
+    return null;
+  }
+
+  const survived = Math.max(planted - dead, 0);
+  return (survived / planted) * 100;
+};
+
 const getHeightValue = (monitoring) => {
   return (
     parseNumber(monitoring?.tinggi_bibit) ??
@@ -233,7 +245,7 @@ export default function EvaluasiPage() {
       ]);
 
       const survivalValues = monitoringItems
-        .map((item) => parseNumber(item?.survival_rate))
+        .map((item) => parseNumber(item?.survival_rate) ?? deriveSurvivalRate(item))
         .filter((value) => value !== null);
 
       const diameterValues = monitoringItems

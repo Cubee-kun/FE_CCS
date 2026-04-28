@@ -47,6 +47,17 @@ const MonitoringForm = () => {
   const cameraInputRef = useRef(null);
   const location = useLocation();
 
+  const calculateSurvivalRate = (plantedValue, deadValue) => {
+    const planted = Number.parseFloat(plantedValue);
+    const dead = Number.parseFloat(deadValue);
+
+    if (!Number.isFinite(planted) || planted <= 0) return "";
+    if (!Number.isFinite(dead) || dead < 0) return "";
+
+    const survived = Math.max(planted - dead, 0);
+    return ((survived / planted) * 100).toFixed(2);
+  };
+
   const getMonitoringMonths = (implementasiId) => {
     if (!implementasiId) return [];
     return monitoringByImplementasi[String(implementasiId)] || [];
@@ -60,7 +71,10 @@ const MonitoringForm = () => {
     tinggi_bibit: Yup.number().required("Wajib diisi").positive("Harus positif"),
     diameter_batang: Yup.number().required("Wajib diisi").positive("Harus positif"),
     jumlah_daun: Yup.number().required("Wajib diisi").positive("Harus positif"),
-    survival_rate: Yup.number().required("Wajib diisi").min(0).max(100),
+    survival_rate: Yup.number()
+      .transform((value, originalValue) => (originalValue === "" ? undefined : value))
+      .min(0)
+      .max(100),
     kondisi_daun: Yup.object().shape({
       mengering: Yup.string().required("Wajib dipilih"),
       layu: Yup.string().required("Wajib dipilih"),
@@ -96,6 +110,11 @@ const MonitoringForm = () => {
     onSubmit: async (values) => {
       setSubmitting(true);
       try {
+        const computedSurvivalRate = calculateSurvivalRate(
+          values.jumlah_bibit_ditanam,
+          values.jumlah_bibit_mati
+        );
+
         const formData = new FormData();
         formData.append("implementasi_id", values.implementasi_id);
         formData.append("bulan_monitoring", values.bulan_monitoring);
@@ -109,7 +128,7 @@ const MonitoringForm = () => {
         formData.append("tinggi_bibit", values.tinggi_bibit);
         formData.append("diameter_batang", values.diameter_batang);
         formData.append("jumlah_daun", values.jumlah_daun);
-        formData.append("survival_rate", values.survival_rate);
+        formData.append("survival_rate", computedSurvivalRate || values.survival_rate || "");
         
         // Append dokumentasi dengan index yang jelas
         if (values.dokumentasi && Array.isArray(values.dokumentasi) && values.dokumentasi.length > 0) {
@@ -149,6 +168,17 @@ const MonitoringForm = () => {
       }
     },
   });
+
+  useEffect(() => {
+    const computedSurvivalRate = calculateSurvivalRate(
+      formik.values.jumlah_bibit_ditanam,
+      formik.values.jumlah_bibit_mati
+    );
+
+    if (computedSurvivalRate !== formik.values.survival_rate) {
+      formik.setFieldValue("survival_rate", computedSurvivalRate, false);
+    }
+  }, [formik.values.jumlah_bibit_ditanam, formik.values.jumlah_bibit_mati]);
 
   // ✅ Fetch implementasi dan lokasi
   useEffect(() => {
@@ -255,6 +285,12 @@ const MonitoringForm = () => {
     const geotagging = `${location.lat},${location.long}`;
     formik.setFieldValue("lokasi", geotagging);
     formik.setFieldTouched("lokasi", true, false);
+
+    const plantedSeedCount = location?.jumlah_bibit ?? location?.jumlah_bibit_ditanam ?? location?.perencanaan?.jumlah_bibit ?? "";
+    if (plantedSeedCount !== "") {
+      formik.setFieldValue("jumlah_bibit_ditanam", String(plantedSeedCount), false);
+      formik.setFieldTouched("jumlah_bibit_ditanam", false, false);
+    }
 
     const usedMonths = monitoringMap[String(location.id)] || [];
     const suggestedMonth = [1, 2, 3, 4, 5, 6].find((month) => !usedMonths.includes(month));
@@ -565,30 +601,39 @@ const MonitoringForm = () => {
                     </div>
                   </div>
 
-                  <div className="mt-5 rounded-xl bg-white dark:bg-gray-800 border border-green-100 dark:border-green-800 p-4">
-                    <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-2">
-                      Progress Monitoring 6 Bulan
-                    </p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                      Bulan terisi: {(getMonitoringMonths(selectedLocation.id).length > 0)
-                        ? getMonitoringMonths(selectedLocation.id).join(", ")
-                        : "Belum ada"}
-                    </p>
-                    <div className="grid grid-cols-6 gap-2">
-                      {[1, 2, 3, 4, 5, 6].map((month) => {
-                        const filled = getMonitoringMonths(selectedLocation.id).includes(month);
-                        return (
-                          <div
-                            key={month}
-                            className={`text-center text-xs py-2 rounded-md border ${filled
-                              ? "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700"
-                              : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
-                            }`}
-                          >
-                            Bln {month}
-                          </div>
-                        );
-                      })}
+                  {/* ✅ SEED COUNT SUMMARY - PROMINENT DISPLAY */}
+                  <div className="mt-5 rounded-xl bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-400 dark:border-green-600 p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <p className="text-xs font-semibold text-green-700 dark:text-green-300 mb-2 uppercase tracking-wide">Jumlah Bibit Perencanaan</p>
+                        <p className="text-3xl font-black text-green-900 dark:text-green-100">
+                          {selectedLocation.jumlah_bibit ?? selectedLocation.perencanaan?.jumlah_bibit ?? "-"}
+                        </p>
+                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">Unit</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-2 uppercase tracking-wide">Bibit Tertanam</p>
+                        <p className="text-3xl font-black text-emerald-900 dark:text-emerald-100">
+                          {formik.values.jumlah_bibit_ditanam || "-"}
+                        </p>
+                        <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-1">Unit</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs font-semibold text-lime-700 dark:text-lime-300 mb-2 uppercase tracking-wide">Survival Rate</p>
+                        <p className="text-3xl font-black text-lime-900 dark:text-lime-100">
+                          {formik.values.survival_rate || "-"}
+                        </p>
+                        <p className="text-xs text-lime-700 dark:text-lime-300 mt-1">%</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-green-300 dark:border-green-700">
+                      <p className="text-xs text-green-700 dark:text-green-300">
+                        📊 Bulan terisi: <span className="font-bold">{
+                          getMonitoringMonths(selectedLocation.id).length > 0
+                            ? getMonitoringMonths(selectedLocation.id).join(", ")
+                            : "Belum ada"
+                        }</span>
+                      </p>
                     </div>
                   </div>
 
@@ -769,7 +814,7 @@ const MonitoringForm = () => {
 
               <div className="grid md:grid-cols-2 gap-6">
                 {[
-                  { name: "jumlah_bibit_ditanam", label: "Jumlah Bibit Ditanam", placeholder: "100", icon: FiCheckCircle },
+                  { name: "jumlah_bibit_ditanam", label: "Jumlah Bibit Ditanam (otomatis dari perencanaan)", placeholder: "100", icon: FiCheckCircle, readOnly: true },
                   { name: "jumlah_bibit_mati", label: "Jumlah Bibit Mati", placeholder: "5", icon: FiAlertCircle },
                   { name: "tinggi_bibit", label: "Tinggi Bibit (cm)", placeholder: "35.5", step: "0.1", icon: FiTrendingUp },
                   { name: "diameter_batang", label: "Diameter Batang (cm)", placeholder: "2.5", step: "0.1", icon: FiActivity },
@@ -793,8 +838,21 @@ const MonitoringForm = () => {
                       placeholder={field.placeholder}
                       value={formik.values[field.name]}
                       onChange={formik.handleChange}
-                      className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-100 focus:border-green-500 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/50 transition-all"
+                      readOnly={field.readOnly || field.name === "survival_rate"}
+                      tabIndex={(field.readOnly || field.name === "survival_rate") ? -1 : 0}
+                      className={`w-full px-4 py-3.5 rounded-xl border-2 dark:text-gray-100 focus:ring-4 transition-all ${
+                        field.readOnly || field.name === "survival_rate"
+                          ? "border-green-200 bg-green-50 text-green-900 dark:border-green-800 dark:bg-green-900/20 dark:text-green-100 cursor-not-allowed"
+                          : "border-gray-200 bg-white dark:border-gray-600 dark:bg-gray-700 focus:border-green-500 focus:ring-green-100 dark:focus:ring-green-900/50"
+                      }`}
                     />
+                      {(field.name === "jumlah_bibit_ditanam" || field.name === "survival_rate") && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          {field.name === "jumlah_bibit_ditanam"
+                            ? "Otomatis diambil dari data perencanaan/implementasi yang dipilih."
+                            : "Otomatis dihitung dari bibit ditanam dikurangi bibit mati."}
+                        </p>
+                      )}
                     {formik.touched[field.name] && formik.errors[field.name] && (
                       <p className="text-red-500 text-sm mt-2">{formik.errors[field.name]}</p>
                     )}

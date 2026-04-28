@@ -23,7 +23,7 @@ ChartJS.register(
   Legend
 );
 
-export function PieChart({ data = [] }) {
+export function PieChart({ data = [], compact = false }) {
   // ✅ FIXED: Validate and transform data
   console.log("[PieChart] Input data:", data);
 
@@ -75,10 +75,10 @@ export function PieChart({ data = [] }) {
       legend: {
         position: "bottom",
         labels: {
-          padding: 20,
+          padding: 10,
           usePointStyle: true,
           font: {
-            size: 12,
+            size: 10,
             weight: "bold",
           },
         },
@@ -106,16 +106,18 @@ export function PieChart({ data = [] }) {
   };
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center p-4">
+    <div className={`w-full h-full flex flex-col items-center justify-center ${compact ? "p-1" : "p-2"}`}>
       {validData.length > 0 && validData[0].label !== "Belum ada data" ? (
-        <Pie data={chartData} options={options} />
+        <div className={compact ? "w-full h-[180px] max-w-[260px]" : "w-full h-[260px]"}>
+          <Pie data={chartData} options={options} />
+        </div>
       ) : (
         <div className="text-center">
-          <div className="text-6xl mb-4">📊</div>
-          <p className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">
+          <div className={compact ? "text-4xl mb-2" : "text-6xl mb-4"}>📊</div>
+          <p className={compact ? "text-sm font-bold text-gray-700 dark:text-gray-300 mb-1" : "text-lg font-bold text-gray-700 dark:text-gray-300 mb-2"}>
             Belum ada data kegiatan
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className={compact ? "text-xs text-gray-500 dark:text-gray-400" : "text-sm text-gray-500 dark:text-gray-400"}>
             Data akan muncul setelah ada perencanaan kegiatan
           </p>
         </div>
@@ -124,7 +126,7 @@ export function PieChart({ data = [] }) {
   );
 }
 
-export function BarChart({ data = [] }) {
+export function BarChart({ data = [], compact = false }) {
   // ✅ FIXED: Validate and transform data
   console.log("[BarChart] Input data:", data);
 
@@ -170,10 +172,10 @@ export function BarChart({ data = [] }) {
       legend: {
         position: "top",
         labels: {
-          padding: 20,
+          padding: 10,
           usePointStyle: true,
           font: {
-            size: 12,
+            size: 10,
             weight: "bold",
           },
         },
@@ -224,16 +226,18 @@ export function BarChart({ data = [] }) {
   };
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center p-4">
+    <div className={`w-full h-full flex flex-col items-center justify-center ${compact ? "p-1" : "p-2"}`}>
       {validData.some((item) => item.value > 0) ? (
-        <Bar data={chartData} options={options} />
+        <div className={compact ? "w-full h-[180px]" : "w-full h-[260px]"}>
+          <Bar data={chartData} options={options} />
+        </div>
       ) : (
         <div className="text-center">
-          <div className="text-6xl mb-4">📈</div>
-          <p className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">
+          <div className={compact ? "text-4xl mb-2" : "text-6xl mb-4"}>📈</div>
+          <p className={compact ? "text-sm font-bold text-gray-700 dark:text-gray-300 mb-1" : "text-lg font-bold text-gray-700 dark:text-gray-300 mb-2"}>
             Belum ada progress bulan ini
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className={compact ? "text-xs text-gray-500 dark:text-gray-400" : "text-sm text-gray-500 dark:text-gray-400"}>
             Grafik akan muncul setelah ada aktivitas
           </p>
         </div>

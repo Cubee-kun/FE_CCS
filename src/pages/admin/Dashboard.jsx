@@ -388,7 +388,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gradient-to-br from-gray-50 via-emerald-50/30 to-teal-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+    <div className="h-dvh flex flex-col overflow-hidden bg-gradient-to-br from-gray-50 via-emerald-50/30 to-teal-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       {/* Compact Header Section */}
       <motion.div 
         className="flex-shrink-0 px-4 sm:px-6 lg:px-8 py-3 md:py-4"
@@ -455,14 +455,14 @@ export default function Dashboard() {
       <AnimatePresence>
         {error && (
           <motion.div
-            className="flex-shrink-0 px-4 sm:px-6 lg:px-8 py-1.5"
+            className="flex-shrink-0 px-4 sm:px-6 lg:px-8 py-1"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-                <FiActivity className="w-4 h-4 text-red-600 dark:text-red-400" />
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2.5 flex items-center gap-3">
+              <div className="w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                <FiActivity className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
               </div>
               <p className="text-red-700 dark:text-red-300 font-medium text-sm">{error}</p>
             </div>
@@ -471,10 +471,10 @@ export default function Dashboard() {
       </AnimatePresence>
 
       {/* Main Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-4 sm:px-6 lg:px-8 py-3">
-          {/* Stats Cards - Compact Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div className="flex-1 overflow-hidden min-h-0">
+        <div className="h-full px-4 sm:px-6 lg:px-8 py-1 flex flex-col gap-4 min-h-0">
+          {/* Stats Cards - User Friendly Large Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 flex-shrink-0">
             {statCards.map((card, index) => (
               <motion.div
                 key={index}
@@ -487,29 +487,29 @@ export default function Dashboard() {
                 {/* Subtle Background Gradient */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${card.bgGradient} rounded-lg opacity-60 group-hover:opacity-100 transition-opacity duration-300`}></div>
                 
-                {/* Card Content - Compact */}
+                {/* Card Content - Large & User Friendly */}
                 <div className="relative glass bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-lg p-4 border border-white/50 dark:border-gray-700/50 shadow-sm group-hover:shadow-lg transition-all">
-                  <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 truncate">
                         {card.title}
                       </p>
-                      <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100">
+                      <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 leading-none">
                         {card.value}
                       </h3>
                     </div>
                     <motion.div
-                      className={`w-10 h-10 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center text-white shadow-md flex-shrink-0`}
+                      className={`w-11 h-11 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center text-white shadow-md flex-shrink-0`}
                       whileHover={{ scale: 1.1 }}
                       transition={{ type: "spring", stiffness: 400, damping: 10 }}
                     >
-                      <span className="text-sm">{React.cloneElement(card.icon, { className: "w-5 h-5" })}</span>
+                      <span className="text-base">{React.cloneElement(card.icon, { className: "w-5 h-5" })}</span>
                     </motion.div>
                   </div>
 
                   {/* Trend Indicator */}
                   <div className="flex items-center justify-between gap-1">
-                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold ${
+                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
                       card.trendUp 
                         ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' 
                         : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
@@ -528,47 +528,47 @@ export default function Dashboard() {
           </div>
 
           {/* Charts Section - Side by Side, Compact */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 flex-none min-h-0">
             {/* Pie Chart */}
             <motion.div
-              className="glass bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-lg border border-white/50 dark:border-gray-700/50 shadow-lg overflow-hidden flex flex-col"
+              className="glass bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-lg border border-white/50 dark:border-gray-700/50 shadow-lg overflow-hidden flex flex-col min-h-0 h-[220px] lg:h-[230px]"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
             >
-              <div className="p-3 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
+              <div className="p-1 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
                 <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
                   Jenis Kegiatan
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                   ({(stats.kegiatan_stats || []).reduce((sum, item) => sum + (item.value || 0), 0)} total)
                 </p>
               </div>
-              <div className="p-3 flex-1 flex items-center justify-center min-h-0 overflow-hidden">
+              <div className="p-0.5 flex-1 flex items-center justify-center min-h-0 overflow-hidden">
                 <div className="w-full h-full flex items-center justify-center">
-                  <PieChart data={stats.kegiatan_stats || []} />
+                  <PieChart data={stats.kegiatan_stats || []} compact />
                 </div>
               </div>
             </motion.div>
 
             {/* Bar Chart */}
             <motion.div
-              className="glass bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-lg border border-white/50 dark:border-gray-700/50 shadow-lg overflow-hidden flex flex-col"
+              className="glass bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-lg border border-white/50 dark:border-gray-700/50 shadow-lg overflow-hidden flex flex-col min-h-0 h-[220px] lg:h-[230px]"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.5 }}
             >
-              <div className="p-3 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
+              <div className="p-1 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
                 <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
                   Progress Bulan Ini
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                   ({(stats.monthly_stats || []).reduce((sum, item) => sum + (item.value || 0), 0)} total)
                 </p>
               </div>
-              <div className="p-3 flex-1 flex items-center justify-center min-h-0 overflow-hidden">
+              <div className="p-0.5 flex-1 flex items-center justify-center min-h-0 overflow-hidden">
                 <div className="w-full h-full flex items-center justify-center">
-                  <BarChart data={stats.monthly_stats || []} />
+                  <BarChart data={stats.monthly_stats || []} compact />
                 </div>
               </div>
             </motion.div>

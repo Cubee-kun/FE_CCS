@@ -45,11 +45,9 @@ export default function DashboardLayout({ isUser = false }) {
           </h1>
         </div>
 
-        {/* Content Container */}
-        <div className="p-4 md:p-8">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 md:p-6 transition-colors duration-300">
-            <Outlet />
-          </div>
+        {/* Content Container - Direct Outlet */}
+        <div className="w-full h-full overflow-hidden">
+          <Outlet />
         </div>
       </div>
     </div>
