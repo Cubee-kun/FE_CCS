@@ -7,22 +7,12 @@ export default function Footer() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const footerLinks = {
-    produk: [
-      { name: "Beranda", href: "/" },
-      { name: "Monitoring", href: "#" },
-      { name: "Analytics", href: "#" },
-      { name: "Reporting", href: "#" },
-      { name: "Mobile App", href: "#" },
-    ],
-    perusahaan: [
-      { name: "Tentang Kami", href: "/about" },
-      { name: "Tim", href: "#" },
-      { name: "Karir", href: "#" },
-      { name: "Blog", href: "#" },
-      { name: "Press Kit", href: "#" },
-    ],
-  };
+  const footerLinks = [
+    { name: "Beranda", href: "/" },
+    { name: "Tentang", href: "/about" },
+    { name: "Verifikasi", href: "/verifikasi" },
+    { name: "Login", href: "/login" },
+  ];
 
   const socialLinks = [
     { icon: FiGithub, href: "#", label: "GitHub" },
@@ -100,68 +90,66 @@ export default function Footer() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-14 pb-8">
         <div className={panelClass}>
-        {/* Top Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 mb-12">
-          {/* Brand Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-          >
-            {/* Logo & Brand */}
-            <div className="flex items-center space-x-3 mb-6">
-              <motion.img
-                src="/images/icon.png"
-                alt="CCS System Logo"
-                className="h-12 w-12 object-contain"
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-              />
-              <div>
-                <h3 className={brandTitleClass}>
-                  3TREESIFY
-                </h3>
-                <p className={brandSubClass}>Traceability, Transparancy &amp; Trust</p>
-              </div>
-            </div>
-
-            {/* Description */}
-            <p className={descClass}>
-              Platform konservasi digital berbasis blockchain yang membantu organisasi mengelola proyek lingkungan dengan transparansi data dan keamanan tingkat enterprise.
-            </p>
-
-            {/* Social Links */}
-            <div className="flex space-x-3">
-              {socialLinks.map((social, index) => (
-                <motion.a
-                  key={index}
-                  href={social.href}
-                  aria-label={social.label}
-                  className={socialBtnClass}
-                  whileHover={{ scale: 1.1, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <social.icon className={socialIconClass} />
-                </motion.a>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Links Sections */}
-          {Object.entries(footerLinks).map(([category, links], categoryIndex) => (
+          {/* Top Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-12 mb-12">
+            {/* Brand Section */}
             <motion.div
-              key={category}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: categoryIndex * 0.1 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+            >
+              {/* Logo & Brand */}
+              <div className="flex items-center space-x-3 mb-6">
+                <motion.img
+                  src="/images/icon.png"
+                  alt="CCS System Logo"
+                  className="h-12 w-12 object-contain"
+                  whileHover={{ rotate: 360 }}
+                  transition={{ duration: 0.6 }}
+                />
+                <div>
+                  <h3 className={brandTitleClass}>
+                    3TREESIFY
+                  </h3>
+                  <p className={brandSubClass}>Monitoring & Restorasi Ekosistem</p>
+                </div>
+              </div>
+
+              {/* Description */}
+              <p className={descClass}>
+                Sistem monitoring terintegrasi untuk mendukung proyek restorasi ekosistem dengan data akurat dan transparan.
+              </p>
+
+              {/* Social Links */}
+              <div className="flex space-x-3 mt-6">
+                {socialLinks.map((social, index) => (
+                  <motion.a
+                    key={index}
+                    href={social.href}
+                    aria-label={social.label}
+                    className={socialBtnClass}
+                    whileHover={{ scale: 1.1, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <social.icon className={socialIconClass} />
+                  </motion.a>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Navigation Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
               viewport={{ once: true }}
             >
               <h4 className={sectionTitleClass}>
-                {category}
+                Navigasi
               </h4>
               <ul className="space-y-3">
-                {links.map((link, linkIndex) => (
+                {footerLinks.map((link, linkIndex) => (
                   <motion.li
                     key={linkIndex}
                     whileHover={{ x: 5 }}
@@ -178,35 +166,34 @@ export default function Footer() {
                 ))}
               </ul>
             </motion.div>
-          ))}
 
-          {/* Contact Info Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            viewport={{ once: true }}
-          >
-            <h4 className={sectionTitleClass}>
-              Hubungi Kami
-            </h4>
-            <div className="space-y-3">
-              {contactInfo.map((item, index) => (
-                <motion.div
-                  key={index}
-                  className={contactItemClass}
-                  whileHover={{ x: 5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <div className={contactIconWrapClass}>
-                    <item.icon className={contactIconClass} />
-                  </div>
-                  <span className={contactTextClass}>{item.text}</span>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
+            {/* Contact Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              viewport={{ once: true }}
+            >
+              <h4 className={sectionTitleClass}>
+                Hubungi Kami
+              </h4>
+              <div className="space-y-3">
+                {contactInfo.map((item, index) => (
+                  <motion.div
+                    key={index}
+                    className={contactItemClass}
+                    whileHover={{ x: 5 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <div className={contactIconWrapClass}>
+                      <item.icon className={contactIconClass} />
+                    </div>
+                    <span className={contactTextClass}>{item.text}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
 
         {/* Bottom Section */}
         <motion.div
@@ -220,14 +207,14 @@ export default function Footer() {
           <div className="text-center md:text-left">
             <p className={copyClass}>
               © {currentYear}{" "}
-              <span className={copyBrandClass}>3TREESIFY</span>
-              . All rights reserved.
+              <span className={copyBrandClass}>Coastal Conservation System</span>
+              . Semua hak cipta dilindungi.
             </p>
           </div>
 
           {/* Legal Links */}
           <div className="flex flex-wrap justify-center gap-6 text-sm">
-            {["Kebijakan Privasi", "Syarat Layanan", "Cookie"].map((item, index) => (
+            {["Kebijakan Privasi", "Syarat & Ketentuan", "Lisensi"].map((item, index) => (
               <motion.a
                 key={index}
                 href="#"

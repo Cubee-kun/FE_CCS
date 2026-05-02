@@ -188,7 +188,7 @@ export default function Navbar({ isUser = false }) {
                 <motion.button
                   onClick={toggleTheme}
                   className="hidden sm:block p-2.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all"
-                  whileHover={{ scale: 1.1, rotate: 180 }}
+                  whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
                   {theme === "dark" ? (
@@ -322,7 +322,7 @@ export default function Navbar({ isUser = false }) {
                 <motion.button
                   onClick={toggleTheme}
                   className="p-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all"
-                  whileHover={{ scale: 1.1, rotate: 180 }}
+                  whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
                   {theme === "dark" ? (

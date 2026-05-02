@@ -304,10 +304,6 @@ const LandingPage = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
               >
-                <span className="inline-flex items-center gap-1">
-                  <FiStar className="text-amber-400" />
-                  <span>Dipercaya oleh 10,000+ organisasi konservasi di Indonesia</span>
-                </span>
               </motion.p>
             </motion.div>
 
@@ -835,7 +831,7 @@ const LandingPage = () => {
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Mulai Gratis 14 Hari
+                Mulai Sekarang
               </motion.button>
               <motion.button
                 onClick={() => navigate("/contact")}
@@ -847,7 +843,7 @@ const LandingPage = () => {
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Hubungi Sales
+                Hubungi Kami
               </motion.button>
             </div>
           </motion.div>
