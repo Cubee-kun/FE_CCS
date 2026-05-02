@@ -95,6 +95,49 @@ export default function Verifikasi() {
   const [ScannerComponent, setScannerComponent] = useState(null);
   const [qrDataParsed, setQrDataParsed] = useState(null);
 
+  // ✅ Cleanup camera saat component unmount atau halaman berubah
+  useEffect(() => {
+    return () => {
+      console.log('[Verifikasi] Component unmounting, stopping camera...');
+      // ✅ Stop semua video tracks
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(track => {
+          console.log('[Verifikasi] Stopping track:', track.label);
+          track.stop();
+        });
+        videoRef.current.srcObject = null;
+      }
+      // ✅ Reset scanning state
+      setScanning(false);
+    };
+  }, []);
+
+  // ✅ Handle visibility change (user switch tab/app)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('[Verifikasi] Page hidden, stopping camera');
+        setScanning(false);
+        if (videoRef.current?.srcObject) {
+          videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+          videoRef.current.srcObject = null;
+        }
+      } else {
+        console.log('[Verifikasi] Page visible again, resuming camera if was scanning');
+        if (scanResult && laporanDetail) {
+          // User already has a result, don't restart
+          return;
+        }
+        if (scannerReady && !useManualInput) {
+          setScanning(true);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [scannerReady, useManualInput, scanResult, laporanDetail]);
+
   // ✅ Function untuk beep sound dengan beberapa varian
   const playBeepSound = (type = 'success') => {
     try {

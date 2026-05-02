@@ -833,18 +833,6 @@ const LandingPage = () => {
               >
                 Mulai Sekarang
               </motion.button>
-              <motion.button
-                onClick={() => navigate("/contact")}
-                className={`px-6 sm:px-8 py-3.5 sm:py-4 font-semibold rounded-2xl transition-all text-sm sm:text-base backdrop-blur-xl border ${
-                  theme === 'dark'
-                    ? 'border-white/45 bg-white/10 text-white hover:bg-white/20'
-                    : 'border-emerald-300/70 bg-emerald-100/80 text-emerald-800 hover:bg-emerald-200/80'
-                }`}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Hubungi Kami
-              </motion.button>
             </div>
           </motion.div>
         </div>
